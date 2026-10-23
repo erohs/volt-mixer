@@ -1,8 +1,9 @@
 import { applyIntent, type Intent, type IntentResult } from "../lib/intents.ts";
 import { newestSpec } from "../lib/spec.ts";
-import { app, commit, layout, notice } from "./app-state.ts";
+import { app, commit, layout } from "./app-state.ts";
 import { openChannelDialog } from "./channel-dialog.ts";
 import { togglePhantom } from "./phantom.ts";
+import { toast } from "./toast.ts";
 import { setSliderValue } from "./slider.ts";
 import { stripIds } from "./strips.ts";
 
@@ -10,7 +11,7 @@ import { stripIds } from "./strips.ts";
 
 /** Solo, digital mutes and faders are mix levels, so they need this computer to own the mix. */
 const explainNeedsMix = (): void =>
-    notice("That works once this computer has your mix. Set one up above, or open a mix link.");
+    toast("That works once this computer has your mix. Set one up above, or open a mix link.");
 
 /** Applies an intent from any view (this page's controls or the tray window) and commits it. */
 export const runIntent = (intent: Intent): IntentResult => {

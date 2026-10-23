@@ -206,14 +206,27 @@ import Slider from "../ui/Slider.astro";
     </SettingGroup>
 
     <SettingGroup id="your-mix" title="Your mix">
-        <SettingRow id="copy-mix" name="Mix link" description="Use this mix on another computer.">
-            <button class="button" type="button" aria-describedby="copy-mix-description" data-action="copy-mix-link">
-                Copy link
-            </button>
-            <button class="button" type="button" aria-describedby="copy-mix-description" data-action="show-mix-qr">
-                Show QR
-            </button>
+        <SettingRow
+            id="mix-link"
+            name="Mix link"
+            description="Click it to copy, then open it on another computer."
+            for="mix-link-input">
+            <input
+                id="mix-link-input"
+                class="link"
+                type="text"
+                readonly
+                aria-describedby="mix-link-description"
+                data-mix-link
+            />
         </SettingRow>
+        <button class="button qr-toggle" type="button" aria-expanded="false" aria-controls="mix-qr" data-mix-qr-toggle>
+            Show QR code
+        </button>
+        <div id="mix-qr" class="mix-qr" data-mix-qr hidden>
+            <QrCode name="mix" label="QR code of this mix link" />
+            <p class="note">Scan it with your phone, or on the work laptop with the Windows Camera app.</p>
+        </div>
         <!-- Website only (app-sync.ts hides it in the desktop app, which is the other end). -->
         <div data-app-sync>
             <SettingRow
@@ -283,6 +296,24 @@ import Slider from "../ui/Slider.astro";
     .address:not([hidden]) {
         display: flex;
         align-items: center;
+        gap: var(--space-between-text);
+    }
+
+    /* The link itself, read-only: clicking it copies it. */
+    .link {
+        inline-size: min(14rem, 100%);
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+        text-overflow: ellipsis;
+        cursor: copy;
+    }
+
+    .qr-toggle {
+        justify-self: start;
+    }
+
+    .mix-qr:not([hidden]) {
+        display: grid;
         gap: var(--space-between-text);
     }
 </style>

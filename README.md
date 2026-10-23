@@ -61,9 +61,9 @@ Only Windows has been tried with a Volt so far; reports from macOS and Linux are
 
 ### Your mix on other devices
 
-- **Another computer:** Settings › Your mix › **Copy link** or **Show QR**. The link is short
-  (about 140 characters) and the QR code can be scanned with a phone or, on a Windows laptop,
-  with the Camera app. Opening it there applies the mix.
+- **Another computer:** Settings › Your mix › click the **Mix link** to copy it, or **Show QR
+  code**. The link is short (about 140 characters) and the QR code can be scanned with a phone
+  or, on a Windows laptop, with the Camera app. Opening it there applies the mix.
 - **The app and the website on one computer:** turn on Settings › Your mix › **Sync with the
   desktop app** on the website (the app shares by default). The browser asks once before the site
   may talk to an app on this computer. The most recent change wins.

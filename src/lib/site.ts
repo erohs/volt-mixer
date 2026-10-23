@@ -6,6 +6,7 @@ export const site = {
         "Free, open-source control for the Universal Audio Volt 4 Gen 2's built-in mixer: faders, cue mixes, 48V, " +
         "gain and meters in Edge or Chrome. Nothing to install.",
     imageAlt: "Volt Mixer: channel faders and meters for the UA Volt 4 Gen 2, in the browser.",
+    websiteUrl: "https://erohs.github.io/volt-mixer/",
     repositoryUrl: "https://github.com/erohs/volt-mixer",
     licenceUrl: "https://github.com/erohs/volt-mixer/blob/main/LICENSE",
     privacyPath: "privacy/",

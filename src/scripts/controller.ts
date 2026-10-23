@@ -15,6 +15,7 @@ import { initDialogs } from "./dialogs.ts";
 import { resetMeters, showMeterLevels } from "./meters-view.ts";
 import { refreshSettings, settingsActions, wireSettingsDialog } from "./settings-dialog.ts";
 import { publish, wireRemote, type ITraySnapshot } from "./remote.ts";
+import { toast } from "./toast.ts";
 import { answerWebsite } from "./website-share.ts";
 import { loadMix, loadPendingMix, loadTheme, loadTrayHidden, saveMix, savePendingMix } from "./store.ts";
 import { initSliders } from "./slider.ts";
@@ -99,7 +100,7 @@ const onFirstState = (data: Uint8Array): void => {
     const pendingMix = loadPendingMix();
     const savedMix = pendingMix ?? loadMix(app.serial);
     savePendingMix(null);
-    if (pendingMix) notice("Mix applied from the link.");
+    if (pendingMix) toast("Mix applied from the link.");
     if (savedMix) takeOwnership(savedMix);
     else relayout();
     void pullAppMix();
@@ -179,13 +180,13 @@ const onDisconnected = ({ isByUser }: { isByUser: boolean }): void => {
 /** A mix link (`#m=`, or an older `#mix=`): applied now if the Volt is ready, otherwise kept until it connects. */
 const receiveMixLink = (link: string): boolean => {
     const mix = mixFromHash(new URL(link, location.href).hash);
-    if (!mix) return (notice("That isn't a Volt Mixer mix link."), false);
+    if (!mix) return (toast("That isn't a Volt Mixer mix link."), false);
     if (volt.connectedSpec() && app.isHardwareKnown) {
         takeOwnership(mix);
-        notice("Mix applied from the link.");
+        toast("Mix applied from the link.");
     } else {
         savePendingMix(mix);
-        notice("Mix received. It will be applied when the Volt connects.");
+        toast("Mix received. It will be applied when the Volt connects.");
     }
     return true;
 };
@@ -215,7 +216,7 @@ const pageActions: Record<string, () => void> = {
             .pair()
             .then(
                 (result) =>
-                    result === "cancelled" && notice('No Volt was chosen. Click Connect Volt and pick "Volt 4 Gen 2".'),
+                    result === "cancelled" && toast('No Volt was chosen. Click Connect Volt and pick "Volt 4 Gen 2".'),
             ),
     disconnect: () => void volt.disconnect(),
     identify: () => {

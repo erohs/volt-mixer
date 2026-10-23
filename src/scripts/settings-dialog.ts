@@ -1,14 +1,12 @@
 import { isRouteKnown } from "../lib/commands.ts";
 import type { CueName } from "../lib/mixer.ts";
-import { encodeMixCode } from "../lib/mix-code.ts";
-import { toSavedMix } from "../lib/saved-mix.ts";
 import { newestSpec } from "../lib/spec.ts";
-import { app, commit, hooks, layout, notice } from "./app-state.ts";
-import { showQr } from "./qr-dialog.ts";
+import { app, commit, hooks, layout } from "./app-state.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 import { loadTheme, saveTheme, saveView } from "./store.ts";
 import { applyTheme, isTheme } from "./theme.ts";
 import { wireAppSync } from "./app-sync.ts";
+import { refreshMixLink, wireMixLink } from "./mix-link.ts";
 import { wireDesktopSettings } from "./desktop-settings.ts";
 
 /* The Settings dialog (SettingsDialog.astro): device options, cue routing, view and the mix. */
@@ -52,6 +50,7 @@ export const refreshSettings = (isLive: boolean): void => {
     check("show-digital", app.view.isDigitalShown);
     check("show-loopback", app.view.isLoopbackShown);
     check("theme", loadTheme());
+    refreshMixLink();
     markUncapturedRoutes();
     const brightness = dialog().querySelector<HTMLElement>("[data-slider='brightness']")!;
     setSliderValue(brightness, device.brightness);
@@ -87,31 +86,13 @@ const onChange = (input: HTMLInputElement | HTMLSelectElement): void => {
     commit();
 };
 
-/** A link to this page that carries the mix, for opening on the other computer. */
-export const mixLink = (): string => {
-    // Always the website's address: in the desktop app location.href is app://volt/, which opens nowhere else.
-    const url = new URL(import.meta.env.BASE_URL, import.meta.env.SITE);
-    url.hash = `m=${encodeMixCode(toSavedMix(app.state))}`;
-    return url.href;
-};
-
-const copyMixLink = async (): Promise<void> => {
-    try {
-        await navigator.clipboard.writeText(mixLink());
-        notice("Mix link copied. Open it on your other computer to use this mix there.");
-    } catch {
-        notice(`Copy this link to your other computer: ${mixLink()}`);
-    }
-};
-
 export const settingsActions: Record<string, () => void> = {
     "open-settings": () => (dialog().showModal(), hooks.refresh()),
-    "copy-mix-link": () => void copyMixLink(),
-    "show-mix-qr": () => showQr(mixLink()),
 };
 
 export const wireSettingsDialog = (): void => {
     initSliders(dialog());
+    wireMixLink();
     wireAppSync();
     void wireDesktopSettings();
     dialog().addEventListener("change", (event) => {
