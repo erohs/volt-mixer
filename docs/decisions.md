@@ -105,3 +105,11 @@ mean another one is open (`src/lib/other-program.ts`). The desktop app keeps its
 browser is open; the website pauses its mix until the other one closes, and listens for 3.5 s
 after connecting before it applies its own (`src/scripts/mix-pause.ts`). Two browsers both pause
 and say so. UAD Console doesn't re-read, so it isn't noticed.
+
+## Every change is an intent
+
+Each change a user makes, from the page's controls, the tray window or a phone, is an intent
+(`src/lib/intents.ts`) applied by `applyIntent` and committed by `src/scripts/run-intent.ts`, so
+clamping, "this needs the mix first" and the linked-pair rules live in one place and the views
+never write page state. Another window or a phone may only send the remote intents
+(`isRemoteIntent`): levels, mutes, solo and links, not 48V, routing or names.
