@@ -353,6 +353,12 @@ import Slider from "../ui/Slider.astro";
             border-start-start-radius: 0;
             border-end-start-radius: 0;
         }
+
+        /* The focused one sits on top, so its outline isn't hidden under its neighbour. */
+        & :focus-visible {
+            position: relative;
+            z-index: 1;
+        }
     }
 
     /* A QR code, centred, with one line under it. */
