@@ -17,6 +17,13 @@ import Slider from "../ui/Slider.astro";
                 <span data-strip-name></span>
                 <span class="visually-hidden" data-strip-tone-name></span>
             </h3>
+            <!-- Straight after the name, so Tab reaches it before the tags (it's drawn in the corner). -->
+            <button class="button button--icon gear" type="button" aria-haspopup="dialog" data-strip-action="settings">
+                <Icon name="settings" />
+                <span class="visually-hidden" data-strip-settings-label>
+                    Channel settings
+                </span>
+            </button>
             <!-- Analog inputs only: what the input is, and its 48V (which works like the 48V button). -->
             <div class="tags" data-strip-tags hidden>
                 <span class="tag" data-strip-input></span>
@@ -24,12 +31,6 @@ import Slider from "../ui/Slider.astro";
                     48V
                 </button>
             </div>
-            <button class="button button--icon gear" type="button" aria-haspopup="dialog" data-strip-action="settings">
-                <Icon name="settings" />
-                <span class="visually-hidden" data-strip-settings-label>
-                    Channel settings
-                </span>
-            </button>
         </div>
         <div class="fader">
             <Slider kind="fader" name="fader" orientation="vertical" ticks={faderTicks()} />

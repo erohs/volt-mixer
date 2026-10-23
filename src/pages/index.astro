@@ -53,20 +53,12 @@ import { site } from "../lib/site.ts";
         padding: var(--space-between-blocks) var(--space-padding-page) var(--space-padding-page);
 
         /*
-         * Outputs come first in the page, so when the columns stack they sit above the channels and
-         * the reading order matches. Wide, they move to a column on the right.
+         * Outputs come first in the page, then the channels: stacked above them when narrow, in a
+         * column to their left when wide. Either way the reading and Tab order match what's shown.
          */
         @media (width >= 60rem) {
-            grid-template-columns: minmax(0, 1fr) 18rem;
+            grid-template-columns: 18rem minmax(0, 1fr);
             align-items: start;
-
-            & :global(.outputs) {
-                grid-area: 1 / 2;
-            }
-
-            & .channels {
-                grid-area: 1 / 1;
-            }
         }
     }
 
