@@ -205,7 +205,7 @@ import Slider from "../ui/Slider.astro";
                     New code
                 </button>
             </SettingRow>
-            <details class="help">
+            <details class="reveal">
                 <summary>Phone can't connect?</summary>
                 <ul>
                     <li>The phone has to be on the same Wi-Fi as this computer, with any VPN turned off.</li>
@@ -246,14 +246,15 @@ import Slider from "../ui/Slider.astro";
                     <span class="visually-hidden">Copy mix link</span>
                 </button>
             </div>
-            <button class="disclosure" type="button" aria-expanded="false" aria-controls="mix-qr" data-mix-qr-toggle>
-                <span data-mix-qr-label>Show QR code</span>
-                <Icon name="chevron-down" class="chevron" />
-            </button>
-            <div id="mix-qr" class="code" data-mix-qr hidden>
-                <QrCode name="mix" label="QR code of this mix link" />
-                <p class="description">Scan it with your phone, or on the work laptop with the Windows Camera app.</p>
-            </div>
+            <details class="reveal" data-mix-qr>
+                <summary>QR code</summary>
+                <div class="code">
+                    <QrCode name="mix" label="QR code of this mix link" />
+                    <p class="description">
+                        Scan it with your phone, or on the work laptop with the Windows Camera app.
+                    </p>
+                </div>
+            </details>
         </div>
         <!-- Website only (app-sync.ts hides it in the desktop app, which is the other end). -->
         <div data-app-sync>
@@ -354,28 +355,6 @@ import Slider from "../ui/Slider.astro";
         }
     }
 
-    /* A quiet text button that opens the code below it; the chevron turns when it's open. */
-    .disclosure {
-        display: inline-flex;
-        align-items: center;
-        justify-self: start;
-        gap: var(--space-between-lines);
-        padding: var(--space-between-lines) 0;
-        border: 0;
-        background: none;
-        color: var(--color-text-accent);
-        font-size: var(--font-size-small);
-        cursor: pointer;
-
-        & :global(.chevron) {
-            transition: rotate var(--duration-fast) var(--easing-standard);
-        }
-
-        &[aria-expanded="true"] :global(.chevron) {
-            rotate: 180deg;
-        }
-    }
-
     /* A QR code, centred, with one line under it. */
     .code:not([hidden]) {
         display: grid;
@@ -424,7 +403,8 @@ import Slider from "../ui/Slider.astro";
         }
     }
 
-    .help {
+    /* Something that folds out on demand (the QR code, help): small accent text with the native marker. */
+    .reveal {
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
 
@@ -433,10 +413,13 @@ import Slider from "../ui/Slider.astro";
             cursor: pointer;
         }
 
+        & > :not(summary) {
+            margin-block-start: var(--space-between-text);
+        }
+
         & ul {
             display: grid;
             gap: var(--space-between-lines);
-            margin-block-start: var(--space-between-text);
             padding-inline-start: 1.25rem;
         }
     }

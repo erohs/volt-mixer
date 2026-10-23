@@ -16,7 +16,7 @@ export const mixLink = (): string => {
 };
 
 const box = (): HTMLInputElement | null => document.querySelector<HTMLInputElement>("[data-mix-link]");
-const code = (): HTMLElement | null => document.querySelector<HTMLElement>("[data-mix-qr]");
+const code = (): HTMLDetailsElement | null => document.querySelector<HTMLDetailsElement>("[data-mix-qr]");
 
 /** Keeps the link and its QR code current while Settings is open. */
 export const refreshMixLink = (): void => {
@@ -25,7 +25,7 @@ export const refreshMixLink = (): void => {
     const link = mixLink();
     if (input.value === link) return;
     input.value = link;
-    if (!code()?.hidden) drawQr("mix", link);
+    if (code()?.open) drawQr("mix", link);
 };
 
 const copy = async (input: HTMLInputElement): Promise<void> => {
@@ -38,20 +38,13 @@ const copy = async (input: HTMLInputElement): Promise<void> => {
     }
 };
 
-const toggleCode = (button: HTMLElement): void => {
-    const panel = code()!;
-    panel.hidden = !panel.hidden;
-    button.setAttribute("aria-expanded", String(!panel.hidden));
-    button.querySelector("[data-mix-qr-label]")!.textContent = panel.hidden ? "Show QR code" : "Hide QR code";
-    if (!panel.hidden) drawQr("mix", box()?.value || mixLink());
-};
-
 export const wireMixLink = (): void => {
     const input = box();
-    const button = document.querySelector<HTMLElement>("[data-mix-qr-toggle]");
-    if (!input || !button) return;
+    const details = code();
+    if (!input || !details) return;
     input.addEventListener("click", () => void copy(input));
     document.querySelector("[data-mix-copy]")?.addEventListener("click", () => void copy(input));
     input.addEventListener("keydown", (event) => event.key === "Enter" && void copy(input));
-    button.addEventListener("click", () => toggleCode(button));
+    // Drawn when it's opened, from the link the box shows.
+    details.addEventListener("toggle", () => details.open && drawQr("mix", input.value || mixLink()));
 };
