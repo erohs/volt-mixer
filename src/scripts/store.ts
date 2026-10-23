@@ -12,6 +12,7 @@ const mixKey = (serial: string): string => `${prefix}.mix.${serial || "unknown"}
 const pendingKey = `${prefix}.pending-mix`;
 const viewKey = `${prefix}.view`;
 const themeKey = `${prefix}.theme`;
+const trayKey = `${prefix}.tray`;
 
 const read = (key: string): unknown => {
     try {
@@ -55,3 +56,11 @@ export const loadTheme = (): Theme => {
 };
 
 export const saveTheme = (theme: Theme): void => write(themeKey, theme === "system" ? null : theme);
+
+/** The tray mixer rows the viewer has unticked; everything else shows, including new ones. */
+export const loadTrayHidden = (): string[] => {
+    const hidden = read(trayKey);
+    return Array.isArray(hidden) ? hidden.filter((key): key is string => typeof key === "string") : [];
+};
+
+export const saveTrayHidden = (hidden: string[]): void => write(trayKey, hidden.length > 0 ? hidden : null);

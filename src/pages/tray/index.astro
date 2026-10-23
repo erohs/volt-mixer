@@ -1,0 +1,140 @@
+---
+import Meter from "../../components/ui/Meter.astro";
+import Slider from "../../components/ui/Slider.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Volt Mixer tray" description="The desktop app's tray mixer for Volt Mixer." isIndexed={false}>
+    <div class="tray">
+        <div class="head">
+            <h1>Volt Mixer</h1>
+            <span class="status" role="status" data-tray-status>
+                Waiting for Volt Mixer…
+            </span>
+        </div>
+        <div class="body">
+            <ul class="rows" data-tray-rows></ul>
+            <p class="note" data-tray-note hidden></p>
+        </div>
+        <div class="foot">
+            <a class="button" href={import.meta.env.BASE_URL} data-tray-open>
+                Open Volt Mixer
+            </a>
+        </div>
+    </div>
+
+    <template id="tray-row-template">
+        <li class="row" data-tray-row>
+            <span class="name" data-row-name></span>
+            <button class="button button--mute" type="button" aria-pressed="false" data-row-action="mute">
+                M
+            </button>
+            <Slider kind="fader" name="row" class="row-slider" />
+            <div class="meters" data-row-meters>
+                <Meter name="" orientation="horizontal" />
+                <Meter name="" orientation="horizontal" />
+            </div>
+        </li>
+    </template>
+</BaseLayout>
+
+<script>
+    import { startTray } from "../../scripts/tray.ts";
+
+    startTray();
+</script>
+
+<style>
+    /* A fixed column: the header and the button stay, only the rows scroll (docs/decisions.md). */
+    .tray {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        background-color: var(--color-background-surface);
+    }
+
+    .head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0 var(--space-between-content);
+        padding: var(--space-padding-compact) var(--space-padding-container);
+        border-block-end: var(--border-width-default) solid var(--color-border-subtle);
+    }
+
+    h1 {
+        font-size: var(--font-size-heading);
+    }
+
+    .status {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+
+    .body {
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: var(--space-padding-compact) var(--space-padding-container);
+    }
+
+    .rows {
+        display: grid;
+        gap: var(--space-between-content);
+        padding: 0;
+        list-style: none;
+    }
+
+    /* Name and mute on the left, the fader (with its value) filling the rest, meters under it. */
+    .row {
+        display: grid;
+        grid-template-columns: minmax(5rem, 7rem) auto minmax(0, 1fr);
+        align-items: center;
+        gap: var(--space-between-lines) var(--space-between-text);
+    }
+
+    .name {
+        overflow: hidden;
+        font-size: var(--font-size-small);
+        font-weight: var(--font-weight-semi-bold);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Two meters for a stereo row, one for mono, none where the Volt has no meter. */
+    .meters {
+        display: grid;
+        grid-column: 3;
+        gap: 2px;
+
+        & :global([data-meter=""]) {
+            display: none;
+        }
+    }
+
+    /* The TONE colours, as on the page's strips. */
+    [data-tone="warmth"] {
+        --slider-colour: var(--color-fader-warmth);
+    }
+
+    [data-tone="focus"] {
+        --slider-colour: var(--color-fader-focus);
+    }
+
+    [data-tone="shine"] {
+        --slider-colour: var(--color-fader-shine);
+    }
+
+    .note {
+        margin-block-start: var(--space-between-content);
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+
+    .foot {
+        display: flex;
+        justify-content: center;
+        padding: var(--space-padding-compact) var(--space-padding-container);
+        border-block-start: var(--border-width-default) solid var(--color-border-subtle);
+    }
+</style>

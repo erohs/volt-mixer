@@ -1,64 +1,54 @@
-import { channelById, pairOf, pairKey, setLinked } from "../lib/mixer.ts";
+import { applyIntent, type Intent, type IntentResult } from "../lib/intents.ts";
+import { newestSpec } from "../lib/spec.ts";
 import { app, commit, layout, notice } from "./app-state.ts";
 import { openChannelDialog } from "./channel-dialog.ts";
 import { setSliderValue } from "./slider.ts";
 import { stripIds } from "./strips.ts";
 
-/* What the strip and output controls do to the page state. Each change ends with commit(). */
+/* What the strip and output controls do to the page state, through the same intents as the tray. */
 
-const isAnalog = (id: string): boolean => channelById[id]?.kind === "analog";
-
-/** Solo and digital mutes are mix levels, so they need this computer to own the mix. */
+/** Solo, digital mutes and faders are mix levels, so they need this computer to own the mix. */
 const explainNeedsMix = (): void =>
     notice("That works once this computer has your mix. Set one up above, or open a mix link.");
 
-const forChannels = (ids: string[], change: (id: string) => void): void => {
-    ids.forEach(change);
+/** Applies an intent from any view (this page's controls or the tray window) and commits it. */
+export const runIntent = (intent: Intent): IntentResult => {
+    const result = applyIntent(app.state, intent, newestSpec().faderMaxDb);
+    if (result !== "ok") return result;
+    if (intent.type === "link") layout();
     commit();
+    return result;
+};
+
+const stripIntents: Record<string, (ids: string[]) => Intent> = {
+    mute: (ids) => ({ type: "mute", ids }),
+    solo: (ids) => ({ type: "solo", ids }),
+    link: (ids) => ({ type: "link", id: ids[0] ?? "" }),
 };
 
 const onStripAction = (button: HTMLElement): void => {
     const ids = stripIds(button);
-    const first = app.state.channels[ids[0] ?? ""];
-    if (!first) return;
-    const action = button.dataset["stripAction"];
-    const needsMix = action === "solo" || (action === "mute" && !isAnalog(ids[0] ?? ""));
-    if (needsMix && !app.state.isMixOwned) return explainNeedsMix();
-    if (action === "settings") openChannelDialog(ids);
-    // Read once: first is ids[0], so it changes during the loop.
-    const isMuted = !first.isMuted;
-    const isSoloed = !first.isSoloed;
-    if (action === "mute") forChannels(ids, (id) => (app.state.channels[id]!.isMuted = isMuted));
-    if (action === "solo") forChannels(ids, (id) => (app.state.channels[id]!.isSoloed = isSoloed));
-    if (action === "link") toggleLink(ids[0] ?? "");
-};
-
-const toggleLink = (id: string): void => {
-    const pair = pairOf(id);
-    if (!pair) return;
-    setLinked(app.state, pair, !app.state.linked[pairKey(pair)]);
-    layout();
-    commit();
+    const action = button.dataset["stripAction"] ?? "";
+    if (action === "settings") return openChannelDialog(ids);
+    const intent = stripIntents[action]?.(ids);
+    if (intent && runIntent(intent) === "needsMix") explainNeedsMix();
 };
 
 const onFader = (event: Event): void => {
     const { name, value } = (event as CustomEvent<{ name: string; value: number }>).detail;
-    if (name !== "fader") return;
-    forChannels(stripIds(event.target as Element), (id) => (app.state.channels[id]!.fader = value));
+    if (name === "fader") runIntent({ type: "fader", ids: stripIds(event.target as Element), db: value });
 };
 
-const outputActions: Record<string, () => void> = {
-    "monitor-mute": () => (app.state.monitor.isMuted = !app.state.monitor.isMuted),
-    "monitor-mono": () => (app.state.monitor.isMono = !app.state.monitor.isMono),
-    "headphone-mute": () => (app.state.headphone.isMuted = !app.state.headphone.isMuted),
+const outputActions: Record<string, Intent> = {
+    "monitor-mute": { type: "monitorMute" },
+    "monitor-mono": { type: "monitorMono" },
+    "headphone-mute": { type: "headphoneMute" },
 };
 
 const onOutputLevel = (event: Event): void => {
     const { name, value } = (event as CustomEvent<{ name: string; value: number }>).detail;
-    if (name === "monitor-level") app.state.monitor.level = value;
-    else if (name === "headphone-level") app.state.headphone.level = value;
-    else return;
-    commit();
+    if (name === "monitor-level") runIntent({ type: "monitorLevel", level: value });
+    if (name === "headphone-level") runIntent({ type: "headphoneLevel", level: value });
 };
 
 /** Wires the strips and the outputs panel. */
@@ -72,10 +62,8 @@ export const wireMixerControls = (): void => {
     document.addEventListener("slider-input", onOutputLevel);
     document.addEventListener("click", (event) => {
         const action = (event.target as Element).closest<HTMLElement>("[data-action]")?.dataset["action"] ?? "";
-        const run = outputActions[action];
-        if (!run) return;
-        run();
-        commit();
+        const intent = outputActions[action];
+        if (intent) runIntent(intent);
     });
 };
 

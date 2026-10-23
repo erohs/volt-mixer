@@ -6,13 +6,15 @@ import { parseCommandReport, parseMeters, parseState } from "../lib/reports.ts";
 import { adoptSavedMix, decodeMix, toSavedMix } from "../lib/saved-mix.ts";
 import { newestSpec } from "../lib/spec.ts";
 import { stripGroups } from "../lib/strip-groups.ts";
-import { refreshOutputs, wireMixerControls } from "./actions.ts";
+import { trayRows } from "../lib/tray-rows.ts";
+import { refreshOutputs, runIntent, wireMixerControls } from "./actions.ts";
 import { app, hooks, notice, setStatus } from "./app-state.ts";
 import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { initDialogs } from "./dialogs.ts";
 import { resetMeters, showMeterLevels } from "./meters-view.ts";
 import { refreshSettings, settingsActions, wireSettingsDialog } from "./settings-dialog.ts";
-import { loadMix, loadPendingMix, loadTheme, saveMix, savePendingMix } from "./store.ts";
+import { publish, publishMeters, wireRemote, type ITraySnapshot } from "./remote.ts";
+import { loadMix, loadPendingMix, loadTheme, loadTrayHidden, saveMix, savePendingMix } from "./store.ts";
 import { initSliders } from "./slider.ts";
 import { refreshStrips, renderStrips } from "./strips.ts";
 import { applyTheme } from "./theme.ts";
@@ -32,11 +34,22 @@ const refresh = (): void => {
     refreshSettings(live);
     element("[data-mix-setup]").hidden = !(volt.connectedSpec() && app.isHardwareKnown && !app.state.isMixOwned);
     element<HTMLButtonElement>("[data-action='push-mix']").disabled = !live || !app.state.isMixOwned;
+    publish();
 };
 
+const meterNames = (): Set<string> => new Set(Object.keys(newestSpec().reports.meters.offsets));
+
+/** What a tray window shows: the rows the viewer chose, and whether it can change anything. */
+const traySnapshot = (): ITraySnapshot => ({
+    rows: trayRows(app.state, app.view, meterNames(), loadTrayHidden()),
+    maxDb: (volt.connectedSpec() ?? newestSpec()).faderMaxDb,
+    isLive: isLive(),
+    isMixOwned: app.state.isMixOwned,
+    status: element("[data-status]").textContent?.trim() ?? "",
+});
+
 const relayout = (): void => {
-    const meterNames = new Set(Object.keys(newestSpec().reports.meters.offsets));
-    renderStrips(stripGroups(app.state, app.view), meterNames);
+    renderStrips(stripGroups(app.state, app.view), meterNames());
     refresh();
 };
 
@@ -49,10 +62,15 @@ const flush = (): void => {
     refresh();
 };
 
+/** Once per frame, or after 16 ms when there are no frames: a hidden window (the desktop tray). */
 const commit = (): void => {
     if (isFlushPending) return;
     isFlushPending = true;
-    requestAnimationFrame(flush);
+    const flushOnce = (): void => {
+        if (isFlushPending) flush();
+    };
+    requestAnimationFrame(flushOnce);
+    window.setTimeout(flushOnce, 16);
 };
 
 /** Applies the whole page mix to the Volt, like Console does when it starts. */
@@ -92,6 +110,11 @@ const onLaterState = (data: Uint8Array): void => {
     commit();
 };
 
+const showMeters = (levels: Record<string, number>): void => {
+    showMeterLevels(levels);
+    publishMeters(levels);
+};
+
 let stateTimer = 0;
 const requestStateSoon = (): void => {
     clearTimeout(stateTimer);
@@ -101,7 +124,7 @@ const requestStateSoon = (): void => {
 const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): void => {
     const spec = volt.connectedSpec();
     if (!spec) return;
-    if (reportId === spec.reports.meters.id) return showMeterLevels(parseMeters(spec, data));
+    if (reportId === spec.reports.meters.id) return showMeters(parseMeters(spec, data));
     if (reportId !== spec.reports.command.id) return;
     const report = parseCommandReport(spec, data);
     if (report.type === "state") return app.isHardwareKnown ? onLaterState(data) : onFirstState(data);
@@ -242,6 +265,14 @@ const wireConnection = (): void => {
     });
 };
 
+/** The desktop app's tray window sends intents here; only a page that can drive the Volt applies them. */
+const answerTrays = (): void =>
+    wireRemote({
+        isActive: () => app.hasControl,
+        snapshot: traySnapshot,
+        run: (intent) => (isLive() ? runIntent(intent) : "ignored"),
+    });
+
 /** Only one tab drives the Volt; any other stays read-only. */
 const holdControlLock = (): void => {
     void navigator.locks?.request("volt-mixer-control", { ifAvailable: true }, (lock) => {
@@ -272,6 +303,7 @@ export const start = (): void => {
     }
     readMixFromAddress();
     holdControlLock();
+    answerTrays();
     wireConnection();
     volt.watchDevices();
     void volt.reconnect().then((isConnected) => isConnected || setStatus("Not connected", "off"));

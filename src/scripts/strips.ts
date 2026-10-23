@@ -1,6 +1,6 @@
 import { channelById, isLinked } from "../lib/mixer.ts";
 import type { IMixerState } from "../lib/mixer.ts";
-import type { IStripGroup } from "../lib/strip-groups.ts";
+import { toneOf, type IStripGroup } from "../lib/strip-groups.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 
 /*
@@ -67,17 +67,15 @@ const press = (strip: Element, action: string, isPressed: boolean): void => {
         button.setAttribute("aria-pressed", String(isPressed));
 };
 
-const toneNames = ["Off", "Warmth", "Focus", "Shine"];
-
 /** The 48V pill before the name and the TONE-coloured fader: what the Volt lights for these channels. */
 const refreshIndicators = (strip: HTMLElement, state: IMixerState, ids: string[]): void => {
     const infos = ids.map((id) => channelById[id]);
     const isPhantomOn = infos.some((info) => info?.preampIndex !== undefined && state.preamp.phantom[info.preampIndex]);
     strip.querySelector<HTMLElement>("[data-strip-phantom]")!.hidden = !isPhantomOn;
-    const toneIndex = infos[0]?.toneIndex;
-    const tone = toneNames[toneIndex === undefined ? 0 : (state.tone[toneIndex] ?? 0)] ?? "Off";
-    strip.dataset["tone"] = tone.toLowerCase();
-    strip.querySelector("[data-strip-tone-name]")!.textContent = tone === "Off" ? "" : `, ${tone} tone`;
+    const tone = toneOf(state, ids);
+    strip.dataset["tone"] = tone;
+    const toneName = tone.charAt(0).toUpperCase() + tone.slice(1);
+    strip.querySelector("[data-strip-tone-name]")!.textContent = tone === "off" ? "" : `, ${toneName} tone`;
 };
 
 /** Updates every strip's values from state. `isLive` false makes the controls read-only. */

@@ -61,3 +61,12 @@ export const stripGroups = (state: IMixerState, view: IStripView): IStripGroup[]
                 ...(i === 0 ? link : {}),
             }));
         });
+
+export type ToneName = "off" | "warmth" | "focus" | "shine";
+const toneNames: ToneName[] = ["off", "warmth", "focus", "shine"];
+
+/** The TONE a strip's first channel has, which colours its fader like the Volt's TONE ring. */
+export const toneOf = (state: IMixerState, ids: string[]): ToneName => {
+    const toneIndex = channelById[ids[0] ?? ""]?.toneIndex;
+    return toneNames[toneIndex === undefined ? 0 : (state.tone[toneIndex] ?? 0)] ?? "off";
+};

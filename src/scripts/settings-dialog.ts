@@ -6,6 +6,7 @@ import { app, commit, hooks, layout, notice } from "./app-state.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 import { loadTheme, saveTheme, saveView } from "./store.ts";
 import { applyTheme, isTheme } from "./theme.ts";
+import { isDesktopApp, refreshTraySettings, wireTraySettings } from "./tray-settings.ts";
 
 /* The Settings dialog (SettingsDialog.astro): device options, cue routing, view and the mix. */
 
@@ -48,6 +49,7 @@ export const refreshSettings = (isLive: boolean): void => {
     check("show-digital", app.view.isDigitalShown);
     check("show-loopback", app.view.isLoopbackShown);
     check("theme", loadTheme());
+    if (isDesktopApp()) refreshTraySettings();
     markUncapturedRoutes();
     const brightness = dialog().querySelector<HTMLElement>("[data-slider='brightness']")!;
     setSliderValue(brightness, device.brightness);
@@ -106,6 +108,7 @@ export const settingsActions: Record<string, () => void> = {
 
 export const wireSettingsDialog = (): void => {
     initSliders(dialog());
+    wireTraySettings();
     dialog().addEventListener("change", (event) => {
         const input = (event.target as Element).closest<HTMLInputElement | HTMLSelectElement>("[data-setting]");
         if (input) onChange(input);
