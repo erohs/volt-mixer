@@ -26,7 +26,8 @@ export const allowVolt = (session: Session): void => {
         (_contents, permission, origin) => isAppOrigin(origin) && allowedPermissions.has(permission),
     );
     session.setPermissionRequestHandler((contents, permission, callback) =>
-        callback(isAppOrigin(new URL(contents.getURL()).origin) && allowedPermissions.has(permission)),
+        // Not new URL(…).origin: for a custom scheme like app:// that's "null".
+        callback(contents.getURL().startsWith(`${appOrigin}/`) && allowedPermissions.has(permission)),
     );
     session.setDevicePermissionHandler(
         (details) => details.deviceType === "hid" && isAppOrigin(details.origin) && isVolt(details.device),

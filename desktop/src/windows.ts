@@ -9,6 +9,8 @@ import { loadSettings } from "./settings";
  */
 
 const isLinux = process.platform === "linux";
+/** Where the site's other pages live (the app only serves the mixer and the tray). */
+const websiteUrl = "https://erohs.github.io/volt-mixer/";
 /* The tray's width; its height follows its rows (fitTrayWindow). */
 const trayWindowSize = { width: 340, height: 300 };
 let mainWindow: BrowserWindow | null = null;
@@ -37,11 +39,13 @@ const lockNavigation = (window: BrowserWindow): void => {
         if (url.startsWith("https://")) void shell.openExternal(url);
         return { action: "deny" };
     });
-    // A plain link to the web (GitHub, the privacy statement's links) opens in the browser too.
+    // The windows stay on their page (the mixer drives the Volt). A link to the web opens in the
+    // browser, and so does any other page of the site (Privacy), from the website itself.
     window.webContents.on("will-navigate", (event, url) => {
-        if (new URL(url).origin === appOrigin) return;
         event.preventDefault();
-        if (url.startsWith("https://")) void shell.openExternal(url);
+        if (url.startsWith("https://")) return void shell.openExternal(url);
+        if (url.startsWith(`${appOrigin}/`))
+            void shell.openExternal(new URL(url.slice(appOrigin.length + 1), websiteUrl).href);
     });
 };
 
