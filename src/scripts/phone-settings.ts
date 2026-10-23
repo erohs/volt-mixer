@@ -6,17 +6,21 @@ import { drawQr } from "./qr.ts";
 const panel = (): HTMLElement | null => document.querySelector<HTMLElement>("[data-phone]");
 const pollMs = 3000;
 
-const statusText = (info: IPhoneInfo): string => {
-    if (info.error) return info.error;
-    if (!info.isRunning) return "Starting…";
-    if (info.phones === 0) return `Waiting for a phone at ${info.address}.`;
-    return info.phones === 1 ? "1 phone connected." : `${info.phones} phones connected.`;
+/** The pill above the code: green once a phone is in, amber for a problem. */
+const status = (info: IPhoneInfo): { text: string; state: string } => {
+    if (info.error) return { text: info.error, state: "problem" };
+    if (!info.isRunning) return { text: "Starting…", state: "waiting" };
+    if (info.phones === 0) return { text: "Waiting for a phone", state: "waiting" };
+    return { text: info.phones === 1 ? "1 phone connected" : `${info.phones} phones connected`, state: "connected" };
 };
 
 const render = (info: IPhoneInfo | null): void => {
     const element = panel();
     if (!element || !info) return;
-    element.querySelector("[data-phone-status]")!.textContent = statusText(info);
+    const { text, state } = status(info);
+    element.querySelector("[data-phone-status-text]")!.textContent = text;
+    element.querySelector<HTMLElement>("[data-phone-status]")!.dataset["state"] = state;
+    element.querySelector("[data-phone-address-text]")!.textContent = info.address;
     element.querySelector<SVGElement>("[data-qr='phone']")!.style.display = info.link ? "" : "none";
     if (info.link) drawQr("phone", info.link);
     const select = element.querySelector<HTMLSelectElement>("[data-phone-address]")!;

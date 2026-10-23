@@ -1,5 +1,6 @@
 ---
 import Dialog from "../ui/Dialog.astro";
+import Icon from "../ui/Icon.astro";
 import QrCode from "../ui/QrCode.astro";
 import SettingGroup from "../ui/SettingGroup.astro";
 import SettingRow from "../ui/SettingRow.astro";
@@ -179,23 +180,45 @@ import Slider from "../ui/Slider.astro";
         </SettingRow>
         <!-- phone-settings.ts fills this in while Phone remote is on. -->
         <div class="phone" data-phone hidden>
-            <QrCode name="phone" label="QR code that opens the phone remote" />
-            <p class="note">
-                Scan it with your phone's camera. If the phone can't connect, allow Volt Mixer through Windows Firewall
-                on private networks, and check your home network is set to Private.
+            <p class="phone-status" role="status" data-phone-status data-state="waiting">
+                <span class="dot" aria-hidden="true"></span>
+                <span data-phone-status-text>Starting…</span>
             </p>
-            <p class="note" role="status" data-phone-status></p>
-            <label class="address" data-phone-address-row hidden>
-                <span>Address</span>
-                <select data-phone-address></select>
-            </label>
-            <button class="button" type="button" data-phone-rotate>
-                New code
-            </button>
-            <p class="note">
-                New code unpairs every phone. The connection isn't encrypted, like most home gadgets: someone who can
-                watch your home network could use it.
-            </p>
+            <div class="code">
+                <QrCode name="phone" label="QR code that opens the phone remote" />
+                <p class="description" data-phone-address-text></p>
+            </div>
+            <div data-phone-address-row hidden>
+                <SettingRow
+                    id="phone-address"
+                    name="Address"
+                    description="This computer is on more than one network."
+                    for="phone-address-input">
+                    <select
+                        id="phone-address-input"
+                        aria-describedby="phone-address-description"
+                        data-phone-address></select>
+                </SettingRow>
+            </div>
+            <SettingRow id="phone-pairing" name="Pairing code" description="A new one unpairs every phone.">
+                <button class="button" type="button" aria-describedby="phone-pairing-description" data-phone-rotate>
+                    New code
+                </button>
+            </SettingRow>
+            <details class="help">
+                <summary>Phone can't connect?</summary>
+                <ul>
+                    <li>The phone has to be on the same Wi-Fi as this computer, with any VPN turned off.</li>
+                    <li>
+                        Allow Volt Mixer through Windows Firewall on private networks, and set your home network to
+                        Private (Windows Settings › Network &amp; internet).
+                    </li>
+                    <li>
+                        The connection isn't encrypted, like most home gadgets: someone who can watch your home network
+                        could use it.
+                    </li>
+                </ul>
+            </details>
         </div>
         <SettingRow id="updates" name="Updates" description="Version">
             <button class="button" type="button" aria-describedby="updates-description" data-action="check-update">
@@ -206,26 +229,31 @@ import Slider from "../ui/Slider.astro";
     </SettingGroup>
 
     <SettingGroup id="your-mix" title="Your mix">
-        <SettingRow
-            id="mix-link"
-            name="Mix link"
-            description="Click it to copy, then open it on another computer."
-            for="mix-link-input">
-            <input
-                id="mix-link-input"
-                class="link"
-                type="text"
-                readonly
-                aria-describedby="mix-link-description"
-                data-mix-link
-            />
-        </SettingRow>
-        <button class="button qr-toggle" type="button" aria-expanded="false" aria-controls="mix-qr" data-mix-qr-toggle>
-            Show QR code
-        </button>
-        <div id="mix-qr" class="mix-qr" data-mix-qr hidden>
-            <QrCode name="mix" label="QR code of this mix link" />
-            <p class="note">Scan it with your phone, or on the work laptop with the Windows Camera app.</p>
+        <!-- The link fills the width; a click on it (or the button) copies it (mix-link.ts). -->
+        <div class="mix-link">
+            <div class="text">
+                <label class="name" for="mix-link-input">
+                    Mix link
+                </label>
+                <p class="description" id="mix-link-description">
+                    Open it on another computer to use this mix there.
+                </p>
+            </div>
+            <div class="link-field">
+                <input id="mix-link-input" type="text" readonly aria-describedby="mix-link-description" data-mix-link />
+                <button class="button button--icon" type="button" data-mix-copy>
+                    <Icon name="copy" />
+                    <span class="visually-hidden">Copy mix link</span>
+                </button>
+            </div>
+            <button class="disclosure" type="button" aria-expanded="false" aria-controls="mix-qr" data-mix-qr-toggle>
+                <span data-mix-qr-label>Show QR code</span>
+                <Icon name="chevron-down" class="chevron" />
+            </button>
+            <div id="mix-qr" class="code" data-mix-qr hidden>
+                <QrCode name="mix" label="QR code of this mix link" />
+                <p class="description">Scan it with your phone, or on the work laptop with the Windows Camera app.</p>
+            </div>
         </div>
         <!-- Website only (app-sync.ts hides it in the desktop app, which is the other end). -->
         <div data-app-sync>
@@ -284,36 +312,132 @@ import Slider from "../ui/Slider.astro";
         display: none;
     }
 
-    .phone:not([hidden]) {
+    /* Mix link: the name and help above, the link across the full width with its copy button. */
+    .mix-link {
         display: grid;
         gap: var(--space-between-text);
 
-        & .button {
-            justify-self: start;
+        & .text {
+            display: grid;
+            gap: 0.125rem;
+        }
+
+        & .name {
+            font-weight: var(--font-weight-semi-bold);
         }
     }
 
-    .address:not([hidden]) {
-        display: flex;
-        align-items: center;
-        gap: var(--space-between-text);
-    }
-
-    /* The link itself, read-only: clicking it copies it. */
-    .link {
-        inline-size: min(14rem, 100%);
+    .description {
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
-        text-overflow: ellipsis;
-        cursor: copy;
     }
 
-    .qr-toggle {
+    /* One field: the box and its button share a border, squared off where they meet. */
+    .link-field {
+        display: flex;
+
+        & input {
+            flex: 1;
+            min-inline-size: 0;
+            border-start-end-radius: 0;
+            border-end-end-radius: 0;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-small);
+            text-overflow: ellipsis;
+            cursor: copy;
+        }
+
+        & .button {
+            border-inline-start: 0;
+            border-start-start-radius: 0;
+            border-end-start-radius: 0;
+        }
+    }
+
+    /* A quiet text button that opens the code below it; the chevron turns when it's open. */
+    .disclosure {
+        display: inline-flex;
+        align-items: center;
         justify-self: start;
+        gap: var(--space-between-lines);
+        padding: var(--space-between-lines) 0;
+        border: 0;
+        background: none;
+        color: var(--color-text-accent);
+        font-size: var(--font-size-small);
+        cursor: pointer;
+
+        & :global(.chevron) {
+            transition: rotate var(--duration-fast) var(--easing-standard);
+        }
+
+        &[aria-expanded="true"] :global(.chevron) {
+            rotate: 180deg;
+        }
     }
 
-    .mix-qr:not([hidden]) {
+    /* A QR code, centred, with one line under it. */
+    .code:not([hidden]) {
         display: grid;
+        justify-items: center;
         gap: var(--space-between-text);
+        text-align: center;
+    }
+
+    .phone:not([hidden]) {
+        display: grid;
+        gap: var(--space-between-content);
+    }
+
+    /* The phone's status, easy to see at a glance: green with a filled dot once a phone is in. */
+    .phone-status {
+        display: inline-flex;
+        align-items: center;
+        justify-self: center;
+        gap: var(--space-between-text);
+        padding: var(--space-between-lines) var(--space-padding-compact);
+        border: var(--border-width-default) solid var(--color-border-subtle);
+        border-radius: 999px;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+        font-weight: var(--font-weight-semi-bold);
+
+        & .dot {
+            inline-size: 0.5rem;
+            block-size: 0.5rem;
+            border: var(--border-width-standout) solid currentColor;
+            border-radius: 50%;
+        }
+
+        &[data-state="connected"] {
+            border-color: currentColor;
+            color: var(--color-text-success);
+
+            & .dot {
+                background-color: currentColor;
+            }
+        }
+
+        &[data-state="problem"] {
+            border-color: currentColor;
+            color: var(--color-text-warning);
+        }
+    }
+
+    .help {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+
+        & summary {
+            color: var(--color-text-accent);
+            cursor: pointer;
+        }
+
+        & ul {
+            display: grid;
+            gap: var(--space-between-lines);
+            margin-block-start: var(--space-between-text);
+            padding-inline-start: 1.25rem;
+        }
     }
 </style>
