@@ -15,6 +15,8 @@ export const app = {
     isSendAllowed: false,
     /** This tab holds the control lock (only one tab drives the Volt). */
     hasControl: true,
+    /** The user changed something since the last flush (so a changed mix is dated now). */
+    hasEdit: false,
 };
 
 /** Set by the controller: `commit` sends what changed and refreshes; `layout` rebuilds the strips. */
@@ -28,7 +30,11 @@ export const hooks = {
     adoptMix: (_mix: unknown): void => {},
 };
 
-export const commit = (): void => hooks.commit();
+/** For the user's own changes, from the controls; the controller's housekeeping commits directly. */
+export const commit = (): void => {
+    app.hasEdit = true;
+    hooks.commit();
+};
 export const layout = (): void => hooks.layout();
 
 /** Shows a message (with an optional action) that can always be dismissed; "" clears it. */

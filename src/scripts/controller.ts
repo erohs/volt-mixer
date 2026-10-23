@@ -63,7 +63,10 @@ const flush = (): void => {
     isFlushPending = false;
     const spec = volt.connectedSpec();
     if (spec && isLive()) volt.send(app.sync.diff(app.state, spec));
-    if (app.state.isMixOwned && app.serial && saveMix(app.serial, toSavedMix(app.state))) mixChanged();
+    const isEdit = app.hasEdit;
+    app.hasEdit = false;
+    const isSaved = app.state.isMixOwned && app.serial && saveMix(app.serial, toSavedMix(app.state), isEdit);
+    if (isSaved && isEdit) mixChanged();
     refresh();
 };
 
@@ -84,10 +87,11 @@ const pushMix = (): void => {
     if (spec && isLive()) volt.send(app.sync.diff(app.state, spec, { isFull: true, filter: isMixKey }));
 };
 
-const takeOwnership = (savedMix: unknown): void => {
+/** `isEdit`: the user chose this mix (a link, Console's defaults), so it counts as their change. */
+const takeOwnership = (savedMix: unknown, isEdit = false): void => {
     const spec = volt.connectedSpec() ?? newestSpec();
     adoptSavedMix(app.state, savedMix, spec.faderMaxDb);
-    if (app.serial) saveMix(app.serial, toSavedMix(app.state));
+    if (app.serial && saveMix(app.serial, toSavedMix(app.state), isEdit) && isEdit) mixChanged();
     pushMix();
     relayout();
 };
@@ -102,7 +106,7 @@ const onFirstState = (data: Uint8Array): void => {
     const savedMix = pendingMix ?? loadMix(app.serial);
     savePendingMix(null);
     if (pendingMix) toast("Mix applied from the link.");
-    if (savedMix) takeOwnership(savedMix);
+    if (savedMix) takeOwnership(savedMix, pendingMix !== null);
     else relayout();
     void pullAppMix();
 };
@@ -188,7 +192,7 @@ const receiveMixLink = (link: string): boolean => {
     const mix = mixFromHash(new URL(link, location.href).hash);
     if (!mix) return (toast("That isn't a Volt Mixer mix link."), false);
     if (volt.connectedSpec() && app.isHardwareKnown) {
-        takeOwnership(mix);
+        takeOwnership(mix, true);
         toast("Mix applied from the link.");
     } else {
         savePendingMix(mix);
@@ -231,7 +235,7 @@ const pageActions: Record<string, () => void> = {
     },
     "mix-defaults": () =>
         confirmThen("Set every channel to 0 dB, like a new UAD Console session?", () =>
-            takeOwnership(toSavedMix(defaultState())),
+            takeOwnership(toSavedMix(defaultState()), true),
         ),
     "push-mix": () => confirmThen("Apply this computer's mix to the Volt?", pushMix),
     "forget-mix": () =>

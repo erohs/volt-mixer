@@ -49,11 +49,17 @@ export const loadMixEntry = (serial: string): IMixEntry | null => {
 
 export const loadMix = (serial: string): unknown => loadMixEntry(serial)?.mix ?? null;
 
-/** Saves the mix, dated now if it differs from what's saved; true when it did. null forgets it. */
-export const saveMix = (serial: string, mix: ISavedMix | null): boolean => {
+/**
+ * Saves the mix if it differs from what's saved; true when it did. Only an edit (`isEdit`: a
+ * change the user made) is dated now: the page tidying its copy (on connect, or after the Volt
+ * reports something) keeps the old date, so it can't win over a real change made elsewhere.
+ * null forgets the mix.
+ */
+export const saveMix = (serial: string, mix: ISavedMix | null, isEdit = false): boolean => {
     if (mix === null) return (write(mixKey(serial), null), true);
-    if (JSON.stringify(loadMix(serial)) === JSON.stringify(mix)) return false;
-    write(mixKey(serial), { mix, changedAt: Date.now() });
+    const saved = loadMixEntry(serial);
+    if (JSON.stringify(saved?.mix) === JSON.stringify(mix)) return false;
+    write(mixKey(serial), { mix, changedAt: isEdit ? Date.now() : (saved?.changedAt ?? 0) });
     return true;
 };
 
