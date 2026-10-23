@@ -1,0 +1,108 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { site } from "../../lib/site.ts";
+
+const base = import.meta.env.BASE_URL;
+const updated = "23 October 2026";
+const githubPrivacy = "https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement";
+---
+
+<BaseLayout
+    title="Privacy | Volt Mixer"
+    description="Volt Mixer's privacy statement: no accounts, cookies, analytics or tracking; your mix stays on your computer.">
+    <article class="privacy">
+        <p class="back">
+            <a href={base}>← Volt Mixer</a>
+        </p>
+        <h1>Privacy statement</h1>
+        <p class="meta">Last updated {updated}. Applies to the Volt Mixer website and the Volt Mixer desktop app.</p>
+
+        <h2>In short</h2>
+        <p>
+            Volt Mixer has no accounts, cookies, analytics, advertising or tracking, and doesn't send anything about you
+            or your Volt to anyone. Everything it remembers stays on your computer.
+        </p>
+
+        <h2>What stays on your computer</h2>
+        <ul>
+            <li>
+                Your mix (fader, pan and cue levels, channel names and icons), your view and theme choices, and which
+                channels show in the tray. The website keeps these in your browser's storage for this site; the desktop
+                app keeps them in its own storage and a small settings file in your user data folder.
+            </li>
+            <li>
+                The mix is filed under your Volt's serial number, which the Volt reports when it connects, so two Volts
+                keep separate mixes. The serial number isn't sent anywhere.
+            </li>
+        </ul>
+        <p>
+            To remove it all, clear this site's data in your browser, or uninstall the desktop app and delete its
+            folder.
+        </p>
+
+        <h2>Your Volt</h2>
+        <p>
+            Volt Mixer talks to the Volt over USB (WebHID) on your computer, and only after you allow it (in the desktop
+            app, only the Volt is allowed). It reads the Volt's settings and sends the changes you make. Nothing it
+            reads leaves your computer.
+        </p>
+
+        <h2>Mix links</h2>
+        <p>
+            A mix link carries your mix in the part of the address after the #, which browsers don't send to any server.
+            Anyone you give the link to can see the mix and your channel names.
+        </p>
+
+        <h2>The website's host</h2>
+        <p>
+            The website is served by GitHub Pages. Like any web server, GitHub receives your IP address and browser
+            details when the page loads, as described in <a href={githubPrivacy}>GitHub's privacy statement</a>. Volt
+            Mixer itself adds nothing to that.
+        </p>
+
+        <h2>The desktop app</h2>
+        <p>
+            The app only goes online when you choose Settings › Desktop app › Updates › Check, which asks GitHub for the
+            latest release, and when you open a link (that opens in your browser). It has no telemetry and never updates
+            itself.
+        </p>
+
+        <h2>Questions</h2>
+        <p>
+            Volt Mixer is open source, so everything above can be checked in <a href={site.repositoryUrl}>its code</a>.
+            Ask anything by opening an issue on <a href={`${site.repositoryUrl}/issues`}>GitHub</a>. Changes to this
+            statement are recorded in the repository's history.
+        </p>
+    </article>
+</BaseLayout>
+
+<style>
+    .privacy {
+        display: grid;
+        gap: var(--space-between-content);
+        max-inline-size: 42rem;
+        margin-inline: auto;
+        padding: var(--space-padding-page);
+
+        & h2 {
+            margin-block-start: var(--space-between-content);
+        }
+
+        & ul {
+            display: grid;
+            gap: var(--space-between-text);
+            padding-inline-start: 1.25rem;
+        }
+
+        & a {
+            color: var(--color-text-accent);
+            text-underline-offset: 0.2em;
+        }
+    }
+
+    .meta,
+    .back {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+</style>

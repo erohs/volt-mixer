@@ -8,6 +8,7 @@ export const site = {
     imageAlt: "Volt Mixer: channel faders and meters for the UA Volt 4 Gen 2, in the browser.",
     repositoryUrl: "https://github.com/erohs/volt-mixer",
     licenceUrl: "https://github.com/erohs/volt-mixer/blob/main/LICENSE",
+    privacyPath: "privacy/",
     supportedModelsUrl: "https://github.com/erohs/volt-mixer#supported-models",
     /* The header's surface colour in each scheme, for the browser bar and link-preview accents. */
     themeColor: { light: "#fffefc", dark: "#201f1d" },
