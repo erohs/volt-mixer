@@ -54,6 +54,8 @@ export interface IVoltDesktop {
     onPhoneIntent: (answer: (intent: unknown) => unknown) => void;
     /** The tray window's content height in CSS px; the app sizes the window to it. */
     fitTray: (height: number) => void;
+    /** The tray window being shown or hidden (the app tells it; the page can't tell by itself). */
+    onTrayVisible: (listen: (isVisible: boolean) => void) => void;
 }
 
 export const desktopApp = (): IVoltDesktop | null => (window as { voltDesktop?: IVoltDesktop }).voltDesktop ?? null;

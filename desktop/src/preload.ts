@@ -22,6 +22,10 @@ contextBridge.exposeInMainWorld("voltDesktop", {
     /** A phone's intent (desktop/src/phone.ts); the answer is the intent's result. */
     onPhoneIntent: (answer: (request: unknown) => unknown): void => answerMain("phone-intent", answer),
     fitTray: (height: number): void => ipcRenderer.send("desktop:fit-tray", height),
+    /** The tray window being shown or hidden. */
+    onTrayVisible: (listen: (isVisible: boolean) => void): void => {
+        ipcRenderer.on("tray:visible", (_event, isVisible: unknown) => listen(isVisible === true));
+    },
     /** The phone remote: its address and link, a new pairing code, and what phones see. */
     phoneInfo: (): Promise<unknown> => ipcRenderer.invoke("desktop:phone-info"),
     rotatePhone: (): Promise<unknown> => ipcRenderer.invoke("desktop:phone-rotate"),

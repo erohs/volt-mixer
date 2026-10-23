@@ -34,6 +34,8 @@ interface IResponder {
     isActive: () => boolean;
     snapshot: () => ITraySnapshot;
     run: (intent: Intent) => IntentResult;
+    /** A tray window opened or a phone connected: what it's about to show should be fresh. */
+    onViewOpened: () => void;
 }
 
 let channel: BroadcastChannel | null = null;
@@ -56,7 +58,7 @@ const run = (intent: unknown): IntentResult => (isActive() && isIntent(intent) ?
 
 const onMessage = ({ data }: MessageEvent): void => {
     const message = data as Partial<RemoteMessage> | null;
-    if (message?.kind === "hello") return ((isTrayOpen = true), publish());
+    if (message?.kind === "hello") return ((isTrayOpen = true), responder?.onViewOpened(), publish());
     if (message?.kind === "bye") return void (isTrayOpen = false);
     if (message?.kind === "intent") post({ kind: "result", result: run(message.intent) });
 };
@@ -68,6 +70,7 @@ export const wireRemote = (answer: IResponder): void => {
     channel?.addEventListener("message", onMessage);
     desktopApp()?.onPhoneIntent(run);
     desktopApp()?.onPhoneCount((count) => {
+        if (count > phoneCount) answer.onViewOpened();
         phoneCount = count;
         publish();
     });

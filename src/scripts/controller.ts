@@ -1,6 +1,6 @@
 import { autoGain, identifyLights } from "../lib/commands.ts";
 import { applyDeviceReport } from "../lib/device-report.ts";
-import { applyHardwareState, defaultState, isLinked, matchQuieterGain } from "../lib/mixer.ts";
+import { applyHardwareState, defaultState, isLinked, matchQuieterGain, voltSettings } from "../lib/mixer.ts";
 import { isMixKey } from "../lib/mixer-sync.ts";
 import { parseCommandReport, parseMeters, parseState } from "../lib/reports.ts";
 import { adoptSavedMix, mixFromHash, toSavedMix } from "../lib/saved-mix.ts";
@@ -8,7 +8,7 @@ import { newestSpec } from "../lib/spec.ts";
 import { stripGroups } from "../lib/strip-groups.ts";
 import { trayRows } from "../lib/tray-rows.ts";
 import { refreshOutputs, runIntent, wireMixerControls } from "./actions.ts";
-import { app, hooks, notice, setStatus } from "./app-state.ts";
+import { app, clearNotice, hooks, notice, setStatus } from "./app-state.ts";
 import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { initDialogs } from "./dialogs.ts";
 import { noteInputLevels, watchInputs } from "./input-activity.ts";
@@ -148,7 +148,9 @@ const rereadVolt = (): void => {
 const onLaterState = (data: Uint8Array): void => {
     if (isEditing()) return;
     const spec = volt.connectedSpec() ?? newestSpec();
+    const before = JSON.stringify(voltSettings(app.state));
     const changed = applyHardwareState(app.state, parseState(spec, data));
+    if (changed.length === 0 && JSON.stringify(voltSettings(app.state)) === before) return;
     app.sync.prime(app.state, spec, (key) => !isMixKey(key));
     // Linked with the INPUT button: the preamps take the lower gain, which the commit sends.
     for (const pair of changed) if (isLinked(app.state, pair[0])) matchQuieterGain(app.state, pair);
@@ -325,6 +327,10 @@ const wireConnection = (): void => {
         requestStateSoon();
     });
     window.setInterval(rereadVolt, rereadMs);
+    // A page that was in the background may be well behind (browsers slow its timers), so it
+    // catches up before anything can be moved from what it shows.
+    window.addEventListener("focus", rereadVolt);
+    document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && rereadVolt());
 };
 
 /** The desktop app's tray window sends intents here; only a page that can drive the Volt applies them. */
@@ -333,17 +339,35 @@ const answerOthers = (): void => {
         isActive: () => app.hasControl,
         snapshot: traySnapshot,
         run: (intent) => (isLive() ? runIntent(intent) : "ignored"),
+        onViewOpened: rereadVolt,
     });
 };
 
-/** Only one tab drives the Volt; any other stays read-only. */
+const lockName = "volt-mixer-control";
+const otherTabText = "Volt Mixer is open in another tab or window. Use that one; this one takes over when it closes.";
+
+/** This tab drives the Volt from now on. Taking over from another tab, it applies the saved mix. */
+const takeControl = (): Promise<void> => {
+    const wasWaiting = !app.hasControl;
+    app.hasControl = true;
+    clearNotice(otherTabText);
+    if (wasWaiting && volt.connectedSpec() && app.isHardwareKnown) takeMixWhenFree();
+    checkOtherProgram();
+    refresh();
+    // Held until the tab closes.
+    return new Promise<void>(() => {});
+};
+
+/** Only one tab drives the Volt; any other stays read-only and waits its turn. */
 const holdControlLock = (): void => {
-    void navigator.locks?.request("volt-mixer-control", { ifAvailable: true }, (lock) => {
-        app.hasControl = lock !== null;
-        if (!lock)
-            notice("Volt Mixer is open in another tab or window. Use that one, or close it and reload this page.");
+    const locks = navigator.locks;
+    void locks?.request(lockName, { ifAvailable: true }, (lock) => {
+        if (lock) return takeControl();
+        app.hasControl = false;
+        notice(otherTabText);
         refresh();
-        return lock ? new Promise<void>(() => {}) : undefined;
+        void locks.request(lockName, takeControl);
+        return undefined;
     });
 };
 

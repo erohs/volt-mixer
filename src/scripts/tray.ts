@@ -156,8 +156,9 @@ export const startTray = (): void => {
     new ResizeObserver(fitWindow).observe(document.querySelector("[data-tray-content]")!);
     // The theme is chosen in the main window's Settings; follow it live.
     window.addEventListener("storage", (event) => event.key === "volt-mixer.theme" && applyTheme(loadTheme()));
-    // The app keeps this window ready while hidden, so it opens at the right size straight away.
+    // Hello now, so the window is sized while still hidden, then updates only while it's shown.
     post({ kind: "hello" });
+    desktopApp()?.onTrayVisible((isVisible) => post({ kind: isVisible ? "hello" : "bye" }));
     window.setTimeout(() => {
         if (layoutKey === "" && rows.length === 0) showNote("Open Volt Mixer to connect to the Volt.");
     }, 1500);

@@ -247,6 +247,17 @@ export const crosspointTable = (state: IMixerState, spec: ISpec): Map<string, nu
     return table;
 };
 
+/** What the Volt reports about itself, as page state: compared to tell whether a reading changed anything. */
+export const voltSettings = (state: IMixerState): unknown => ({
+    links: hardwareLinkMask(state),
+    direct: directMask(state),
+    preamp: state.preamp,
+    tone: state.tone,
+    monitor: state.monitor,
+    headphone: state.headphone,
+    device: state.device,
+});
+
 export const hardwareLinkMask = (state: IMixerState): number =>
     hardwarePairs.reduce((mask, pair, i) => mask | (state.linked[pairKey(pair)] ? 1 << i : 0), 0);
 

@@ -109,16 +109,31 @@ const createTrayWindow = (): BrowserWindow => {
     });
     lockNavigation(window);
     if (process.platform === "darwin") window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-    // Like the Windows volume flyout: clicking anywhere else puts it away.
-    window.on("blur", () => {
+    hideOnBlur(window);
+    tellTrayItsVisibility(window);
+    void window.loadURL(`${appOrigin}/tray/`);
+    return window;
+};
+
+/** Like the Windows volume flyout: clicking anywhere else puts it away. */
+const hideOnBlur = (window: BrowserWindow): void =>
+    void window.on("blur", () => {
         // Windows also sends blur to the window after it's hidden (when the taskbar is clicked);
         // counting that one would swallow the next click on the tray icon.
         if (isLinux || !window.isVisible()) return;
         trayHiddenAt = Date.now();
         window.hide();
     });
-    void window.loadURL(`${appOrigin}/tray/`);
-    return window;
+
+/*
+ * The tray page asks the main window for updates only while it's shown (the page can't tell: with
+ * background throttling off, a hidden window still counts as visible).
+ */
+const tellTrayItsVisibility = (window: BrowserWindow): void => {
+    const tell = (): void => window.webContents.send("tray:visible", window.isVisible());
+    window.on("show", tell);
+    window.on("hide", tell);
+    window.webContents.on("did-finish-load", tell);
 };
 
 /** Above (or below) the tray icon, kept inside the screen's work area. */
