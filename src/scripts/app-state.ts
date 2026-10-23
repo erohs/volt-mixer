@@ -2,6 +2,7 @@ import { defaultState } from "../lib/mixer.ts";
 import type { IMixerState } from "../lib/mixer.ts";
 import { createMixerSync } from "../lib/mixer-sync.ts";
 import { loadView } from "./store.ts";
+import { connectedSpec } from "./volt-connection.ts";
 
 /** The page's shared state. The controller owns the lifecycle; the other scripts read and change it. */
 export const app = {
@@ -20,6 +21,10 @@ export const app = {
     /** When the user last changed something (performance.now()), so re-reading the Volt waits. */
     lastEditAt: -Infinity,
 };
+
+/** Whether this page may change the Volt now: connected, its settings read, allowed, and in control. */
+export const isLive = (): boolean =>
+    connectedSpec() !== null && app.isHardwareKnown && app.isSendAllowed && app.hasControl;
 
 /** Set by the controller: `commit` sends what changed and refreshes; `layout` rebuilds the strips. */
 export const hooks = {
