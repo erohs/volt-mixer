@@ -58,6 +58,12 @@ const cues = [
         <fieldset id="channel-icon-list" class="icons" hidden>
             <legend class="visually-hidden">Icon</legend>
             <div class="icon-choices">
+                <!-- No choice of its own: the channel's default (channel-icon.ts names it in the title). -->
+                <label class="icon-choice" title="Default" data-channel-icon-default>
+                    <input type="radio" name="channel-icon" value="" data-channel-icon-field="icon" />
+                    <Icon name="ban" />
+                    <span class="visually-hidden">Default</span>
+                </label>
                 {Object.entries(channelIcons).map(([icon, label]) => (
                     <label class="icon-choice" title={label}>
                         <input type="radio" name="channel-icon" value={icon} data-channel-icon-field="icon" />

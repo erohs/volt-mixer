@@ -44,10 +44,14 @@ export const refreshChannelIcon = (ids: string[]): void => {
     const element = section();
     if (!element || ids.length === 0) return;
     element.querySelector<HTMLElement>("[data-channel-tray-show]")!.hidden = desktopApp() === null;
-    const icon = iconOf(app.state.icons, ids[0] ?? "");
-    showCurrentIcon(icon);
+    const id = ids[0] ?? "";
+    showCurrentIcon(iconOf(app.state.icons, id));
     for (const input of fields("show")) input.checked = isShownInTray(ids, loadTrayHidden());
-    for (const input of fields("icon")) input.checked = input.value === icon;
+    // Without a choice of its own, Default is ticked rather than the icon it falls back to.
+    const chosen = isChannelIcon(app.state.icons[id]) ? app.state.icons[id] : "";
+    for (const input of fields("icon")) input.checked = input.value === chosen;
+    const fallback = element.querySelector<HTMLElement>("[data-channel-icon-default]");
+    if (fallback) fallback.title = `Default: ${channelIcons[defaultIcon(id)]}`;
 };
 
 const setShown = (ids: string[], isShown: boolean): void => {
@@ -56,11 +60,11 @@ const setShown = (ids: string[], isShown: boolean): void => {
     hooks.refresh();
 };
 
-/** A pair takes one icon for both sides; the default is stored as no choice at all. */
+/** A pair takes one icon for both sides; Default ("") removes the choice, so the channel's own shows. */
 const setIcon = (ids: string[], icon: string): void => {
-    if (!isChannelIcon(icon)) return;
+    if (icon !== "" && !isChannelIcon(icon)) return;
     for (const id of ids) {
-        if (icon === defaultIcon(id)) delete app.state.icons[id];
+        if (icon === "") delete app.state.icons[id];
         else app.state.icons[id] = icon;
     }
     commit();

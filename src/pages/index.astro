@@ -53,12 +53,23 @@ import { site } from "../lib/site.ts";
         padding: var(--space-between-blocks) var(--space-padding-page) var(--space-padding-page);
 
         /*
-         * Outputs come first in the page, then the channels: stacked above them when narrow, in a
-         * column to their left when wide. Either way the reading and Tab order match what's shown.
+         * Outputs come first in the page, so stacked they sit above the channels. Wide, they move
+         * to a column on the right. reading-flow makes Tab (and screen readers) follow what's
+         * shown, left to right and top to bottom, instead of the page order.
          */
+        reading-flow: grid-rows;
+
         @media (width >= 60rem) {
-            grid-template-columns: 18rem minmax(0, 1fr);
+            grid-template-columns: minmax(0, 1fr) 18rem;
             align-items: start;
+
+            & :global(.outputs) {
+                grid-area: 1 / 2;
+            }
+
+            & .channels {
+                grid-area: 1 / 1;
+            }
         }
     }
 
