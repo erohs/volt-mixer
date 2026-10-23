@@ -4,14 +4,14 @@ import MixSetup from "../components/mixer/MixSetup.astro";
 import OutputPanel from "../components/mixer/OutputPanel.astro";
 import SettingsDialog from "../components/mixer/SettingsDialog.astro";
 import StripTemplate from "../components/mixer/StripTemplate.astro";
+import Footer from "../components/site/Footer.astro";
 import Header from "../components/site/Header.astro";
 import Notice from "../components/site/Notice.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { site } from "../lib/site.ts";
 ---
 
-<BaseLayout
-    title="Volt Mixer"
-    description="Control a UA Volt 4 Gen 2's built-in mixer from Edge or Chrome, with nothing to install.">
+<BaseLayout title={site.title} description={site.description}>
     <Header slot="header" />
     <Notice />
     <noscript>
@@ -30,6 +30,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <ul class="strips" data-strips></ul>
         </section>
     </div>
+    <Footer slot="footer" />
     <StripTemplate />
     <ChannelDialog />
     <SettingsDialog />
