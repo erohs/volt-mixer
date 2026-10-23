@@ -76,6 +76,15 @@
     --easing-standard: ease;
 }
 
+/* Settings › View › Theme; without a choice the page follows the system. */
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+}
+
 /* Secondary text and every line take the full text colour, and thin lines thicken. */
 @media (prefers-contrast: more) {
     :root {

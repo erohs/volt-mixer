@@ -4,7 +4,8 @@ import { encodeMix, toSavedMix } from "../lib/saved-mix.ts";
 import { newestSpec } from "../lib/spec.ts";
 import { app, commit, hooks, layout, notice } from "./app-state.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
-import { saveView } from "./store.ts";
+import { loadTheme, saveTheme, saveView } from "./store.ts";
+import { applyTheme, isTheme } from "./theme.ts";
 
 /* The Settings dialog (SettingsDialog.astro): device options, cue routing, view and the mix. */
 
@@ -46,6 +47,7 @@ export const refreshSettings = (isLive: boolean): void => {
     check("mirror", mirroredCue());
     check("show-digital", app.view.isDigitalShown);
     check("show-loopback", app.view.isLoopbackShown);
+    check("theme", loadTheme());
     markUncapturedRoutes();
     const brightness = dialog().querySelector<HTMLElement>("[data-slider='brightness']")!;
     setSliderValue(brightness, device.brightness);
@@ -53,7 +55,8 @@ export const refreshSettings = (isLive: boolean): void => {
     for (const input of dialog().querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-setting]")) {
         const setting = input.dataset["setting"] ?? "";
         const isRouting = /source|mirror/.test(setting);
-        input.disabled = !viewSettings[setting] && (!isLive || (isRouting && !isMixOwned));
+        const isPageSetting = setting in viewSettings || setting === "theme";
+        input.disabled = !isPageSetting && (!isLive || (isRouting && !isMixOwned));
     }
 };
 
@@ -68,6 +71,7 @@ const settingChanges: Record<string, (input: HTMLInputElement | HTMLSelectElemen
 
 const onChange = (input: HTMLInputElement | HTMLSelectElement): void => {
     const setting = input.dataset["setting"] ?? "";
+    if (setting === "theme" && isTheme(input.value)) return (applyTheme(input.value), saveTheme(input.value));
     const view = viewSettings[setting];
     if (view) {
         app.view[view] = (input as HTMLInputElement).checked;

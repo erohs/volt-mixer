@@ -1,5 +1,6 @@
 import type { IStripView } from "../lib/strip-groups.ts";
 import type { ISavedMix } from "../lib/saved-mix.ts";
+import { isTheme, type Theme } from "./theme.ts";
 
 /*
  * Browser storage, per Volt serial. Storage can be unavailable (private windows, blocked site
@@ -10,6 +11,7 @@ const prefix = "volt-mixer";
 const mixKey = (serial: string): string => `${prefix}.mix.${serial || "unknown"}`;
 const pendingKey = `${prefix}.pending-mix`;
 const viewKey = `${prefix}.view`;
+const themeKey = `${prefix}.theme`;
 
 const read = (key: string): unknown => {
     try {
@@ -45,3 +47,11 @@ export const loadView = (): IViewPreferences => {
 };
 
 export const saveView = (view: IViewPreferences): void => write(viewKey, view);
+
+/** public/theme.js reads this key too, before the page's script loads. */
+export const loadTheme = (): Theme => {
+    const theme = read(themeKey);
+    return isTheme(theme) ? theme : "system";
+};
+
+export const saveTheme = (theme: Theme): void => write(themeKey, theme === "system" ? null : theme);

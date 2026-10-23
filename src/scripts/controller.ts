@@ -12,9 +12,10 @@ import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { initDialogs } from "./dialogs.ts";
 import { resetMeters, showMeterLevels } from "./meters-view.ts";
 import { refreshSettings, settingsActions, wireSettingsDialog } from "./settings-dialog.ts";
-import { loadMix, loadPendingMix, saveMix, savePendingMix } from "./store.ts";
+import { loadMix, loadPendingMix, loadTheme, saveMix, savePendingMix } from "./store.ts";
 import { initSliders } from "./slider.ts";
 import { refreshStrips, renderStrips } from "./strips.ts";
+import { applyTheme } from "./theme.ts";
 import * as volt from "./volt-connection.ts";
 import type { IConnectionInfo } from "./volt-connection.ts";
 
@@ -254,6 +255,7 @@ const holdControlLock = (): void => {
 
 export const start = (): void => {
     Object.assign(hooks, { commit, layout: relayout, refresh, autoGain: startAutoGain });
+    applyTheme(loadTheme());
     initSliders(document);
     initDialogs();
     wireMixerControls();

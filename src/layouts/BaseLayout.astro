@@ -35,6 +35,7 @@ const structuredData = {
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script is:inline src={`${base}theme.js`}></script>
         <title>{title}</title>
         <meta name="description" content={description} />
         {isIndexed ? <link rel="canonical" href={pageUrl} /> : <meta name="robots" content="noindex" />}

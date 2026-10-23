@@ -71,6 +71,13 @@ import Slider from "../ui/Slider.astro";
     </SettingGroup>
 
     <SettingGroup id="view" title="View">
+        <SettingRow id="theme" name="Theme" description="Light, dark or as your system." for="theme-input">
+            <select id="theme-input" aria-describedby="theme-description" data-setting="theme">
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </SettingRow>
         <SettingRow
             id="show-digital"
             name="Digital inputs"
