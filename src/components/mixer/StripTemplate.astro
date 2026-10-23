@@ -115,11 +115,13 @@ import Slider from "../ui/Slider.astro";
     }
 
     /* Small and quiet, so they never compete with the fader. */
+    /* Below the name everything is centred on the strip, so the tags reach under the gear too. */
     .tags:not([hidden]) {
         display: flex;
         justify-content: center;
         gap: var(--space-between-lines);
         margin-block-start: var(--space-between-text);
+        margin-inline-end: calc(-1 * (var(--size-icon) + var(--space-between-lines)));
     }
 
     .tag {
@@ -181,10 +183,23 @@ import Slider from "../ui/Slider.astro";
         }
     }
 
+    /*
+     * The fader, its scale and the meters are one centred block. The dB readout is centred under
+     * that whole block, not just the slider, so it lines up with the tags and buttons.
+     */
     .fader {
+        position: relative;
         display: flex;
         justify-content: center;
         gap: var(--space-between-text);
+        padding-block-end: calc(var(--font-size-small) * var(--line-height-body) + var(--space-between-lines));
+
+        & :global(.value) {
+            position: absolute;
+            inset-inline: 0;
+            inset-block-end: 0;
+            text-align: center;
+        }
     }
 
     .meters {
@@ -194,6 +209,11 @@ import Slider from "../ui/Slider.astro";
         padding-block: calc(var(--size-slider-thumb) / 2);
 
         & :global([data-meter=""]) {
+            display: none;
+        }
+
+        /* No meters at all (the Volt has none for this channel): no gap beside the fader either. */
+        &:not(:has(:global([data-meter]:not([data-meter=""])))) {
             display: none;
         }
     }
