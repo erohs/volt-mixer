@@ -3,7 +3,7 @@ import type { CueName } from "../lib/mixer.ts";
 import { minDb } from "../lib/gain.ts";
 import { formatDb } from "../lib/taper.ts";
 import { app, commit, hooks, layout } from "./app-state.ts";
-import { refreshChannelIcon, wireChannelIcon } from "./channel-icon.ts";
+import { closeIconList, refreshChannelIcon, wireChannelIcon } from "./channel-icon.ts";
 import { togglePhantom } from "./phantom.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 
@@ -45,6 +45,7 @@ export const openChannelDialog = (ids: string[]): void => {
     part<HTMLInputElement>("[data-channel-field='name']")!.value = app.state.names[ids[0] ?? ""] ?? "";
     part<HTMLInputElement>("[data-channel-field='name']")!.placeholder = name;
     showSections(ids.length > 1);
+    closeIconList();
     dialog().showModal();
     hooks.refresh();
 };
