@@ -3,7 +3,7 @@ import { applyDeviceReport } from "../lib/device-report.ts";
 import { applyHardwareState, defaultState } from "../lib/mixer.ts";
 import { isMixKey } from "../lib/mixer-sync.ts";
 import { parseCommandReport, parseMeters, parseState } from "../lib/reports.ts";
-import { adoptSavedMix, decodeMix, toSavedMix } from "../lib/saved-mix.ts";
+import { adoptSavedMix, mixFromHash, toSavedMix } from "../lib/saved-mix.ts";
 import { newestSpec } from "../lib/spec.ts";
 import { stripGroups } from "../lib/strip-groups.ts";
 import { trayRows } from "../lib/tray-rows.ts";
@@ -173,10 +173,9 @@ const onDisconnected = ({ isByUser }: { isByUser: boolean }): void => {
     refresh();
 };
 
-/** A `#mix=` link: applied now if the Volt is ready, otherwise kept until it connects. */
+/** A mix link (`#m=`, or an older `#mix=`): applied now if the Volt is ready, otherwise kept until it connects. */
 const receiveMixLink = (link: string): boolean => {
-    const code = new URL(link, location.href).hash.match(/^#mix=([\w-]+)$/)?.[1];
-    const mix = code ? decodeMix(code) : null;
+    const mix = mixFromHash(new URL(link, location.href).hash);
     if (!mix) return (notice("That isn't a Volt Mixer mix link."), false);
     if (volt.connectedSpec() && app.isHardwareKnown) {
         takeOwnership(mix);
@@ -189,7 +188,7 @@ const receiveMixLink = (link: string): boolean => {
 };
 
 const readMixFromAddress = (): void => {
-    if (!location.hash.startsWith("#mix=")) return;
+    if (!/^#mix?=/.test(location.hash)) return;
     receiveMixLink(location.href);
     history.replaceState(null, "", location.pathname + location.search);
 };

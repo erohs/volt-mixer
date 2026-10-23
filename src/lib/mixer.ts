@@ -97,6 +97,19 @@ export const isLinked = (state: IMixerState, id: string): boolean => {
     return Boolean(pair && state.linked[pairKey(pair)]);
 };
 
+/** Channel names are at most 24 UTF-16 units, like the name field's maxlength. */
+export const maxNameLength = 24;
+
+/** A name trimmed and cut to the limit, never inside an emoji (a surrogate pair). */
+export const trimName = (name: string): string => {
+    let result = "";
+    for (const character of name.trim()) {
+        if (result.length + character.length > maxNameLength) break;
+        result += character;
+    }
+    return result;
+};
+
 const silentSend = (): ISend => ({ db: minDb, pan: 0, isMuted: false });
 
 /** Console's default session: every channel at 0 dB, centred; analog inputs muted; loopback on. */

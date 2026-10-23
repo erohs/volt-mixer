@@ -1,7 +1,6 @@
-import { channelById } from "../lib/mixer.ts";
+import { channelById, trimName } from "../lib/mixer.ts";
 import type { CueName } from "../lib/mixer.ts";
 import { minDb } from "../lib/gain.ts";
-import { maxNameLength } from "../lib/saved-mix.ts";
 import { formatDb } from "../lib/taper.ts";
 import { app, commit, hooks, layout } from "./app-state.ts";
 import { refreshChannelIcon, wireChannelIcon } from "./channel-icon.ts";
@@ -161,7 +160,7 @@ const onFieldChange = (input: HTMLInputElement | HTMLSelectElement): void => {
 };
 
 const onRename = (input: HTMLInputElement): void => {
-    const name = input.value.trim().slice(0, maxNameLength);
+    const name = trimName(input.value);
     for (const id of openIds) {
         if (name) app.state.names[id] = name;
         else delete app.state.names[id];

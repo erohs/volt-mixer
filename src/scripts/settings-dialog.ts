@@ -1,6 +1,7 @@
 import { isRouteKnown } from "../lib/commands.ts";
 import type { CueName } from "../lib/mixer.ts";
-import { encodeMix, toSavedMix } from "../lib/saved-mix.ts";
+import { encodeMixCode } from "../lib/mix-code.ts";
+import { toSavedMix } from "../lib/saved-mix.ts";
 import { newestSpec } from "../lib/spec.ts";
 import { app, commit, hooks, layout, notice } from "./app-state.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
@@ -86,8 +87,9 @@ const onChange = (input: HTMLInputElement | HTMLSelectElement): void => {
 
 /** A link to this page that carries the mix, for opening on the other computer. */
 export const mixLink = (): string => {
-    const url = new URL(location.href);
-    url.hash = `mix=${encodeMix(toSavedMix(app.state))}`;
+    // Always the website's address: in the desktop app location.href is app://volt/, which opens nowhere else.
+    const url = new URL(import.meta.env.BASE_URL, import.meta.env.SITE);
+    url.hash = `m=${encodeMixCode(toSavedMix(app.state))}`;
     return url.href;
 };
 

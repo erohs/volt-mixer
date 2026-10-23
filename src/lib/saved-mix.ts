@@ -1,6 +1,7 @@
 import { isChannelIcon } from "./channel-icons.ts";
 import { minDb } from "./gain.ts";
-import { channels, defaultChannel, hardwarePairs, pairs, pairKey, setLinked } from "./mixer.ts";
+import { decodeMixCode } from "./mix-code.ts";
+import { channels, defaultChannel, hardwarePairs, pairs, pairKey, setLinked, trimName } from "./mixer.ts";
 import type { CueName, IChannel, ICueRouting, IMixerState, ISend } from "./mixer.ts";
 
 /** The page-owned part of the mix: what is saved per computer and carried by a mix link. */
@@ -78,13 +79,11 @@ export const applySavedMix = (state: IMixerState, value: unknown, maxDb: number)
     state.icons = readIcons(saved["icons"]);
 };
 
-export const maxNameLength = 24;
-
 const readNames = (value: unknown): Record<string, string> => {
     const names: Record<string, string> = {};
     for (const [id, name] of Object.entries(record(value))) {
         if (typeof name === "string" && channels.some((c) => c.id === id) && name.trim()) {
-            names[id] = name.trim().slice(0, maxNameLength);
+            names[id] = trimName(name);
         }
     }
     return names;
@@ -139,4 +138,12 @@ export const decodeMix = (code: string): unknown => {
     } catch {
         return null;
     }
+};
+
+/** The mix in a link's address: `#m=` (short) or `#mix=` (older links); null when there's none. */
+export const mixFromHash = (hash: string): unknown => {
+    const short = hash.match(/^#m=([\w-]+)$/)?.[1];
+    if (short) return decodeMixCode(short);
+    const long = hash.match(/^#mix=([\w-]+)$/)?.[1];
+    return long ? decodeMix(long) : null;
 };

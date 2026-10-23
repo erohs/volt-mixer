@@ -3,7 +3,7 @@
 //   node mix-link.mjs [page-url]      default page-url: http://localhost:4321/
 import { createRequire } from "module";
 import { channels, pairs } from "../src/lib/mixer.ts";
-import { encodeMix } from "../src/lib/saved-mix.ts";
+import { encodeMixCode } from "../src/lib/mix-code.ts";
 
 const require = createRequire(import.meta.url);
 const ua = require("./lib/ua-api");
@@ -84,6 +84,6 @@ for (const pair of pairs) await readPair(api, buses, pair, mix);
 api.close();
 
 const link = new URL(pageUrl);
-link.hash = `mix=${encodeMix(mix)}`;
+link.hash = `m=${encodeMixCode(mix)}`;
 console.log(`Console's mix for ${channels.length} channels, as a mix link:\n\n${link.href}\n`);
 process.exit(0);
