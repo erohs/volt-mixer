@@ -22,7 +22,8 @@ routing. Console doesn't read them either: it pushes its own saved mix every tim
 The page does the same: on connect it reads the state dump, then applies this computer's saved mix
 (per Volt serial, in localStorage). Readable settings (mutes, 48V, gain, tone, links, levels) always
 come from the Volt. Each computer keeps its own copy; a `#mix=` link carries it to the other one.
-Until a computer has a mix, no level is sent.
+Until a computer has a mix, no level is sent. `docs/remote-sync.md` looks at keeping that copy in
+step over the network, and at phone control.
 
 ## Relative sliders instead of ramps
 
