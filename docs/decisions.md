@@ -88,3 +88,11 @@ level; a new connection pushed its own mix before it heard from the other; and F
 stick. It only helped on a computer that has the app, where the website isn't needed. The Volt's
 own settings (levels, mutes, 48V, gain, tone, links) need no sync: every page re-reads them from
 the Volt.
+
+Two Volt Mixers on one computer would still fight over the mix, and the website's faders would
+show levels the Volt isn't playing. They can't talk, but every program with the Volt open
+receives every state reading, and each re-reads every 1.5 s, so readings a page didn't ask for
+mean another one is open (`src/lib/other-program.ts`). The desktop app keeps its mix and says the
+browser is open; the website pauses its mix until the other one closes, and listens for 3.5 s
+after connecting before it applies its own (`src/scripts/mix-pause.ts`). Two browsers both pause
+and say so. UAD Console doesn't re-read, so it isn't noticed.

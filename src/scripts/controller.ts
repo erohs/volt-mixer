@@ -25,6 +25,7 @@ import {
     saveMix,
     savePendingMix,
 } from "./store.ts";
+import { checkOtherProgram, noteOtherReading, restartMixPause, takeMixWhenFree, wireMixPause } from "./mix-pause.ts";
 import { initSliders } from "./slider.ts";
 import { refreshStrips, renderStrips } from "./strips.ts";
 import { applyTheme } from "./theme.ts";
@@ -42,7 +43,8 @@ const refresh = (): void => {
     refreshOutputs(live);
     refreshChannelDialog(live);
     refreshSettings(live);
-    element("[data-mix-setup]").hidden = !(volt.connectedSpec() && app.isHardwareKnown && !app.state.isMixOwned);
+    const isMixMissing = app.isHardwareKnown && !app.state.isMixOwned && !app.isMixPaused;
+    element("[data-mix-setup]").hidden = !(volt.connectedSpec() && isMixMissing);
     element<HTMLButtonElement>("[data-action='push-mix']").disabled = !live || !app.state.isMixOwned;
     publish();
 };
@@ -98,12 +100,8 @@ const takeOwnership = (savedMix: unknown): void => {
     relayout();
 };
 
-const onFirstState = (data: Uint8Array): void => {
-    const spec = volt.connectedSpec() ?? newestSpec();
-    applyHardwareState(app.state, parseState(spec, data));
-    app.isHardwareKnown = true;
-    app.sync.forget();
-    app.sync.prime(app.state, spec);
+/** This computer's mix (a link opened before the Volt connected, or the saved one), applied to the Volt. */
+const takeSavedMix = (): void => {
     const pendingMix = loadPendingMix();
     const savedMix = pendingMix ?? loadMix(app.serial);
     savePendingMix(null);
@@ -112,27 +110,43 @@ const onFirstState = (data: Uint8Array): void => {
     else relayout();
 };
 
-/** A later state dump (after a link change or a failed send): adopt it, re-send the mix legs. */
+const onFirstState = (data: Uint8Array): void => {
+    const spec = volt.connectedSpec() ?? newestSpec();
+    applyHardwareState(app.state, parseState(spec, data));
+    app.isHardwareKnown = true;
+    app.sync.forget();
+    app.sync.prime(app.state, spec);
+    if (app.isMixPaused) relayout();
+    takeMixWhenFree();
+};
+
 /*
- * The Volt doesn't tell this page when something else changes it (the app or website on this
- * computer, the front panel's level knobs), so the page re-reads it now and then. Not while the
- * user is moving something here: a reading taken just before their latest move would undo it.
+ * The Volt doesn't tell this page when something else changes it (another program on this
+ * computer, the front panel's level knobs), so the page re-reads it now and then. Readings that
+ * arrive while the user is moving something here are ignored: one taken just before their latest
+ * move would undo it. Readings this page didn't ask for come from another program (mix-pause.ts).
  */
 const editHoldMs = 1500;
 const rereadMs = 1500;
-let isStateWanted = false;
+let statesAsked = 0;
 const isEditing = (): boolean => performance.now() - app.lastEditAt < editHoldMs;
 
-const rereadVolt = (): void => {
-    if (!volt.connectedSpec() || !app.isHardwareKnown || isEditing()) return;
-    isStateWanted = true;
+const askForState = (): void => {
+    statesAsked++;
     volt.requestState();
 };
 
+/** Only the tab that drives the Volt asks; a read-only second tab sees its readings anyway. */
+const rereadVolt = (): void => {
+    if (!volt.connectedSpec() || !app.isHardwareKnown || !app.hasControl) return;
+    // Replies come within milliseconds, so one asked for a tick ago that hasn't come never will.
+    statesAsked = 0;
+    askForState();
+    checkOtherProgram();
+};
+
 const onLaterState = (data: Uint8Array): void => {
-    // Another program's reading can arrive here too; mid-change, only one this page asked for counts.
-    if (!isStateWanted && isEditing()) return;
-    isStateWanted = false;
+    if (isEditing()) return;
     const spec = volt.connectedSpec() ?? newestSpec();
     const changed = applyHardwareState(app.state, parseState(spec, data));
     app.sync.prime(app.state, spec, (key) => !isMixKey(key));
@@ -148,7 +162,16 @@ const showMeters = (levels: Record<string, number>): void => {
 let stateTimer = 0;
 const requestStateSoon = (): void => {
     clearTimeout(stateTimer);
-    stateTimer = window.setTimeout(() => ((isStateWanted = true), volt.requestState()), 150);
+    stateTimer = window.setTimeout(askForState, 150);
+};
+
+/** Every state reading reaches every program that has the Volt open; this page's own are counted. */
+const onStateReading = (data: Uint8Array): void => {
+    const isOwn = statesAsked > 0;
+    statesAsked = Math.max(0, statesAsked - 1);
+    if (!isOwn) noteOtherReading();
+    if (app.isHardwareKnown) onLaterState(data);
+    else onFirstState(data);
 };
 
 const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): void => {
@@ -157,7 +180,7 @@ const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): v
     if (reportId === spec.reports.meters.id) return showMeters(parseMeters(spec, data));
     if (reportId !== spec.reports.command.id) return;
     const report = parseCommandReport(spec, data);
-    if (report.type === "state") return app.isHardwareKnown ? onLaterState(data) : onFirstState(data);
+    if (report.type === "state") return onStateReading(data);
     if (!app.isHardwareKnown) return;
     if (report.type === "links" || report.type === "panel") return requestStateSoon();
     if (!applyDeviceReport(app.state, report)) return;
@@ -170,6 +193,9 @@ const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): v
 const onConnected = (info: IConnectionInfo): void => {
     Object.assign(app, { serial: info.serial, isHardwareKnown: false, isSendAllowed: info.isExact });
     app.state.isMixOwned = false;
+    // The connection asks for the first reading itself, straight after this.
+    statesAsked = 1;
+    restartMixPause(true);
     setStatus(info.isIdentified ? `Connected · firmware ${info.version}` : "Connected · firmware unknown", "on");
     element("[data-action='connect']").hidden = true;
     element("[data-action='disconnect']").hidden = false;
@@ -199,6 +225,7 @@ const onConnected = (info: IConnectionInfo): void => {
 const onDisconnected = ({ isByUser }: { isByUser: boolean }): void => {
     app.isHardwareKnown = false;
     app.state.isMixOwned = false;
+    restartMixPause(false);
     if (isByUser) setStatus("Disconnected", "off");
     else setStatus("Volt not connected · on the other computer?", "away");
     element("[data-action='connect']").hidden = false;
@@ -211,12 +238,14 @@ const onDisconnected = ({ isByUser }: { isByUser: boolean }): void => {
 const receiveMixLink = (link: string): boolean => {
     const mix = mixFromHash(new URL(link, location.href).hash);
     if (!mix) return (toast("That isn't a Volt Mixer mix link."), false);
-    if (volt.connectedSpec() && app.isHardwareKnown) {
+    if (volt.connectedSpec() && app.isHardwareKnown && !app.isMixPaused) {
         takeOwnership(mix);
         toast("Mix applied from the link.");
     } else {
         savePendingMix(mix);
-        toast("Mix received. It will be applied when the Volt connects.");
+        toast(
+            `Mix received. It will be applied when ${app.isMixPaused ? "the other Volt Mixer closes" : "the Volt connects"}.`,
+        );
     }
     return true;
 };
@@ -232,7 +261,7 @@ const startAutoGain = (mask: number, seconds: number): boolean => {
     const spec = volt.connectedSpec();
     if (!spec || !isLive() || mask === 0) return false;
     volt.send([autoGain(spec, mask, seconds)]);
-    window.setTimeout(volt.requestState, (seconds + 1.5) * 1000);
+    window.setTimeout(askForState, (seconds + 1.5) * 1000);
     return true;
 };
 
@@ -317,6 +346,7 @@ const holdControlLock = (): void => {
 
 export const start = (): void => {
     Object.assign(hooks, { commit, layout: relayout, refresh, autoGain: startAutoGain });
+    wireMixPause(takeSavedMix);
     clearRetiredSettings();
     applyTheme(loadTheme());
     initSliders(document);

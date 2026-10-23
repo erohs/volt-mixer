@@ -11,7 +11,11 @@ import { stripIds } from "./strips.ts";
 
 /** Solo, digital mutes and faders are mix levels, so they need this computer to own the mix. */
 const explainNeedsMix = (): void =>
-    toast("That works once this computer has your mix. Set one up above, or open a mix link.");
+    toast(
+        app.isMixPaused
+            ? "The mix is with the other Volt Mixer on this computer until it closes."
+            : "That works once this computer has your mix. Set one up above, or open a mix link.",
+    );
 
 /** Applies an intent from any view (this page's controls or the tray window) and commits it. */
 export const runIntent = (intent: Intent): IntentResult => {

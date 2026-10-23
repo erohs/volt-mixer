@@ -15,6 +15,8 @@ export const app = {
     isSendAllowed: false,
     /** This tab holds the control lock (only one tab drives the Volt). */
     hasControl: true,
+    /** Website only: another Volt Mixer on this computer has the mix (src/scripts/mix-pause.ts). */
+    isMixPaused: false,
     /** When the user last changed something (performance.now()), so re-reading the Volt waits. */
     lastEditAt: -Infinity,
 };
@@ -58,6 +60,11 @@ export const notice = (text: string, action?: { label: string; run: () => void }
     // Focus would be lost with the button, so it goes to the start of the page's content.
     dismiss.addEventListener("click", () => (notice(""), document.querySelector<HTMLElement>("#main")?.focus()));
     region.append(dismiss);
+};
+
+/** Clears the notice if it's still showing `text`. */
+export const clearNotice = (text: string): void => {
+    if (document.querySelector("[data-notice] .notice-text")?.textContent === text) notice("");
 };
 
 export const setStatus = (text: string, status: "off" | "on" | "away"): void => {

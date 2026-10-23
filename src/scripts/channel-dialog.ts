@@ -98,6 +98,11 @@ export const refreshChannelDialog = (isLive: boolean): void => {
         "button[data-channel-action], [data-channel-field]:not([data-channel-field='name'])",
     );
     for (const control of controls) control.disabled = !isLive;
+    // Cue mutes are part of the mix, like the sliders beside them.
+    for (const cue of cues) {
+        const mute = part<HTMLInputElement>(`[data-channel-field='${cue}-mute']`);
+        if (mute) mute.disabled = !isLive || !app.state.isMixOwned;
+    }
 };
 
 /** Sets one entry of a per-input array, for channels that have that input (preamp, tone). */
