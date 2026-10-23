@@ -1,0 +1,90 @@
+---
+import QrCode from "../ui/QrCode.astro";
+import Reveal from "../ui/Reveal.astro";
+import SettingRow from "../ui/SettingRow.astro";
+---
+
+<!-- Settings › Desktop app › Phone remote: phone-settings.ts fills this in while it's on. -->
+<div class="phone" data-phone hidden>
+    <p class="phone-status" role="status" data-phone-status data-state="waiting">
+        <span class="dot" aria-hidden="true"></span>
+        <span data-phone-status-text>Starting…</span>
+    </p>
+    <QrCode name="phone" label="QR code that opens the phone remote">
+        <p class="description" data-phone-address-text></p>
+    </QrCode>
+    <div data-phone-address-row hidden>
+        <SettingRow
+            id="phone-address"
+            name="Address"
+            description="This computer is on more than one network."
+            for="phone-address-input">
+            <select id="phone-address-input" aria-describedby="phone-address-description" data-phone-address></select>
+        </SettingRow>
+    </div>
+    <SettingRow id="phone-pairing" name="Pairing code" description="A new one unpairs every phone.">
+        <button class="button" type="button" aria-describedby="phone-pairing-description" data-phone-rotate>
+            New code
+        </button>
+    </SettingRow>
+    <Reveal summary="Phone can't connect?">
+        <ul>
+            <li>The phone has to be on the same Wi-Fi as this computer, with any VPN turned off.</li>
+            <li>
+                Allow Volt Mixer through Windows Firewall on private networks, and set your home network to Private
+                (Windows Settings › Network &amp; internet).
+            </li>
+            <li>
+                The connection isn't encrypted, like most home gadgets: someone who can watch your home network could
+                use it.
+            </li>
+        </ul>
+    </Reveal>
+</div>
+
+<style>
+    .phone:not([hidden]) {
+        display: grid;
+        gap: var(--space-between-content);
+    }
+
+    .description {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+
+    /* The phone's status, easy to see at a glance: green with a filled dot once a phone is in. */
+    .phone-status {
+        display: inline-flex;
+        align-items: center;
+        justify-self: center;
+        gap: var(--space-between-text);
+        padding: var(--space-between-lines) var(--space-padding-compact);
+        border: var(--border-width-default) solid var(--color-border-subtle);
+        border-radius: 999px;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+        font-weight: var(--font-weight-semi-bold);
+
+        & .dot {
+            inline-size: 0.5rem;
+            block-size: 0.5rem;
+            border: var(--border-width-standout) solid currentColor;
+            border-radius: 50%;
+        }
+
+        &[data-state="connected"] {
+            border-color: currentColor;
+            color: var(--color-text-success);
+
+            & .dot {
+                background-color: currentColor;
+            }
+        }
+
+        &[data-state="problem"] {
+            border-color: currentColor;
+            color: var(--color-text-warning);
+        }
+    }
+</style>

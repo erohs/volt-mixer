@@ -1,8 +1,7 @@
 ---
-import { channelIcons } from "../../lib/channel-icons.ts";
 import { faderTicks } from "../../lib/taper.ts";
 import Dialog from "../ui/Dialog.astro";
-import Icon from "../ui/Icon.astro";
+import ChannelIdentity from "./ChannelIdentity.astro";
 import SettingGroup from "../ui/SettingGroup.astro";
 import SettingRow from "../ui/SettingRow.astro";
 import Slider from "../ui/Slider.astro";
@@ -23,62 +22,7 @@ const cues = [
 ---
 
 <Dialog id="channel-dialog" title="Channel settings">
-    <!--
-        How the channel shows: its icon (a button that drops down the icon list) and its
-        name (an editable title on the dialog's own background), in one card. channel-icon.ts.
-    -->
-    <section class="identity" aria-labelledby="identity-heading" data-channel-icon>
-        <h3 class="identity-title" id="identity-heading">
-            Display
-        </h3>
-        <div class="identity-line">
-            <button
-                class="button icon-toggle"
-                type="button"
-                aria-expanded="false"
-                aria-controls="channel-icon-list"
-                data-channel-icon-toggle>
-                <span class="current-icon" data-channel-icon-current></span>
-                <Icon name="chevron-down" class="chevron" />
-            </button>
-            <div class="name">
-                <label class="visually-hidden" for="channel-name-input">
-                    Channel name
-                </label>
-                <input
-                    id="channel-name-input"
-                    type="text"
-                    maxlength="24"
-                    autocomplete="off"
-                    data-channel-field="name"
-                />
-                <Icon name="pencil" class="pencil" />
-            </div>
-        </div>
-        <fieldset id="channel-icon-list" class="icons" hidden>
-            <legend class="visually-hidden">Icon</legend>
-            <div class="icon-choices">
-                <!-- No choice of its own: the channel's default (channel-icon.ts names it in the title). -->
-                <label class="icon-choice" title="Default" data-channel-icon-default>
-                    <input type="radio" name="channel-icon" value="" data-channel-icon-field="icon" />
-                    <Icon name="ban" />
-                    <span class="visually-hidden">Default</span>
-                </label>
-                {Object.entries(channelIcons).map(([icon, label]) => (
-                    <label class="icon-choice" title={label}>
-                        <input type="radio" name="channel-icon" value={icon} data-channel-icon-field="icon" />
-                        <Icon name={icon} />
-                        <span class="visually-hidden">{label}</span>
-                    </label>
-                ))}
-            </div>
-        </fieldset>
-        <div data-channel-tray-show hidden>
-            <SettingRow id="show-in-tray" name="Show in tray" for="show-in-tray-input">
-                <input id="show-in-tray-input" type="checkbox" role="switch" data-channel-icon-field="show" />
-            </SettingRow>
-        </div>
-    </section>
+    <ChannelIdentity />
 
     <div data-channel-section="preamp">
         <SettingGroup id="preamp" title="Preamp">
@@ -192,92 +136,6 @@ const cues = [
         font-size: var(--font-size-small);
     }
 
-    /* The card, tinted like a setting group, holding the line and the icon list below it. */
-    .identity {
-        --slider-surround: var(--color-background-raised);
-
-        display: grid;
-        gap: var(--space-between-content);
-        padding: var(--space-padding-compact);
-        border-radius: var(--radius-medium);
-        background-color: var(--color-background-raised);
-    }
-
-    /* Titled like the setting groups below it. */
-    .identity-title {
-        font-size: var(--font-size-heading);
-        font-weight: var(--font-weight-semi-bold);
-    }
-
-    .identity-line {
-        display: flex;
-        align-items: center;
-        gap: var(--space-between-text);
-    }
-
-    /* The current icon with a small chevron; it turns while the list is open. */
-    .icon-toggle {
-        gap: 0.125rem;
-        min-block-size: 2.75rem;
-        padding: 0 var(--space-between-text);
-        border-color: transparent;
-        background-color: var(--color-background-surface);
-
-        & .current-icon {
-            display: inline-grid;
-        }
-
-        & :global(.icon) {
-            inline-size: var(--size-icon);
-            block-size: var(--size-icon);
-        }
-
-        & :global(.chevron) {
-            inline-size: 0.875rem;
-            block-size: 0.875rem;
-            color: var(--color-text-secondary);
-            transition: rotate var(--duration-fast) var(--easing-standard);
-        }
-
-        &[aria-expanded="true"] :global(.chevron) {
-            rotate: 180deg;
-        }
-    }
-
-    /* An editable title: no border, the dialog's own background and a pencil mark it as one. */
-    .name {
-        position: relative;
-        flex: 1;
-        min-inline-size: 0;
-
-        & input {
-            inline-size: 100%;
-            min-block-size: 2.75rem;
-            padding-inline: var(--space-padding-compact)
-                calc(var(--space-padding-compact) + var(--size-icon) + var(--space-between-text));
-            border: 0;
-            border-radius: var(--radius-small);
-            background-color: var(--color-background-surface);
-            font-size: var(--font-size-heading);
-            font-weight: var(--font-weight-semi-bold);
-
-            &::placeholder {
-                color: var(--color-text-secondary);
-            }
-        }
-
-        & :global(.pencil) {
-            position: absolute;
-            inset-block-start: 50%;
-            inset-inline-end: var(--space-padding-compact);
-            inline-size: var(--size-icon);
-            block-size: var(--size-icon);
-            color: var(--color-text-secondary);
-            translate: 0 -50%;
-            pointer-events: none;
-        }
-    }
-
     .tones {
         display: grid;
         gap: var(--space-between-text);
@@ -355,71 +213,8 @@ const cues = [
     }
 
     @media (forced-colors: active) {
-        .name input {
-            border: 1px solid CanvasText;
-        }
-
         .tone:has(:checked) {
             outline: var(--border-width-standout) solid Highlight;
-        }
-    }
-
-    /* Like the tone choices: the label is the button, its radio sits invisibly on top. */
-    .icons:not([hidden]) {
-        display: grid;
-        gap: var(--space-between-text);
-        margin: 0;
-        padding: 0;
-        border: 0;
-    }
-
-    .icon-choices {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(var(--size-action-minimum), 1fr));
-        gap: var(--space-between-lines);
-    }
-
-    .icon-choice {
-        position: relative;
-        display: grid;
-        place-items: center;
-        aspect-ratio: 1;
-        border: var(--border-width-default) solid transparent;
-        border-radius: var(--radius-small);
-        color: var(--color-text-primary);
-        cursor: pointer;
-
-        & input {
-            position: absolute;
-            inset: 0;
-            margin: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        & :global(.icon) {
-            inline-size: var(--size-icon);
-            block-size: var(--size-icon);
-        }
-
-        &:hover {
-            border-color: var(--color-border);
-        }
-
-        &:has(:checked) {
-            border-color: var(--color-background-accent);
-            background-color: var(--color-background-accent);
-            color: var(--color-text-on-accent);
-        }
-
-        &:has(:focus-visible) {
-            outline: var(--border-width-highlight) solid var(--color-focus);
-            outline-offset: 2px;
-        }
-
-        &:has(:disabled) {
-            cursor: not-allowed;
-            opacity: 0.6;
         }
     }
 </style>

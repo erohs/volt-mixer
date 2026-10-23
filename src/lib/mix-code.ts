@@ -88,7 +88,7 @@ const writeChannels = (out: IWriter, mix: ISavedMix): void => {
     }
 };
 
-const writeExtras = (out: IWriter, mix: ISavedMix): void => {
+const writeRouting = (out: IWriter, mix: ISavedMix): void => {
     out.u8(pairs.reduce((bits, pair, i) => bits | bit(Boolean(mix.linked[pairKey(pair)]), i), 0));
     const { cue1, cue2 } = mix.cues;
     out.u8(
@@ -98,6 +98,9 @@ const writeExtras = (out: IWriter, mix: ISavedMix): void => {
             bit(cue2.isMirroredToLine34, 3) |
             bit(mix.headphoneSource === "cue2", 4),
     );
+};
+
+const writeLabels = (out: IWriter, mix: ISavedMix): void => {
     const encoder = new TextEncoder();
     const names = channels.flatMap((info, i) => {
         const name = trimName(mix.names[info.id] ?? "");
@@ -125,7 +128,8 @@ export const encodeMixCode = (mix: ISavedMix): string => {
     const out = writer();
     out.u8(version);
     writeChannels(out, mix);
-    writeExtras(out, mix);
+    writeRouting(out, mix);
+    writeLabels(out, mix);
     return bytesToBase64Url(out.bytes);
 };
 

@@ -1,7 +1,9 @@
 ---
 import Dialog from "../ui/Dialog.astro";
 import Icon from "../ui/Icon.astro";
+import PhoneRemote from "./PhoneRemote.astro";
 import QrCode from "../ui/QrCode.astro";
+import Reveal from "../ui/Reveal.astro";
 import SettingGroup from "../ui/SettingGroup.astro";
 import SettingRow from "../ui/SettingRow.astro";
 import Slider from "../ui/Slider.astro";
@@ -165,48 +167,7 @@ import Slider from "../ui/Slider.astro";
                 data-desktop="phoneRemote"
             />
         </SettingRow>
-        <!-- phone-settings.ts fills this in while Phone remote is on. -->
-        <div class="phone" data-phone hidden>
-            <p class="phone-status" role="status" data-phone-status data-state="waiting">
-                <span class="dot" aria-hidden="true"></span>
-                <span data-phone-status-text>Starting…</span>
-            </p>
-            <div class="code">
-                <QrCode name="phone" label="QR code that opens the phone remote" />
-                <p class="description" data-phone-address-text></p>
-            </div>
-            <div data-phone-address-row hidden>
-                <SettingRow
-                    id="phone-address"
-                    name="Address"
-                    description="This computer is on more than one network."
-                    for="phone-address-input">
-                    <select
-                        id="phone-address-input"
-                        aria-describedby="phone-address-description"
-                        data-phone-address></select>
-                </SettingRow>
-            </div>
-            <SettingRow id="phone-pairing" name="Pairing code" description="A new one unpairs every phone.">
-                <button class="button" type="button" aria-describedby="phone-pairing-description" data-phone-rotate>
-                    New code
-                </button>
-            </SettingRow>
-            <details class="reveal">
-                <summary>Phone can't connect?</summary>
-                <ul>
-                    <li>The phone has to be on the same Wi-Fi as this computer, with any VPN turned off.</li>
-                    <li>
-                        Allow Volt Mixer through Windows Firewall on private networks, and set your home network to
-                        Private (Windows Settings › Network &amp; internet).
-                    </li>
-                    <li>
-                        The connection isn't encrypted, like most home gadgets: someone who can watch your home network
-                        could use it.
-                    </li>
-                </ul>
-            </details>
-        </div>
+        <PhoneRemote />
         <SettingRow id="updates" name="Updates" description="Version">
             <button class="button" type="button" aria-describedby="updates-description" data-action="check-update">
                 Check
@@ -233,15 +194,13 @@ import Slider from "../ui/Slider.astro";
                     <span class="visually-hidden">Copy mix link</span>
                 </button>
             </div>
-            <details class="reveal" data-mix-qr>
-                <summary>QR code</summary>
-                <div class="code">
-                    <QrCode name="mix" label="QR code of this mix link" />
+            <Reveal summary="QR code" data-mix-qr>
+                <QrCode name="mix" label="QR code of this mix link">
                     <p class="description">
                         Scan it with your phone, or on the work laptop with the Windows Camera app.
                     </p>
-                </div>
-            </details>
+                </QrCode>
+            </Reveal>
         </div>
         <SettingRow id="push-mix" name="Apply mix" description="Send it to the Volt now.">
             <button class="button" type="button" aria-describedby="push-mix-description" data-action="push-mix">
@@ -334,75 +293,6 @@ import Slider from "../ui/Slider.astro";
         & :focus-visible {
             position: relative;
             z-index: 1;
-        }
-    }
-
-    /* A QR code, centred, with one line under it. */
-    .code:not([hidden]) {
-        display: grid;
-        justify-items: center;
-        gap: var(--space-between-text);
-        text-align: center;
-    }
-
-    .phone:not([hidden]) {
-        display: grid;
-        gap: var(--space-between-content);
-    }
-
-    /* The phone's status, easy to see at a glance: green with a filled dot once a phone is in. */
-    .phone-status {
-        display: inline-flex;
-        align-items: center;
-        justify-self: center;
-        gap: var(--space-between-text);
-        padding: var(--space-between-lines) var(--space-padding-compact);
-        border: var(--border-width-default) solid var(--color-border-subtle);
-        border-radius: 999px;
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
-        font-weight: var(--font-weight-semi-bold);
-
-        & .dot {
-            inline-size: 0.5rem;
-            block-size: 0.5rem;
-            border: var(--border-width-standout) solid currentColor;
-            border-radius: 50%;
-        }
-
-        &[data-state="connected"] {
-            border-color: currentColor;
-            color: var(--color-text-success);
-
-            & .dot {
-                background-color: currentColor;
-            }
-        }
-
-        &[data-state="problem"] {
-            border-color: currentColor;
-            color: var(--color-text-warning);
-        }
-    }
-
-    /* Something that folds out on demand (the QR code, help): small accent text with the native marker. */
-    .reveal {
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
-
-        & summary {
-            color: var(--color-text-accent);
-            cursor: pointer;
-        }
-
-        & > :not(summary) {
-            margin-block-start: var(--space-between-text);
-        }
-
-        & ul {
-            display: grid;
-            gap: var(--space-between-lines);
-            padding-inline-start: 1.25rem;
         }
     }
 </style>

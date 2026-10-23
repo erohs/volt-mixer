@@ -51,8 +51,26 @@ const lockNavigation = (window: BrowserWindow): void => {
 
 const background = (): string => (nativeTheme.shouldUseDarkColors ? "#171615" : "#f5f3ef");
 
+/** Close and minimise put the window in the tray (if chosen); closing it for real quits the app. */
+const keepInTray = (window: BrowserWindow): void => {
+    window.on("close", (event) => {
+        if (isQuitting || !loadSettings().closeToTray) return;
+        event.preventDefault();
+        window.hide();
+    });
+    // Windows is shutting down or signing out: let the window close.
+    window.on("session-end", markQuitting);
+    // Closed for real (not to the tray): nothing drives the Volt any more, so the app quits.
+    window.on("closed", () => {
+        mainWindow = null;
+        app.quit();
+    });
+    // Minimise can't be cancelled, so the window minimises and then hides.
+    window.on("minimize", () => loadSettings().minimiseToTray && window.hide());
+};
+
 export const createMainWindow = (isShown: boolean): BrowserWindow => {
-    mainWindow = new BrowserWindow({
+    const window = new BrowserWindow({
         width: 1200,
         height: 820,
         minWidth: 360,
@@ -62,24 +80,12 @@ export const createMainWindow = (isShown: boolean): BrowserWindow => {
         backgroundColor: background(),
         webPreferences,
     });
-    lockNavigation(mainWindow);
-    mainWindow.once("ready-to-show", () => isShown && mainWindow?.show());
-    mainWindow.on("close", (event) => {
-        if (isQuitting || !loadSettings().closeToTray) return;
-        event.preventDefault();
-        mainWindow?.hide();
-    });
-    // Windows is shutting down or signing out: let the window close.
-    mainWindow.on("session-end", markQuitting);
-    // Closed for real (not to the tray): nothing drives the Volt any more, so the app quits.
-    mainWindow.on("closed", () => {
-        mainWindow = null;
-        app.quit();
-    });
-    // Minimise can't be cancelled, so the window minimises and then hides.
-    mainWindow.on("minimize", () => loadSettings().minimiseToTray && mainWindow?.hide());
-    void mainWindow.loadURL(`${appOrigin}/`);
-    return mainWindow;
+    mainWindow = window;
+    lockNavigation(window);
+    window.once("ready-to-show", () => isShown && window.show());
+    keepInTray(window);
+    void window.loadURL(`${appOrigin}/`);
+    return window;
 };
 
 /** The window that drives the Volt (and holds the mix), if it exists. */

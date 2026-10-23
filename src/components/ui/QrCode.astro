@@ -9,14 +9,23 @@ interface Props {
 const { name, label } = Astro.props;
 ---
 
-<!-- Black on white in any theme, so cameras read it. -->
-<svg class="qr" role="img" aria-label={label} data-qr={name}>
-    <path></path>
-</svg>
+<!-- A QR code, centred, with the slot's line under it. Black on white in any theme, so cameras read it. -->
+<div class="code">
+    <svg class="qr" role="img" aria-label={label} data-qr={name}>
+        <path></path>
+    </svg>
+    <slot />
+</div>
 
 <style>
+    .code {
+        display: grid;
+        justify-items: center;
+        gap: var(--space-between-text);
+        text-align: center;
+    }
+
     .qr {
-        justify-self: center;
         inline-size: min(16rem, 100%);
         aspect-ratio: 1;
         border-radius: var(--radius-medium);

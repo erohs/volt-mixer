@@ -112,7 +112,7 @@ export const parseState = (spec: ISpec, data: Uint8Array): IHardwareState => {
     const layout = spec.stateLayout;
     const at = (offset: number): number => byte(data, 1 + offset);
     const word = (offset: number): number => u16(data, 1 + offset);
-    const [gain1 = 0, gain2 = 0] = layout.preampGainU16;
+    const gain = (index: number): number => word(layout.preampGainU16[index] ?? 0) / spec.preampGainStepsPerDb;
     const [tone1 = 0, tone2 = 0] = layout.toneNibbles;
     return {
         phantom: [Boolean(at(layout.phantomMask) & 1), Boolean(at(layout.phantomMask) & 2)],
@@ -124,7 +124,7 @@ export const parseState = (spec: ISpec, data: Uint8Array): IHardwareState => {
             level: at(layout.monitorLevel) / spec.monitorLevelPerUnit,
             isMono: at(layout.monitorMono) === 1,
         },
-        preampGain: [word(gain1) / spec.preampGainStepsPerDb, word(gain2) / spec.preampGainStepsPerDb],
+        preampGain: [gain(0), gain(1)],
         headphone: {
             level: word(layout.headphoneLevelU16) / spec.headphoneLevelScale,
             isMuted: at(layout.headphoneMute) === 1,

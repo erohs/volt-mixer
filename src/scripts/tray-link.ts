@@ -53,59 +53,78 @@ const readLines = async (body: ReadableStream<Uint8Array>, onLine: (line: string
     }
 };
 
+/** One phone page's connection to the app. */
+interface IPhone {
+    headers: Record<string, string>;
+    /** Names this page to the app, so its sequence numbers are told apart from another phone's. */
+    client: string;
+    /** The newest change per control, waiting to be sent. */
+    pending: Map<string, unknown>;
+    seq: number;
+    isSending: boolean;
+    retryMs: number;
+    onMessage: (message: Partial<RemoteMessage>) => void;
+    onStatus: (status: LinkStatus) => void;
+}
+
+const postIntent = async (phone: IPhone, intent: unknown): Promise<void> => {
+    const reply = await fetch("/api/intent", {
+        method: "POST",
+        headers: { ...phone.headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ client: phone.client, seq: ++phone.seq, intent }),
+    }).catch(() => null);
+    const result = ((await reply?.json().catch(() => null)) as { result?: unknown } | null)?.result;
+    if (result === "needsMix") phone.onMessage({ kind: "result", result });
+};
+
+/** One change at a time; while one is out, only the newest for each control waits. */
+const drain = async (phone: IPhone): Promise<void> => {
+    if (phone.isSending) return;
+    phone.isSending = true;
+    for (const [key, intent] of phone.pending) {
+        phone.pending.delete(key);
+        await postIntent(phone, intent);
+    }
+    phone.isSending = false;
+};
+
+/** Follows the app's updates; when the stream ends, tries again, waiting longer each time (up to 10 s). */
+const connect = async (phone: IPhone): Promise<void> => {
+    const response = await fetch("/api/events", { headers: phone.headers, cache: "no-store" }).catch(() => null);
+    if (response?.status === 401) return phone.onStatus("unpaired");
+    if (response?.ok && response.body) {
+        phone.onStatus("connected");
+        phone.retryMs = 1000;
+        const onLine = (line: string): void => phone.onMessage(JSON.parse(line) as Partial<RemoteMessage>);
+        await readLines(response.body, onLine).catch(() => {});
+    }
+    phone.onStatus("lost");
+    phone.retryMs = Math.min(phone.retryMs * 2, 10_000);
+    window.setTimeout(() => void connect(phone), phone.retryMs);
+};
+
 const phoneLink = (token: string): ITrayLink => {
-    const headers = { Authorization: `Bearer ${token}` };
-    const client = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-    const pending = new Map<string, unknown>();
-    let seq = 0;
-    let isSending = false;
-    let onMessage: (message: Partial<RemoteMessage>) => void = () => {};
-    let onStatus: (status: LinkStatus) => void = () => {};
-
-    /** One change at a time; while one is out, only the newest for each control waits. */
-    const drain = async (): Promise<void> => {
-        if (isSending) return;
-        isSending = true;
-        for (const [key, intent] of pending) {
-            pending.delete(key);
-            const body = JSON.stringify({ client, seq: ++seq, intent });
-            const reply = await fetch("/api/intent", {
-                method: "POST",
-                headers: { ...headers, "Content-Type": "application/json" },
-                body,
-            }).catch(() => null);
-            const result = ((await reply?.json().catch(() => null)) as { result?: unknown } | null)?.result;
-            if (result === "needsMix") onMessage({ kind: "result", result });
-        }
-        isSending = false;
+    const phone: IPhone = {
+        headers: { Authorization: `Bearer ${token}` },
+        client: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`,
+        pending: new Map(),
+        seq: 0,
+        isSending: false,
+        retryMs: 1000,
+        onMessage: () => {},
+        onStatus: () => {},
     };
-
-    let retry = 1000;
-    const connect = async (): Promise<void> => {
-        const response = await fetch("/api/events", { headers, cache: "no-store" }).catch(() => null);
-        if (response?.status === 401) return onStatus("unpaired");
-        if (response?.ok && response.body) {
-            onStatus("connected");
-            retry = 1000;
-            await readLines(response.body, (line) => onMessage(JSON.parse(line) as Partial<RemoteMessage>)).catch(
-                () => {},
-            );
-        }
-        onStatus("lost");
-        window.setTimeout(() => void connect(), (retry = Math.min(retry * 2, 10_000)));
-    };
-
     return {
         isPhone: true,
         send: (message) => {
             if (message.kind !== "intent" || !isRemoteIntent(message.intent)) return;
             const intent = message.intent as { type: string; ids?: string[] };
-            pending.set(`${intent.type}:${intent.ids?.join(",") ?? ""}`, intent);
-            void drain();
+            phone.pending.set(`${intent.type}:${intent.ids?.join(",") ?? ""}`, intent);
+            void drain(phone);
         },
-        listen: (messages, status) => {
-            [onMessage, onStatus] = [messages, status];
-            void connect();
+        listen: (onMessage, onStatus) => {
+            Object.assign(phone, { onMessage, onStatus });
+            void connect(phone);
         },
     };
 };
