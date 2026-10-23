@@ -1,0 +1,264 @@
+---
+import type { ITick } from "../../lib/taper.ts";
+
+interface Props {
+    /** Which model in src/lib/slider-models.ts drives it. */
+    kind: "fader" | "pan" | "level" | "gain" | "brightness";
+    label?: string;
+    /** IDs of elements that name and describe it (e.g. a setting row), instead of a label of its own. */
+    labelledBy?: string;
+    describedBy?: string;
+    orientation?: "vertical" | "horizontal";
+    ticks?: ITick[];
+    /** Names the slider for the script (data-slider). */
+    name: string;
+    class?: string;
+}
+
+const {
+    kind,
+    label = "",
+    labelledBy,
+    describedBy,
+    orientation = "horizontal",
+    ticks = [],
+    name,
+    class: className,
+} = Astro.props;
+/* A horizontal slider shows its label; a vertical fader is named by its strip (set by the script). */
+const labelId = orientation === "horizontal" && label && !labelledBy ? `slider-${name}-label` : undefined;
+---
+
+<div class:list={["slider", className]} data-orientation={orientation}>
+    {labelId && (
+        <span class="label" id={labelId} data-slider-label={name}>
+            {label}
+        </span>
+    )}
+    {ticks.length > 0 && (
+        <ol class="scale" aria-hidden="true">
+            {ticks.map((tick) => (
+                <li style={`--tick: ${tick.position}`}>{tick.label}</li>
+            ))}
+        </ol>
+    )}
+    <div
+        class="control"
+        role="slider"
+        tabindex="0"
+        aria-label={labelId || labelledBy ? undefined : label || undefined}
+        aria-labelledby={labelledBy ?? labelId}
+        aria-describedby={describedBy}
+        aria-orientation={orientation}
+        aria-valuemin="0"
+        aria-valuemax="1"
+        aria-valuenow="0"
+        data-slider={name}
+        data-kind={kind}>
+        <span class="track">
+            <span class="fill"></span>
+        </span>
+        <span class="thumb"></span>
+    </div>
+    <span class="value" aria-hidden="true" data-slider-value={name}></span>
+</div>
+
+<style>
+    /*
+     * --slider-position (0–1) is set by src/scripts/slider.ts. The thumb travels the track minus
+     * its own size, so 0 and 1 sit exactly at the ends and every slider of a kind lines up.
+     */
+    .slider {
+        --slider-position: 0;
+        --slider-travel: calc(100% - var(--size-slider-thumb));
+
+        display: grid;
+        gap: var(--space-between-lines);
+        font-size: var(--font-size-meta);
+        touch-action: none;
+        user-select: none;
+    }
+
+    .control {
+        position: relative;
+        touch-action: none;
+        user-select: none;
+        cursor: grab;
+        border-radius: var(--radius-small);
+
+        &:active {
+            cursor: grabbing;
+        }
+
+        /* The ring goes on the handle, not the whole slider. */
+        &:focus-visible {
+            outline: none;
+        }
+    }
+
+    /*
+     * Focused or being dragged, the handle gets a ring in its own colour, set off by a gap in the
+     * colour behind the slider (--slider-surround, which SettingGroup sets to its tint). The gap
+     * hides the track and fill under it, so the ring contrasts all the way round.
+     */
+    .control:is(:focus-visible, :active) .thumb {
+        box-shadow:
+            0 0 0 2px var(--slider-surround, var(--color-background-surface)),
+            0 0 0 calc(2px + var(--border-width-highlight)) var(--slider-colour, var(--color-background-accent));
+    }
+
+    .track {
+        position: absolute;
+        overflow: hidden;
+        border-radius: var(--size-slider-track);
+        background-color: var(--color-background-track);
+    }
+
+    /* --slider-colour lets a parent tint it, as a strip does with its TONE colour. */
+    .fill {
+        position: absolute;
+        background-color: var(--slider-colour, var(--color-background-accent));
+    }
+
+    .thumb {
+        position: absolute;
+        inline-size: var(--size-slider-thumb);
+        block-size: var(--size-slider-thumb);
+        border-radius: 50%;
+        /* Its colour reaches 3:1 on the track and the card (src/styles/tokens.test.ts). */
+        background-color: var(--slider-colour, var(--color-background-accent));
+    }
+
+    /* Pan rests at the centre, so a fill from one end would mislead. */
+    [data-kind="pan"] .fill {
+        display: none;
+    }
+
+    .value {
+        color: var(--color-text-primary);
+        font-size: var(--font-size-small);
+        font-weight: var(--font-weight-semi-bold);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .scale {
+        position: relative;
+        padding: 0;
+        color: var(--color-text-secondary);
+        list-style: none;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+
+        & li {
+            position: absolute;
+        }
+    }
+
+    [data-orientation="vertical"] {
+        grid-template: "scale control" var(--size-fader-length) "value value" auto / auto var(--size-slider-thumb);
+        column-gap: var(--space-between-text);
+        justify-content: center;
+
+        & .control {
+            grid-area: control;
+        }
+
+        & .track {
+            inset: calc(var(--size-slider-thumb) / 2) auto;
+            inset-inline-start: calc(50% - var(--size-slider-track) / 2);
+            inline-size: var(--size-slider-track);
+        }
+
+        & .fill {
+            inset: auto 0 0;
+            block-size: calc(var(--slider-position) * 100%);
+        }
+
+        & .thumb {
+            inset-block-end: calc(var(--slider-position) * var(--slider-travel));
+            inset-inline-start: 0;
+        }
+
+        & .scale {
+            grid-area: scale;
+            min-inline-size: 2.25rem;
+            text-align: end;
+
+            & li {
+                inset-inline-end: 0;
+                inset-block-end: calc(var(--tick) * var(--slider-travel) + var(--size-slider-thumb) / 2);
+                translate: 0 50%;
+            }
+        }
+
+        & .value {
+            grid-area: value;
+            text-align: center;
+        }
+    }
+
+    .label {
+        grid-area: label;
+        font-size: var(--font-size-body);
+    }
+
+    [data-orientation="horizontal"] {
+        grid-template: "label label" auto "control value" var(--size-slider-thumb) "scale ." auto / 1fr 4.5rem;
+
+        /* Named by its setting row instead, so no label row. */
+        &:not(:has(.label)) {
+            grid-template: "control value" var(--size-slider-thumb) "scale ." auto / 1fr 4rem;
+        }
+        column-gap: var(--space-between-text);
+        align-items: center;
+
+        & .control {
+            grid-area: control;
+            block-size: var(--size-slider-thumb);
+        }
+
+        & .track {
+            inset: auto calc(var(--size-slider-thumb) / 2);
+            inset-block-start: calc(50% - var(--size-slider-track) / 2);
+            block-size: var(--size-slider-track);
+        }
+
+        & .fill {
+            inset: 0 auto 0 0;
+            inline-size: calc(var(--slider-position) * 100%);
+        }
+
+        & .thumb {
+            inset-inline-start: calc(var(--slider-position) * var(--slider-travel));
+            inset-block-start: 0;
+        }
+
+        & .scale {
+            grid-area: scale;
+            block-size: 1em;
+
+            & li {
+                inset-inline-start: calc(var(--tick) * var(--slider-travel) + var(--size-slider-thumb) / 2);
+                translate: -50% 0;
+            }
+        }
+
+        & .value {
+            grid-area: value;
+            text-align: end;
+        }
+    }
+
+    @media (forced-colors: active) {
+        .fill,
+        .thumb {
+            background-color: CanvasText;
+        }
+
+        /* Box shadows aren't drawn in forced colours, so the ring is an outline there. */
+        .control:is(:focus-visible, :active) .thumb {
+            outline: var(--border-width-highlight) solid Highlight;
+            outline-offset: 2px;
+        }
+    }
+</style>

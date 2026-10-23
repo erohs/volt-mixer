@@ -1,0 +1,294 @@
+{
+ "firmware": "1.0.3",
+ "baseline": [
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  2,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  160,
+  0,
+  0,
+  0,
+  28,
+  3,
+  1,
+  217,
+  0,
+  0,
+  0,
+  0,
+  0,
+  4,
+  0,
+  0,
+  0,
+  0,
+  0,
+  247,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  247
+ ],
+ "results": [
+  {
+   "label": "tone In1 = Warmth",
+   "changed": [
+    {
+     "offset": 46,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "tone In2 = Focus",
+   "changed": [
+    {
+     "offset": 46,
+     "from": 0,
+     "to": 32
+    }
+   ]
+  },
+  {
+   "label": "tone In3 = Shine",
+   "changed": [
+    {
+     "offset": 47,
+     "from": 0,
+     "to": 3
+    }
+   ]
+  },
+  {
+   "label": "tone In4 = Warmth",
+   "changed": [
+    {
+     "offset": 47,
+     "from": 0,
+     "to": 16
+    }
+   ]
+  },
+  {
+   "label": "gain In1 = 30 dB",
+   "changed": [
+    {
+     "offset": 20,
+     "from": 0,
+     "to": 44
+    },
+    {
+     "offset": 21,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "gain In2 = 45.5 dB",
+   "changed": [
+    {
+     "offset": 22,
+     "from": 0,
+     "to": 199
+    },
+    {
+     "offset": 23,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "direct In1 (unmute)",
+   "changed": [
+    {
+     "offset": 14,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "direct In4 (unmute)",
+   "changed": [
+    {
+     "offset": 14,
+     "from": 0,
+     "to": 8
+    }
+   ]
+  },
+  {
+   "label": "monitor mute",
+   "changed": [
+    {
+     "offset": 16,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "monitor mono",
+   "changed": [
+    {
+     "offset": 36,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "headphone level -10",
+   "changed": [
+    {
+     "offset": 42,
+     "from": 28,
+     "to": 183
+    },
+    {
+     "offset": 43,
+     "from": 3,
+     "to": 2
+    }
+   ]
+  },
+  {
+   "label": "headphone mute",
+   "changed": [
+    {
+     "offset": 56,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "clip protection off",
+   "changed": [
+    {
+     "offset": 44,
+     "from": 1,
+     "to": 0
+    }
+   ]
+  },
+  {
+   "label": "brightness 100",
+   "changed": [
+    {
+     "offset": 45,
+     "from": 217,
+     "to": 100
+    }
+   ]
+  },
+  {
+   "label": "digital input S/PDIF",
+   "changed": [
+    {
+     "offset": 6,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "monitor level 10 (HID)",
+   "changed": [
+    {
+     "offset": 18,
+     "from": 0,
+     "to": 10
+    }
+   ]
+  },
+  {
+   "label": "48V In1",
+   "changed": [
+    {
+     "offset": 1,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "48V In2",
+   "changed": [
+    {
+     "offset": 1,
+     "from": 0,
+     "to": 2
+    }
+   ]
+  },
+  {
+   "label": "link 1-2",
+   "changed": [
+    {
+     "offset": 11,
+     "from": 0,
+     "to": 1
+    }
+   ]
+  },
+  {
+   "label": "link 3-4",
+   "changed": [
+    {
+     "offset": 11,
+     "from": 0,
+     "to": 2
+    }
+   ]
+  }
+ ]
+}

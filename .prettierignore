@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+dist/
+.astro/
+notes/
+captures/
+reference/
+tools/node_modules/

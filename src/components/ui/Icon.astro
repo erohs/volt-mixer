@@ -1,0 +1,31 @@
+---
+import type { SvgComponent } from "astro/types";
+
+interface Props {
+    name: string;
+    class?: string;
+}
+
+const icons = import.meta.glob<{ default: SvgComponent }>("../../icons/*.svg", { eager: true });
+const { name, class: className } = Astro.props;
+const icon = icons[`../../icons/${name}.svg`];
+
+if (icon === undefined) {
+    throw new Error(`No icon named "${name}" in src/icons.`);
+}
+
+const Svg = icon.default;
+---
+
+<Svg class:list={["icon", className]} width="24" height="24" aria-hidden="true" />
+
+<style>
+    /* Defaults only: no specificity, so a size or display set where the icon is placed always wins. */
+    :where(.icon) {
+        display: inline-block;
+        flex-shrink: 0;
+        inline-size: 1.1em;
+        block-size: 1.1em;
+        vertical-align: middle;
+    }
+</style>

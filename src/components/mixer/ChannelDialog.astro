@@ -1,0 +1,262 @@
+---
+import { faderTicks } from "../../lib/taper.ts";
+import Dialog from "../ui/Dialog.astro";
+import Icon from "../ui/Icon.astro";
+import SettingGroup from "../ui/SettingGroup.astro";
+import SettingRow from "../ui/SettingRow.astro";
+import Slider from "../ui/Slider.astro";
+
+const panTicks = [
+    { label: "L", position: 0 },
+    { label: "C", position: 0.5 },
+    { label: "R", position: 1 },
+];
+const gainTicks = [0, 20, 40, 60].map((db) => ({ label: `${db}`, position: db / 60 }));
+const sendTicks = faderTicks().filter((tick) => ["+12", "0", "−12", "−40", "−∞"].includes(tick.label));
+const tones = ["Off", "Warmth", "Focus", "Shine"];
+const autoGainChoices = [5, 10, 15, 20, 30, 45, 60, 90];
+const cues = [
+    { cue: "cue1", title: "Cue 1" },
+    { cue: "cue2", title: "Cue 2" },
+];
+---
+
+<Dialog id="channel-dialog" title="Channel settings">
+    <!-- An editable title: no border, a tinted field and a pencil mark it as one. -->
+    <div class="name">
+        <label class="visually-hidden" for="channel-name-input">
+            Channel name
+        </label>
+        <input id="channel-name-input" type="text" maxlength="24" autocomplete="off" data-channel-field="name" />
+        <Icon name="pencil" class="pencil" />
+    </div>
+
+    <div data-channel-section="preamp">
+        <SettingGroup id="preamp" title="Preamp">
+            <div data-channel-section="gain">
+                <SettingRow id="gain" name="Gain">
+                    <Slider kind="gain" name="gain" labelledBy="gain-name" ticks={gainTicks} />
+                </SettingRow>
+            </div>
+            <p class="note" data-channel-section="fixed-gain">
+                Line inputs have fixed gain.
+            </p>
+            <div data-channel-section="phantom">
+                <SettingRow id="phantom" name="48V phantom power" description="Condenser mics only.">
+                    <button
+                        class="button button--phantom"
+                        type="button"
+                        aria-pressed="false"
+                        aria-labelledby="phantom-name"
+                        aria-describedby="phantom-description"
+                        data-channel-action="phantom">
+                        48V
+                    </button>
+                </SettingRow>
+            </div>
+            <fieldset class="tones">
+                <legend class="tones-legend">Tone</legend>
+                <div class="tone-choices">
+                    {tones.map((tone, index) => (
+                        <label class="tone" data-tone={tone.toLowerCase()}>
+                            <input type="radio" name="tone" value={index} data-channel-field="tone" />
+                            <span>{tone}</span>
+                        </label>
+                    ))}
+                </div>
+            </fieldset>
+            <div data-channel-section="gain">
+                <SettingRow id="auto-gain" name="Auto-Gain" description="Play your loudest part." for="auto-gain-input">
+                    <select
+                        id="auto-gain-input"
+                        aria-describedby="auto-gain-description"
+                        data-channel-field="auto-gain-seconds">
+                        {autoGainChoices.map((seconds) => (
+                            <option value={seconds} selected={seconds === 10}>
+                                {seconds} s
+                            </option>
+                        ))}
+                    </select>
+                    <button
+                        class="button"
+                        type="button"
+                        aria-describedby="auto-gain-description"
+                        data-channel-action="auto-gain">
+                        Start
+                    </button>
+                </SettingRow>
+                <p class="note" role="status" data-auto-gain-status></p>
+            </div>
+        </SettingGroup>
+    </div>
+
+    <SettingGroup id="monitor-mix" title="Monitor mix">
+        <SettingRow id="pan-0" name="Pan">
+            <Slider kind="pan" name="pan-0" labelledBy="pan-0-name" ticks={panTicks} />
+        </SettingRow>
+        <div data-channel-section="stereo">
+            <SettingRow id="pan-1" name="Right pan">
+                <Slider kind="pan" name="pan-1" labelledBy="pan-1-name" ticks={panTicks} />
+            </SettingRow>
+        </div>
+    </SettingGroup>
+
+    {cues.map(({ cue, title }) => (
+        <SettingGroup id={cue} title={title} isCollapsible>
+            <SettingRow id={`${cue}-level`} name="Send" description="Before the fader.">
+                <Slider
+                    kind="fader"
+                    name={`${cue}-level`}
+                    labelledBy={`${cue}-heading ${cue}-level-name`}
+                    describedBy={`${cue}-level-description`}
+                    ticks={sendTicks}
+                />
+            </SettingRow>
+            <SettingRow id={`${cue}-pan-0`} name="Pan">
+                <Slider
+                    kind="pan"
+                    name={`${cue}-pan-0`}
+                    labelledBy={`${cue}-heading ${cue}-pan-0-name`}
+                    ticks={panTicks}
+                />
+            </SettingRow>
+            <div data-channel-section="stereo">
+                <SettingRow id={`${cue}-pan-1`} name="Right pan">
+                    <Slider
+                        kind="pan"
+                        name={`${cue}-pan-1`}
+                        labelledBy={`${cue}-heading ${cue}-pan-1-name`}
+                        ticks={panTicks}
+                    />
+                </SettingRow>
+            </div>
+            <SettingRow id={`${cue}-mute`} name="Mute" for={`${cue}-mute-input`}>
+                <input id={`${cue}-mute-input`} type="checkbox" role="switch" data-channel-field={`${cue}-mute`} />
+            </SettingRow>
+        </SettingGroup>
+    ))}
+</Dialog>
+
+<style>
+    .note {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+
+    .name {
+        position: relative;
+
+        & input {
+            inline-size: 100%;
+            min-block-size: 2.75rem;
+            padding-inline: var(--space-padding-container)
+                calc(var(--space-padding-container) + var(--size-icon) + var(--space-between-text));
+            border: 0;
+            border-radius: var(--radius-medium);
+            background-color: var(--color-background-raised);
+            font-size: var(--font-size-heading);
+            font-weight: var(--font-weight-semi-bold);
+
+            &::placeholder {
+                color: var(--color-text-secondary);
+            }
+        }
+
+        & :global(.pencil) {
+            position: absolute;
+            inset-block-start: 50%;
+            inset-inline-end: var(--space-padding-container);
+            inline-size: var(--size-icon);
+            block-size: var(--size-icon);
+            color: var(--color-text-secondary);
+            translate: 0 -50%;
+            pointer-events: none;
+        }
+    }
+
+    .tones {
+        display: grid;
+        gap: var(--space-between-text);
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .tones-legend {
+        margin-block-end: var(--space-between-text);
+        padding: 0;
+        font-weight: var(--font-weight-semi-bold);
+    }
+
+    .tone-choices {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+        gap: var(--space-between-text);
+    }
+
+    /* A native radio drawn as a segment; the checked one takes its TONE ring colour. */
+    .tone {
+        --tone-fill: var(--color-background-surface);
+        --tone-text: var(--color-text-primary);
+
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-block-size: var(--size-action-minimum);
+        border: var(--border-width-default) solid var(--color-border);
+        border-radius: var(--radius-small);
+        background-color: var(--color-background-surface);
+        font-size: var(--font-size-small);
+        font-weight: var(--font-weight-semi-bold);
+        cursor: pointer;
+
+        & input {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        &:has(:checked) {
+            border: var(--border-width-standout) solid var(--color-text-primary);
+            background-color: var(--tone-fill);
+            color: var(--tone-text);
+        }
+
+        &:has(:focus-visible) {
+            outline: var(--border-width-highlight) solid var(--color-focus);
+            outline-offset: 2px;
+        }
+
+        &:has(:disabled) {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    }
+
+    .tone[data-tone="warmth"] {
+        --tone-fill: var(--color-tone-warmth);
+        --tone-text: var(--color-text-on-tone);
+    }
+
+    .tone[data-tone="focus"] {
+        --tone-fill: var(--color-tone-focus);
+        --tone-text: var(--color-text-on-tone);
+    }
+
+    .tone[data-tone="shine"] {
+        --tone-fill: var(--color-tone-shine);
+        --tone-text: var(--color-text-on-tone);
+    }
+
+    @media (forced-colors: active) {
+        .name input {
+            border: 1px solid CanvasText;
+        }
+
+        .tone:has(:checked) {
+            outline: var(--border-width-standout) solid Highlight;
+        }
+    }
+</style>

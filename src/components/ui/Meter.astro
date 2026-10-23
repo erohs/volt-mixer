@@ -1,0 +1,105 @@
+---
+import { zoneStops } from "../../lib/meters.ts";
+
+interface Props {
+    /** The meter's name in the protocol data (spec.reports.meters.offsets). */
+    name: string;
+    orientation?: "vertical" | "horizontal";
+}
+
+const { name, orientation = "vertical" } = Astro.props;
+const zones = `--meter-caution: ${zoneStops.caution * 100}%; --meter-danger: ${zoneStops.danger * 100}%;`;
+---
+
+<div class="meter" data-meter={name} data-orientation={orientation} style={zones} aria-hidden="true">
+    <span class="clip" data-meter-clip></span>
+    <span class="bar">
+        <span class="cover"></span>
+    </span>
+</div>
+
+<style>
+    /*
+     * The bar is painted in its zone colours along its whole length and a cover hides what is above
+     * the level (--meter-level, 0–1, set by the script), so colour follows position like Console.
+     */
+    .meter {
+        --meter-level: 0;
+        --meter-zones: linear-gradient(
+            var(--meter-direction),
+            var(--color-meter-safe) var(--meter-caution),
+            var(--color-meter-caution) var(--meter-caution) var(--meter-danger),
+            var(--color-meter-danger) var(--meter-danger)
+        );
+
+        display: grid;
+        gap: 2px;
+    }
+
+    .bar {
+        position: relative;
+        overflow: hidden;
+        border-radius: 2px;
+        background: var(--meter-zones);
+    }
+
+    .cover {
+        position: absolute;
+        background-color: var(--color-background-track);
+    }
+
+    .clip {
+        border-radius: 2px;
+        background-color: var(--color-background-track);
+    }
+
+    .meter[data-clipped] .clip {
+        background-color: var(--color-meter-danger);
+    }
+
+    [data-orientation="vertical"] {
+        --meter-direction: to top;
+
+        grid-template-rows: var(--size-meter) 1fr;
+        inline-size: var(--size-meter);
+
+        & .cover {
+            inset: 0 0 auto;
+            block-size: calc((1 - var(--meter-level)) * 100%);
+        }
+    }
+
+    [data-orientation="horizontal"] {
+        --meter-direction: to right;
+
+        grid-template-columns: 1fr var(--size-meter);
+        block-size: var(--size-meter);
+
+        & .bar {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        & .clip {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        & .cover {
+            inset: 0 0 0 auto;
+            inline-size: calc((1 - var(--meter-level)) * 100%);
+        }
+    }
+
+    @media (forced-colors: active) {
+        .bar {
+            background: CanvasText;
+        }
+
+        .cover,
+        .clip {
+            background-color: Canvas;
+            border: 1px solid CanvasText;
+        }
+    }
+</style>

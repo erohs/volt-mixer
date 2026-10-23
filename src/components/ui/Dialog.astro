@@ -1,0 +1,53 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+    id: string;
+    title: string;
+}
+
+const { id, title } = Astro.props;
+---
+
+<dialog id={id} class="dialog" aria-labelledby={`${id}-title`}>
+    <div class="head">
+        <h2 id={`${id}-title`} data-dialog-title>
+            {title}
+        </h2>
+        <form method="dialog">
+            <button class="button button--icon" type="submit">
+                <Icon name="close" />
+                <span class="visually-hidden">Close</span>
+            </button>
+        </form>
+    </div>
+    <div class="body">
+        <slot />
+    </div>
+</dialog>
+
+<style>
+    .dialog {
+        inline-size: var(--size-dialog);
+    }
+
+    .head {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-between-content);
+        padding: var(--space-between-text) var(--space-between-text) var(--space-between-text)
+            var(--space-padding-container);
+        border-block-end: var(--border-width-default) solid var(--color-border-subtle);
+        background-color: var(--color-background-surface);
+    }
+
+    .body {
+        display: grid;
+        gap: var(--space-between-blocks);
+        padding: var(--space-padding-container);
+    }
+</style>

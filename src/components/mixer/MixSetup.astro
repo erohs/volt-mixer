@@ -1,0 +1,69 @@
+<!--
+    Shown when this computer has no saved mix for the connected Volt. The Volt can't report its
+    fader positions, so the page needs a mix of its own before it can apply one (as Console does).
+-->
+<section class="setup" aria-labelledby="setup-heading" data-mix-setup hidden>
+    <h2 id="setup-heading">This computer doesn't have your mix yet</h2>
+    <p>
+        The Volt can't report its fader and pan positions, so this page keeps its own copy of the mix and applies it
+        when it connects, like UAD Console does. Until it has one, it only shows the Volt's other settings.
+    </p>
+    <form class="paste" data-mix-paste>
+        <label for="mix-link">
+            Mix link from your other computer, or from <code>tools/ua.js mix-link</code>
+        </label>
+        <div class="row">
+            <input id="mix-link" type="url" required data-mix-link-input />
+            <button class="button button--primary" type="submit">
+                Use this mix
+            </button>
+        </div>
+    </form>
+    <div class="defaults">
+        <button class="button" type="button" data-action="mix-defaults" aria-describedby="defaults-hint">
+            Start from Console's defaults
+        </button>
+        <span id="defaults-hint" class="hint">
+            Sets every channel to 0 dB.
+        </span>
+    </div>
+</section>
+
+<style>
+    .setup:not([hidden]) {
+        display: grid;
+        gap: var(--space-between-text);
+        margin: var(--space-between-content) var(--space-padding-page) 0;
+        padding: var(--space-padding-container);
+        border: var(--border-width-standout) solid var(--color-background-accent);
+        border-radius: var(--radius-large);
+        background-color: var(--color-background-surface);
+    }
+
+    .paste {
+        display: grid;
+        gap: var(--space-between-lines);
+    }
+
+    .defaults {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-between-text);
+    }
+
+    .hint {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-between-text);
+
+        & input {
+            flex: 1 1 16rem;
+        }
+    }
+</style>

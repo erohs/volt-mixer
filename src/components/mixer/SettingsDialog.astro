@@ -1,0 +1,133 @@
+---
+import Dialog from "../ui/Dialog.astro";
+import SettingGroup from "../ui/SettingGroup.astro";
+import SettingRow from "../ui/SettingRow.astro";
+import Slider from "../ui/Slider.astro";
+---
+
+<Dialog id="settings-dialog" title="Settings">
+    <SettingGroup id="device" title="Device">
+        <SettingRow id="clip" name="Clip Protection" description="Limits sudden peaks." for="clip-input">
+            <input
+                id="clip-input"
+                type="checkbox"
+                role="switch"
+                aria-describedby="clip-description"
+                data-setting="clip"
+            />
+        </SettingRow>
+        <SettingRow id="brightness" name="Display brightness">
+            <Slider kind="brightness" name="brightness" labelledBy="brightness-name" />
+        </SettingRow>
+        <SettingRow id="digital" name="Digital input" description="Optical port format." for="digital-input">
+            <select id="digital-input" aria-describedby="digital-description" data-setting="digital">
+                <option value="adat">ADAT</option>
+                <option value="spdif">S/PDIF</option>
+            </select>
+        </SettingRow>
+        <SettingRow id="identify" name="Find this Volt" description="Flashes its lights.">
+            <button class="button" type="button" aria-describedby="identify-description" data-action="identify">
+                Identify
+            </button>
+        </SettingRow>
+    </SettingGroup>
+
+    <SettingGroup id="routing" title="Cues and headphones">
+        <SettingRow
+            id="headphone-source"
+            name="Headphones"
+            description="Which cue you hear."
+            for="headphone-source-input">
+            <select
+                id="headphone-source-input"
+                aria-describedby="headphone-source-description"
+                data-setting="headphone-source">
+                <option value="cue1">Cue 1</option>
+                <option value="cue2">Cue 2</option>
+            </select>
+        </SettingRow>
+        {["cue1", "cue2"].map((cue, index) => (
+            <SettingRow
+                id={`${cue}-source`}
+                name={`Cue ${index + 1}`}
+                description="Monitor mix or its own sends."
+                for={`${cue}-source-input`}>
+                <select
+                    id={`${cue}-source-input`}
+                    aria-describedby={`${cue}-source-description`}
+                    data-setting={`${cue}-source`}>
+                    <option value="mix">Monitor mix</option>
+                    <option value="own">Own mix</option>
+                </select>
+            </SettingRow>
+        ))}
+        <SettingRow id="mirror" name="Line Out 3/4" description="The rear line outputs." for="mirror-input">
+            <select id="mirror-input" aria-describedby="mirror-description" data-setting="mirror">
+                <option value="none">Computer playback</option>
+                <option value="cue1">Same as Cue 1</option>
+                <option value="cue2">Same as Cue 2</option>
+            </select>
+        </SettingRow>
+    </SettingGroup>
+
+    <SettingGroup id="view" title="View">
+        <SettingRow
+            id="show-digital"
+            name="Digital inputs"
+            description="S/PDIF and ADAT channels."
+            for="show-digital-input">
+            <input
+                id="show-digital-input"
+                type="checkbox"
+                role="switch"
+                aria-describedby="show-digital-description"
+                data-setting="show-digital"
+            />
+        </SettingRow>
+        <SettingRow
+            id="show-loopback"
+            name="Loopback"
+            description="Apps playing to LOOPBACK L/R. Hidden, it still plays."
+            for="show-loopback-input">
+            <input
+                id="show-loopback-input"
+                type="checkbox"
+                role="switch"
+                aria-describedby="show-loopback-description"
+                data-setting="show-loopback"
+            />
+        </SettingRow>
+    </SettingGroup>
+
+    <SettingGroup id="your-mix" title="Your mix">
+        <SettingRow id="copy-mix" name="Mix link" description="Use this mix on another computer.">
+            <button class="button" type="button" aria-describedby="copy-mix-description" data-action="copy-mix-link">
+                Copy link
+            </button>
+        </SettingRow>
+        <SettingRow id="push-mix" name="Apply mix" description="Send it to the Volt now.">
+            <button class="button" type="button" aria-describedby="push-mix-description" data-action="push-mix">
+                Apply
+            </button>
+        </SettingRow>
+        <SettingRow id="forget-mix" name="Forget mix" description="The Volt keeps playing.">
+            <button class="button" type="button" aria-describedby="forget-mix-description" data-action="forget-mix">
+                Forget
+            </button>
+        </SettingRow>
+    </SettingGroup>
+
+    <SettingGroup id="about" title="About this Volt">
+        <p class="note" data-device-info>
+            Not connected.
+        </p>
+        <p class="note">Sample rate and clock are set in Windows or your audio app.</p>
+    </SettingGroup>
+</Dialog>
+
+<style>
+    .note {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+</style>

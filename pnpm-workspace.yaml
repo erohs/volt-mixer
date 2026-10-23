@@ -1,0 +1,5 @@
+# Not a workspace: pnpm reads its settings from this file.
+
+# pnpm refuses to run a dependency's install scripts unless it is listed here.
+allowBuilds:
+  esbuild: false

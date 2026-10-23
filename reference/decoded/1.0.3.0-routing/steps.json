@@ -1,0 +1,266 @@
+[
+ {
+  "t": 1792768090502,
+  "label": "idle",
+  "out": [],
+  "in": 1830,
+  "inReports": []
+ },
+ {
+  "t": 1792768105546,
+  "label": "CUE 2 MIX off",
+  "path": "{dev}/outputs/90b86103d1dd4c4f82c6ab70a230112f/mix_in_source",
+  "value": "",
+  "out": [],
+  "in": 198,
+  "inReports": []
+ },
+ {
+  "t": 1792768107168,
+  "label": "HP source cue2",
+  "path": "{dev}/outputs/1c7f4281ddf4461a9f9de221cc089254/mix_in_source",
+  "value": "cue2",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021a3e00f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021b3f00f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021a4200f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021b4300f7000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 200,
+  "inReports": []
+ },
+ {
+  "t": 1792768108785,
+  "label": "CUE 2 mirror LINE 3-4",
+  "path": "{dev}/outputs/90b86103d1dd4c4f82c6ab70a230112f/flex_route",
+  "value": "LINE 3-4",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f002024200f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f002034300f7000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 198,
+  "inReports": []
+ },
+ {
+  "t": 1792768110394,
+  "label": "CUE 2 mirror None",
+  "path": "{dev}/outputs/90b86103d1dd4c4f82c6ab70a230112f/flex_route",
+  "value": "None",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f002021c00f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f002031d00f7000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 196,
+  "inReports": []
+ },
+ {
+  "t": 1792768112027,
+  "label": "HP source cue1",
+  "path": "{dev}/outputs/1c7f4281ddf4461a9f9de221cc089254/mix_in_source",
+  "value": "cue1",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021a3e00f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021b3f00f7000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 200,
+  "inReports": []
+ },
+ {
+  "t": 1792768113642,
+  "label": "CUE 2 MIX on",
+  "path": "{dev}/outputs/90b86103d1dd4c4f82c6ab70a230112f/mix_in_source",
+  "value": "mon",
+  "out": [],
+  "in": 198,
+  "inReports": []
+ },
+ {
+  "t": 1792768115261,
+  "label": "CUE 1 MIX off",
+  "path": "{dev}/outputs/cdcd20ac21d6436a88139b18b85518a8/mix_in_source",
+  "value": "",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021a4000f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021b4100f7000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 200,
+  "inReports": []
+ },
+ {
+  "t": 1792768116902,
+  "label": "CUE 1 mirror LINE 3-4",
+  "path": "{dev}/outputs/cdcd20ac21d6436a88139b18b85518a8/flex_route",
+  "value": "LINE 3-4",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f002024000f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f002034100f7000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 200,
+  "inReports": []
+ },
+ {
+  "t": 1792768118537,
+  "label": "CUE 1 mirror None",
+  "path": "{dev}/outputs/cdcd20ac21d6436a88139b18b85518a8/flex_route",
+  "value": "None",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f002021c00f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f002031d00f7000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 196,
+  "inReports": []
+ },
+ {
+  "t": 1792768120166,
+  "label": "CUE 1 MIX on",
+  "path": "{dev}/outputs/cdcd20ac21d6436a88139b18b85518a8/mix_in_source",
+  "value": "mon",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021a3e00f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021b3f00f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021a3e00f7000000000000000000000000000000000000000000000000000000000000000000"
+   },
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f0021b3f00f7000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 204,
+  "inReports": []
+ },
+ {
+  "t": 1792768121805,
+  "label": "auto-gain run (5 s) start",
+  "path": "/auto_gain/start_auto_gain",
+  "out": [],
+  "in": 1116,
+  "inReports": []
+ },
+ {
+  "t": 1792768131024,
+  "label": "auto-gain run (5 s) stop",
+  "path": "/auto_gain/stop_auto_gain",
+  "out": [],
+  "in": 250,
+  "inReports": []
+ },
+ {
+  "t": 1792768133082,
+  "label": "auto-gain cancel start",
+  "path": "/auto_gain/start_auto_gain",
+  "out": [],
+  "in": 188,
+  "inReports": []
+ },
+ {
+  "t": 1792768134615,
+  "label": "auto-gain cancel stop",
+  "path": "/auto_gain/stop_auto_gain",
+  "out": [],
+  "in": 250,
+  "inReports": []
+ },
+ {
+  "t": 1792768136673,
+  "label": "idle",
+  "out": [],
+  "in": 2282,
+  "inReports": []
+ }
+]

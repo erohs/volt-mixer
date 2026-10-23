@@ -1,0 +1,98 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+    id: string;
+    title: string;
+    /** Folds away (a native <details>), for settings used now and then. */
+    isCollapsible?: boolean;
+}
+
+const { id, title, isCollapsible = false } = Astro.props;
+---
+
+{isCollapsible ? (
+    <details class="group" data-group={id}>
+        <summary class="head">
+            <span class="title" id={`${id}-heading`}>
+                {title}
+            </span>
+            <span class="state" data-group-state={id} />
+            <Icon name="chevron-down" class="chevron" />
+        </summary>
+        <div class="rows">
+            <slot />
+        </div>
+    </details>
+) : (
+    <section class="group" aria-labelledby={`${id}-heading`} data-group={id}>
+        <h3 class="head title" id={`${id}-heading`}>
+            {title}
+        </h3>
+        <div class="rows">
+            <slot />
+        </div>
+    </section>
+)}
+
+<style>
+    /* One chunk of related settings: a tinted card, separated from the next by space. */
+    .group:not([hidden]) {
+        /* The gap around a focused slider handle (Slider.astro) matches this tint. */
+        --slider-surround: var(--color-background-raised);
+
+        display: grid;
+        gap: var(--space-between-content);
+        padding: var(--space-padding-container);
+        border-radius: var(--radius-medium);
+        background-color: var(--color-background-raised);
+    }
+
+    .title {
+        font-size: var(--font-size-heading);
+        font-weight: var(--font-weight-semi-bold);
+    }
+
+    .rows {
+        display: grid;
+        gap: var(--space-between-content);
+    }
+
+    summary.head {
+        display: flex;
+        align-items: center;
+        gap: var(--space-between-text);
+        min-block-size: var(--size-action-minimum);
+        margin: calc(-1 * var(--space-between-text)) 0;
+        cursor: pointer;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    .state {
+        flex-grow: 1;
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+        font-variant-numeric: tabular-nums;
+        text-align: end;
+    }
+
+    .head :global(.chevron) {
+        inline-size: var(--size-icon);
+        block-size: var(--size-icon);
+        color: var(--color-text-secondary);
+        transition: rotate var(--duration-fast) var(--easing-standard);
+    }
+
+    details[open] :global(.chevron) {
+        rotate: 180deg;
+    }
+
+    /* Closed, the summary row is the whole card. */
+    details:not([open]) {
+        gap: 0;
+    }
+</style>

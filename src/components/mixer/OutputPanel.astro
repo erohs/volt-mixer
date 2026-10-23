@@ -1,0 +1,112 @@
+---
+import Icon from "../ui/Icon.astro";
+import Meter from "../ui/Meter.astro";
+import Slider from "../ui/Slider.astro";
+
+const levelTicks = [0, 25, 50, 75, 100].map((level) => ({ label: `${level}`, position: level / 100 }));
+---
+
+<section class="outputs" aria-labelledby="outputs-heading">
+    <h2 id="outputs-heading">Outputs</h2>
+    <div class="cards">
+        <article class="output" data-output="monitor" aria-labelledby="monitor-heading">
+            <div class="head">
+                <h3 id="monitor-heading">
+                    <Icon name="speaker" />
+                    Monitor
+                </h3>
+                <button
+                    class="button button--mute"
+                    type="button"
+                    aria-pressed="false"
+                    aria-describedby="monitor-heading"
+                    data-action="monitor-mute">
+                    Mute
+                </button>
+                <button
+                    class="button"
+                    type="button"
+                    aria-pressed="false"
+                    aria-describedby="monitor-heading"
+                    data-action="monitor-mono">
+                    Mono
+                </button>
+            </div>
+            <div class="meters">
+                <Meter name="monitorL" orientation="horizontal" />
+                <Meter name="monitorR" orientation="horizontal" />
+            </div>
+            <Slider kind="level" name="monitor-level" labelledBy="monitor-heading" ticks={levelTicks} />
+        </article>
+        <article class="output" data-output="headphone" aria-labelledby="headphone-heading">
+            <div class="head">
+                <h3 id="headphone-heading">
+                    <Icon name="headphones" />
+                    Headphones
+                </h3>
+                <button
+                    class="button button--mute"
+                    type="button"
+                    aria-pressed="false"
+                    aria-describedby="headphone-heading"
+                    data-action="headphone-mute">
+                    Mute
+                </button>
+            </div>
+            <Slider kind="level" name="headphone-level" labelledBy="headphone-heading" ticks={levelTicks} />
+        </article>
+    </div>
+</section>
+
+<style>
+    /* Titled like Channels, with the same gap below, so both lists of cards start level. */
+    .outputs {
+        display: grid;
+        gap: var(--space-between-content);
+        align-content: start;
+    }
+
+    /* Side by side when there's room above the channels; stacked in the narrow right column. */
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+        gap: var(--space-between-content);
+    }
+
+    .output {
+        display: grid;
+        gap: var(--space-between-content);
+        padding: var(--space-padding-container);
+        border: var(--border-width-default) solid var(--color-border-subtle);
+        border-radius: var(--radius-large);
+        background-color: var(--color-background-surface);
+    }
+
+    .head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-between-text);
+
+        & h3 {
+            display: flex;
+            flex-grow: 1;
+            align-items: center;
+            gap: var(--space-between-text);
+        }
+    }
+
+    /* The Volt's Monitor/Headphone button: green for monitors, amber for headphones. */
+    .output[data-output="monitor"] :global(.icon) {
+        color: var(--color-monitor);
+    }
+
+    .output[data-output="headphone"] :global(.icon) {
+        color: var(--color-headphone);
+    }
+
+    .meters {
+        display: grid;
+        gap: 3px;
+    }
+</style>

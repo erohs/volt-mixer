@@ -1,0 +1,87 @@
+:root {
+    color-scheme: light dark;
+
+    /* Warm, quiet neutrals in the Scandinavian way: hairline borders, one accent, plenty of space. */
+
+    --color-background-page: light-dark(#f5f3ef, #171615);
+    --color-background-surface: light-dark(#fffefc, #201f1d);
+    --color-background-raised: light-dark(#f2efea, #2a2927);
+    --color-background-track: light-dark(#e6e2db, #383633);
+    --color-background-accent: light-dark(#6d43d9, #b79cff);
+    --color-background-danger: light-dark(#b8322a, #ff7b72);
+    --color-background-solo: light-dark(#f2c230, #ffd24d);
+    --color-background-warning: light-dark(#fff4d6, #2d2610);
+    --color-text-primary: light-dark(#1f1d1b, #eeece8);
+    --color-text-secondary: light-dark(#5f5a54, #aca7a0);
+    --color-text-accent: light-dark(#6d43d9, #b79cff);
+    --color-text-on-accent: light-dark(#ffffff, #1a0b3d);
+    --color-text-on-danger: light-dark(#ffffff, #2a0505);
+    --color-text-on-solo: #1c1c1e;
+    --color-text-success: light-dark(#1d7542, #5fd38d);
+    --color-text-warning: light-dark(#7a5200, #ffd24d);
+    --color-border: light-dark(#74747c, #8b8b95);
+    --color-border-subtle: light-dark(#e4e0d9, #302e2b);
+    --color-border-solo: light-dark(#7a5900, #ffd24d);
+    --color-focus: light-dark(#5530b8, #cdb9ff);
+    --color-meter-safe: light-dark(#1d7542, #5fd38d);
+    --color-meter-caution: light-dark(#8a6400, #ffd24d);
+    --color-meter-danger: light-dark(#b8322a, #ff7b72);
+    /* The Volt's own colours: its TONE ring, and the Monitor (green) / Headphone (amber) button. */
+    --color-tone-warmth: light-dark(#f5b544, #ffb547);
+    --color-tone-focus: light-dark(#4cc27a, #5fd38d);
+    --color-tone-shine: light-dark(#7aa5ff, #7aa5ff);
+    --color-text-on-tone: #1c1c1e;
+    /* The TONE colours deep enough to stand out on a fader track. */
+    --color-fader-warmth: light-dark(#a86400, #ffb547);
+    --color-fader-focus: light-dark(#1f8a4c, #5fd38d);
+    --color-fader-shine: light-dark(#2563d4, #7aa5ff);
+    --color-monitor: light-dark(#1d7542, #5fd38d);
+    --color-headphone: light-dark(#8a5600, #ffb547);
+    --font-family-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-size-title: 1.25rem;
+    --font-size-heading: 1.0625rem;
+    --font-size-body: 1rem;
+    --font-size-small: 0.875rem;
+    --font-size-meta: 0.75rem;
+    --font-weight-regular: 400;
+    --font-weight-semi-bold: 600;
+    --line-height-heading: 1.25;
+    --line-height-body: 1.5;
+    --line-height-compact: 1.2;
+    --space-between-lines: 0.25rem;
+    --space-between-text: 0.5rem;
+    --space-between-content: 1rem;
+    --space-between-blocks: 2rem;
+    --space-padding-page: clamp(1rem, 0.25rem + 2.5vw, 2rem);
+    --space-padding-compact: 0.75rem;
+    /* Tight on a phone, so two strips fit side by side at 320px; airy on a wide screen. */
+    --space-between-strips: clamp(0.5rem, 1.5vw, 1rem);
+    --space-padding-container: 1.25rem;
+    --space-padding-action: 0.375rem 0.75rem;
+    --size-action-minimum: 2.25rem;
+    --size-icon: 1.25rem;
+    --size-strip: 9rem;
+    --size-fader-length: 13rem;
+    --size-slider-track: 0.375rem;
+    --size-slider-thumb: 1.25rem;
+    --size-meter: 0.5rem;
+    --size-dialog: 30rem;
+    --border-width-default: 1px;
+    --border-width-standout: 2px;
+    --border-width-highlight: 3px;
+    --radius-small: 6px;
+    --radius-medium: 10px;
+    --radius-large: 14px;
+    --duration-fast: 150ms;
+    --easing-standard: ease;
+}
+
+/* Secondary text and every line take the full text colour, and thin lines thicken. */
+@media (prefers-contrast: more) {
+    :root {
+        --color-text-secondary: var(--color-text-primary);
+        --color-border: var(--color-text-primary);
+        --color-border-subtle: var(--color-text-primary);
+        --border-width-default: var(--border-width-standout);
+    }
+}

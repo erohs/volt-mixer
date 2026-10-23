@@ -1,0 +1,57 @@
+/* An on/off setting: a native checkbox with role="switch", drawn as a switch. */
+input[type="checkbox"][role="switch"] {
+    position: relative;
+    flex-shrink: 0;
+    inline-size: 2.75rem;
+    block-size: 1.5rem;
+    min-block-size: auto;
+    margin: 0;
+    padding: 0;
+    border: var(--border-width-default) solid var(--color-border);
+    border-radius: 999px;
+    appearance: none;
+    background-color: var(--color-background-track);
+    cursor: pointer;
+
+    &::before {
+        content: "" / "";
+        position: absolute;
+        inset-block-start: 50%;
+        inset-inline-start: 0.1875rem;
+        inline-size: 1rem;
+        block-size: 1rem;
+        border-radius: 50%;
+        background-color: var(--color-text-secondary);
+        translate: 0 -50%;
+        transition: inset-inline-start var(--duration-fast) var(--easing-standard);
+    }
+
+    &:checked {
+        border-color: var(--color-background-accent);
+        background-color: var(--color-background-accent);
+
+        &::before {
+            inset-inline-start: calc(100% - 1.1875rem);
+            background-color: var(--color-text-on-accent);
+        }
+    }
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+}
+
+@media (forced-colors: active) {
+    input[type="checkbox"][role="switch"] {
+        border-color: CanvasText;
+
+        &::before {
+            background-color: CanvasText;
+        }
+
+        &:checked {
+            background-color: Highlight;
+        }
+    }
+}

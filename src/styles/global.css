@@ -1,0 +1,27 @@
+@layer reset, base, shared, state;
+
+@import url("./tokens.css");
+@import url("./reset.css") layer(reset);
+@import url("./base.css") layer(base);
+@import url("./button.css") layer(shared);
+@import url("./switch.css") layer(shared);
+
+/*
+ * Last layer, so anything the script hides stays hidden over the shared styles. Unlayered
+ * component styles still win, so a component that can be hidden sets display on :not([hidden]).
+ */
+@layer state {
+    [hidden] {
+        display: none;
+    }
+}
+
+/* Unlayered, like component styles, so no component rule can pull it back into the flow. */
+.visually-hidden {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}

@@ -1,0 +1,99 @@
+---
+import ChannelDialog from "../components/mixer/ChannelDialog.astro";
+import MixSetup from "../components/mixer/MixSetup.astro";
+import OutputPanel from "../components/mixer/OutputPanel.astro";
+import SettingsDialog from "../components/mixer/SettingsDialog.astro";
+import StripTemplate from "../components/mixer/StripTemplate.astro";
+import Header from "../components/site/Header.astro";
+import Notice from "../components/site/Notice.astro";
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+    title="Volt Mixer"
+    description="Control a UA Volt 4 Gen 2's built-in mixer from Edge or Chrome, with nothing to install.">
+    <Header slot="header" />
+    <Notice />
+    <noscript>
+        <p class="unsupported">
+            Volt Mixer talks to the Volt over USB from your browser, which needs JavaScript. Turn it on, then open this
+            page in Microsoft Edge or Google Chrome.
+        </p>
+    </noscript>
+    <MixSetup />
+    <div class="mixer">
+        <OutputPanel />
+        <section class="channels" aria-labelledby="channels-heading">
+            <div class="channels-head">
+                <h2 id="channels-heading">Channels</h2>
+            </div>
+            <ul class="strips" data-strips></ul>
+        </section>
+    </div>
+    <StripTemplate />
+    <ChannelDialog />
+    <SettingsDialog />
+</BaseLayout>
+
+<script>
+    import { start } from "../scripts/controller.ts";
+
+    start();
+</script>
+
+<style>
+    .mixer {
+        display: grid;
+        gap: var(--space-between-blocks);
+        padding: var(--space-between-blocks) var(--space-padding-page) var(--space-padding-page);
+
+        /*
+         * Outputs come first in the page, so when the columns stack they sit above the channels and
+         * the reading order matches. Wide, they move to a column on the right.
+         */
+        @media (width >= 60rem) {
+            grid-template-columns: minmax(0, 1fr) 18rem;
+            align-items: start;
+
+            & :global(.outputs) {
+                grid-area: 1 / 2;
+            }
+
+            & .channels {
+                grid-area: 1 / 1;
+            }
+        }
+    }
+
+    .channels {
+        display: grid;
+        gap: var(--space-between-content);
+    }
+
+    .channels-head {
+        display: flex;
+        align-items: center;
+        gap: var(--space-between-content);
+    }
+
+    /* Four rows per line of strips, which each strip takes as a subgrid (StripTemplate.astro). */
+    .strips {
+        display: grid;
+        grid-template-columns: repeat(
+            auto-fill,
+            minmax(min(var(--size-strip), calc(50% - var(--space-between-strips) / 2)), 1fr)
+        );
+        grid-auto-rows: auto;
+        gap: var(--space-between-strips);
+        padding: 0;
+        list-style: none;
+    }
+
+    .unsupported {
+        margin: var(--space-between-content) var(--space-padding-page) 0;
+        padding: var(--space-padding-container);
+        border: var(--border-width-default) solid var(--color-text-warning);
+        border-radius: var(--radius-medium);
+        background-color: var(--color-background-warning);
+    }
+</style>

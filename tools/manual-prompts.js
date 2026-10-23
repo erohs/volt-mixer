@@ -1,0 +1,106 @@
+// Guided prompts for hardware-only actions during a capture. Each step waits for you to press
+// Enter when you've done it (no time limit). Steps are logged with timestamps in the same format
+// as capture-run.js so decode-capture.js can label the traffic.
+//   node manual-prompts.js [startStep]
+"use strict";
+const fs = require("fs");
+const path = require("path");
+const readline = require("readline");
+
+const LOG = path.resolve(
+    __dirname,
+    "..",
+    "captures",
+    `manual-log-${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`,
+);
+
+// Every action leaves the Volt as it was (toggle twice, turn down then back up).
+const PROMPTS = [
+    ["monitor mute (knob press)", "Press the KNOB once (mute monitors), then press it again (unmute)."],
+    ["select headphones", "Press the MONITOR/HEADPHONE button once (amber = headphones)."],
+    ["headphone knob", "Turn the KNOB down 3 clicks, then back up 3 clicks."],
+    ["headphone mute (knob press)", "Press the KNOB once (mute headphones), then press it again (unmute)."],
+    ["select monitor", "Press the MONITOR/HEADPHONE button again (back to green = monitors)."],
+    [
+        "console monitor knob",
+        "In UAD Console: drag the MONITOR knob (right column) UP a little, then back down to 0. Never below 0.",
+    ],
+    ["select input 1", "Press INPUT until the display shows input 1."],
+    ["tone button", "Press TONE 4 times (Warmth, Focus, Shine, back to Off)."],
+    ["direct button", "Press DIRECT twice (toggle and back)."],
+    ["48v button", "Nothing plugged into XLR 1? Press 48V twice (on, then off). Otherwise just press Enter to skip."],
+    ["gain knob", "Turn the KNOB up 2 clicks, then down 2 clicks (input 1 gain)."],
+    ["select line 3", "Press INPUT until the display shows input 3."],
+    ["link 3-4 (hold input)", "Press and HOLD INPUT to link 3-4. Then press and HOLD INPUT again to unlink."],
+    [
+        "meter view",
+        "Press and HOLD the KNOB for the menu, choose Meter View. Then open the menu again and choose Input View.",
+    ],
+    ["console identify", "In UAD Console: Settings > Identify."],
+    [
+        "console hp source",
+        "In UAD Console CUES window: click the empty space under CUE 2 (headphones to Cue 2), then under CUE 1 (back).",
+    ],
+    ["console cue2 mix", "In UAD Console CUES window: toggle the MIX button on Cue 2 off, then on again."],
+];
+
+const log = (e) =>
+    fs.appendFileSync(LOG, JSON.stringify({ t: Date.now(), iso: new Date().toISOString(), ...e }) + "\n");
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+const ask = (q) => new Promise((res) => rl.question(q, res));
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Live monitor level from UA's API while the user sets the knob (the API mirrors the hardware knob).
+async function setupStep() {
+    let client = null,
+        monitor = null,
+        timer = null;
+    try {
+        const ua = require("./lib/ua-api");
+        client = await ua.connect();
+        const dev = await ua.findVolt(client);
+        monitor = (await ua.buses(client, dev)).MONITOR + "/outputs/main/controls/gain";
+    } catch {
+        /* API unavailable: just show the instructions */
+    }
+    console.log(
+        "\nSETUP: press MONITOR/HEADPHONE until it is GREEN, and make sure the display is in Input View (not Meter View).",
+    );
+    if (monitor) {
+        console.log('"Monitor level" below should show 0 (your setting). If it does, leave the knob alone.');
+        console.log(
+            "If not: turn the KNOB DOWN slowly and STOP as soon as it shows 0. Turning past 0 makes the Volt jump to loud.",
+        );
+        timer = setInterval(async () => {
+            const v = await client.getValue(monitor);
+            process.stdout.write(
+                `\r  Monitor level: ${typeof v === "number" ? v.toFixed(1) : v}   (press Enter when ready)   `,
+            );
+        }, 300);
+    } else {
+        process.stdout.write("  Press Enter when ready > ");
+    }
+    await new Promise((res) => rl.once("line", res));
+    clearInterval(timer);
+    if (client) client.close();
+}
+
+(async () => {
+    await setupStep();
+    console.log(`\n${PROMPTS.length} steps. Do each one, then press Enter. Type "s" + Enter to skip a step.\n`);
+    log({ step: "set", label: "idle" });
+    await sleep(3000);
+    const start = Math.max(1, +(process.argv[2] || 1)) - 1;
+    for (let i = start; i < PROMPTS.length; i++) {
+        const [label, text] = PROMPTS[i];
+        log({ step: "set", label, prompt: text });
+        const answer = await ask(`\n[${i + 1}/${PROMPTS.length}] ${text}\n  Press Enter when done > `);
+        log({ step: "done", label, skipped: answer.trim().toLowerCase() === "s" });
+        // Short gap so the last action's traffic isn't attributed to the next step.
+        await sleep(1500);
+        log({ step: "set", label: "idle" });
+    }
+    log({ phase: "done" });
+    rl.close();
+    console.log(`\nAll done, thank you. You can close this window. Log: ${LOG}`);
+})();

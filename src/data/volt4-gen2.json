@@ -1,0 +1,160 @@
+{
+    "device": "Volt 4 Gen 2",
+    "vendorId": 11098,
+    "productId": 46,
+    "firmware": {
+        "1.0.3": {
+            "verifiedFrom": "reference/decoded: 1.0.3.0 (sweep), 1.0.3.0-startup, 1.0.3.0-manual (front panel), 1.0.3-state (state dump), meters.jsonl, 1.0.3.0-routing (cue routing), 1.0.3.0-autogain (Auto-Gain start)",
+            "reports": {
+                "command": {
+                    "id": 240,
+                    "bytes": 38
+                },
+                "identify": {
+                    "id": 232,
+                    "bytes": 4,
+                    "payload": [0, 0, 116, 255]
+                },
+                "identifyReply": {
+                    "id": 14
+                },
+                "stateReply": {
+                    "id": 240,
+                    "cmd": 17
+                },
+                "meters": {
+                    "id": 241,
+                    "_note": "50 reports/s; u16 LE linear peak, full scale 32767; offsets count from the report ID byte (data offset = offset - 1)",
+                    "fullScale": 32767,
+                    "offsets": {
+                        "in1": 3,
+                        "in2": 5,
+                        "in3": 7,
+                        "in4": 9,
+                        "monitorL": 55,
+                        "monitorR": 57
+                    }
+                }
+            },
+            "end": 247,
+            "commands": {
+                "crosspoint": 1,
+                "route": 2,
+                "polarityMask": 3,
+                "phantomMask": 4,
+                "compressorMask": 6,
+                "digitalFormat": 8,
+                "stateRequest": 17,
+                "setup13": 19,
+                "muteWord": 21,
+                "preampGain": 22,
+                "monitorMono": 24,
+                "headphone": 28,
+                "clipProtection": 31,
+                "brightness": 33,
+                "tone": 34,
+                "identifyLights": 23,
+                "panelState": 18,
+                "autoGain": 29
+            },
+            "gainUnity": 536870912,
+            "faderMaxDb": 12,
+            "preampGainStepsPerDb": 10,
+            "preampGainMaxDb": 60,
+            "headphoneLevelScale": 10,
+            "sources": {
+                "in1": 0,
+                "in2": 1,
+                "in3": 2,
+                "in4": 3,
+                "spdifL": 8,
+                "spdifR": 9,
+                "adat1": 10,
+                "adat2": 11,
+                "adat3": 12,
+                "adat4": 13,
+                "adat5": 14,
+                "adat6": 15,
+                "adat7": 16,
+                "adat8": 17,
+                "loopbackL": 31,
+                "loopbackR": 32
+            },
+            "mixBuses": {
+                "monitor": [0, 1],
+                "cue1": [2, 3],
+                "cue2": [4, 5]
+            },
+            "routeDestinations": {
+                "monitor": [0, 1],
+                "line34": [2, 3],
+                "headphone": [26, 27]
+            },
+            "routeSources": {
+                "monitorMix": [62, 63],
+                "cue1Mix": [64, 65],
+                "playback34": [28, 29],
+                "cue2Mix": [66, 67]
+            },
+            "muteWordFields": {
+                "direct": 1,
+                "monitorMute": 4,
+                "monitorLevel": 16
+            },
+            "tone": ["off", "warmth", "focus", "shine"],
+            "digitalFormat": ["adat", "spdif"],
+            "muteWordOffsets": {
+                "direct": 0,
+                "monitorMute": 2,
+                "monitorLevel": 4
+            },
+            "monitorLevelMax": 200,
+            "stateLayout": {
+                "_note": "byte offsets after the 'F0 11' header; from tools/state-probe.mjs (reference/decoded/1.0.3-state)",
+                "phantomMask": 1,
+                "digitalFormat": 6,
+                "linkMask": 11,
+                "directMask": 14,
+                "monitorMute": 16,
+                "monitorLevel": 18,
+                "preampGainU16": [20, 22],
+                "monitorMono": 36,
+                "headphoneLevelU16": 42,
+                "clipProtection": 44,
+                "brightness": 45,
+                "toneNibbles": [46, 47],
+                "headphoneMute": 56
+            },
+            "linkState": {
+                "field": 2,
+                "hostFlag": 16,
+                "_note": "host sends F0 12 02 (0x10|mask); device reports F0 12 02 mask. bit0 = pair 1-2, bit1 = pair 3-4"
+            },
+            "monitorLevelPerUnit": 2,
+            "headphoneLevelMax": 1000,
+            "_scales": "Monitor and headphone levels are shown on Console's 0-100 scale: monitor raw = 2 x level (max 200), headphone raw = 10 x level (max 1000).",
+            "autoGainSeconds": {
+                "min": 5,
+                "max": 90,
+                "default": 10
+            }
+        }
+    },
+    "models": {
+        "_note": "Product IDs from UA's Volt driver INF. Only productId above (Volt 4 Gen 2) is decoded; the others are named so the page can say they aren't supported yet.",
+        "32": "Volt 1",
+        "33": "Volt 2",
+        "34": "Volt 176",
+        "35": "Volt 276",
+        "36": "Volt 476",
+        "40": "Volt 4",
+        "41": "Volt 476P",
+        "42": "Volt 876",
+        "44": "Volt 1 Gen 2",
+        "45": "Volt 2 Gen 2",
+        "46": "Volt 4 Gen 2",
+        "80": "Volt 2 Max",
+        "81": "Volt 4 Max",
+        "82": "Volt 4P Max"
+    }
+}

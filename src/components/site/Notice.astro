@@ -1,0 +1,43 @@
+---
+import Icon from "../ui/Icon.astro";
+---
+
+<!--
+    Always in the page, empty when idle, so a new message is announced (role="alert"). Every message
+    gets a Dismiss button, cloned from the template by notice() in src/scripts/app-state.ts.
+-->
+<div class="notice" role="alert" data-notice></div>
+<template id="notice-dismiss">
+    <button class="button button--icon dismiss" type="button" data-notice-dismiss>
+        <Icon name="close" />
+        <span class="visually-hidden">Dismiss</span>
+    </button>
+</template>
+
+<style>
+    .notice:not(:empty) {
+        display: flex;
+        align-items: center;
+        gap: var(--space-between-content);
+        margin: var(--space-between-blocks) var(--space-padding-page) 0;
+        padding: var(--space-between-text) var(--space-between-text) var(--space-between-text)
+            var(--space-padding-container);
+        /* The coloured edge runs square; only the far corners are rounded. */
+        border-inline-start: var(--border-width-highlight) solid var(--color-text-warning);
+        border-radius: 0 var(--radius-medium) var(--radius-medium) 0;
+        background-color: var(--color-background-warning);
+    }
+
+    /* Wider than body text: a notice is one or two sentences, best read on one line. */
+    .notice :global(.notice-text) {
+        max-inline-size: 90ch;
+    }
+
+    /* At the far end, whatever the message's length. */
+    .dismiss {
+        flex-shrink: 0;
+        margin-inline-start: auto;
+        border-color: transparent;
+        background-color: transparent;
+    }
+</style>

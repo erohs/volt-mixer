@@ -1,0 +1,9 @@
+{
+    "extends": "astro/tsconfigs/strictest",
+    "compilerOptions": {
+        "allowImportingTsExtensions": true,
+        "types": ["w3c-web-hid"]
+    },
+    "include": [".astro/types.d.ts", "**/*"],
+    "exclude": ["dist", "notes", "captures", "reference", "tools"]
+}

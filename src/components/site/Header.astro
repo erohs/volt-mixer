@@ -1,0 +1,57 @@
+---
+import Icon from "../ui/Icon.astro";
+---
+
+<header class="header">
+    <div class="title">
+        <h1>Volt Mixer</h1>
+        <span class="status" role="status" data-status="off">
+            Not connected
+        </span>
+    </div>
+    <button class="button button--primary" type="button" data-action="connect">
+        Connect Volt
+    </button>
+    <button class="button" type="button" data-action="disconnect" hidden>
+        Disconnect
+    </button>
+    <button class="button button--icon" type="button" aria-haspopup="dialog" data-action="open-settings">
+        <Icon name="settings" />
+        <span class="visually-hidden">Settings</span>
+    </button>
+</header>
+
+<style>
+    .header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-between-text) var(--space-between-content);
+        /* One value on every side, so the corner buttons sit equally inset. */
+        padding: var(--space-padding-page);
+        border-block-end: var(--border-width-default) solid var(--color-border-subtle);
+        background-color: var(--color-background-surface);
+    }
+
+    /* On one baseline, so the smaller status text lines up with the title. */
+    .title {
+        display: flex;
+        flex-grow: 1;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0 var(--space-between-content);
+    }
+
+    .status {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+
+        &[data-status="on"] {
+            color: var(--color-text-success);
+        }
+
+        &[data-status="away"] {
+            color: var(--color-text-warning);
+        }
+    }
+</style>

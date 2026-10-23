@@ -1,0 +1,82 @@
+---
+interface Props {
+    /** Prefix for the name and description IDs (`<id>-name`, `<id>-description`), for the control to reference. */
+    id: string;
+    name: string;
+    description?: string;
+    /** The control's ID, when it's a native input the name can be a <label> for. */
+    for?: string;
+}
+
+const { id, name, description, for: forId } = Astro.props;
+---
+
+<div class="setting" data-setting-row={id}>
+    <div class="text">
+        {forId ? (
+            <label class="name" id={`${id}-name`} for={forId} data-setting-name={id}>
+                {name}
+            </label>
+        ) : (
+            <span class="name" id={`${id}-name`} data-setting-name={id}>
+                {name}
+            </span>
+        )}
+        {description && (
+            <p class="description" id={`${id}-description`}>
+                {description}
+            </p>
+        )}
+    </div>
+    <div class="control">
+        <slot />
+    </div>
+</div>
+
+<style>
+    .setting:not([hidden]) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-between-text) var(--space-between-content);
+    }
+
+    .text {
+        display: grid;
+        flex: 1 1 11rem;
+        gap: 0.125rem;
+    }
+
+    .name {
+        font-weight: var(--font-weight-semi-bold);
+    }
+
+    .description {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+
+    .control {
+        display: flex;
+        flex: 0 1 auto;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: end;
+        gap: var(--space-between-text);
+    }
+
+    /* A slider needs the full width to travel, so it sits below its name and description. */
+    .setting:has(:global(.slider)) {
+        flex-direction: column;
+        align-items: stretch;
+
+        & .text {
+            flex: none;
+        }
+
+        & .control {
+            display: block;
+        }
+    }
+</style>

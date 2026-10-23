@@ -1,0 +1,17 @@
+{
+    "name": "volt-tools",
+    "version": "1.0.0",
+    "description": "Reverse-engineering and verification tools for the Volt Mixer page (home PC only).",
+    "directories": {
+        "lib": "lib"
+    },
+    "scripts": {
+        "test": "echo \"Tests live in the site: run pnpm test in the repository root.\""
+    },
+    "type": "commonjs",
+    "dependencies": {
+        "@julusian/midi": "^3.8.1",
+        "node-hid": "^3.4.0"
+    },
+    "private": true
+}

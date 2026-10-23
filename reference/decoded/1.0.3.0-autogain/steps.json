@@ -1,0 +1,54 @@
+[
+ {
+  "t": 1792768292919,
+  "label": "idle",
+  "out": [],
+  "in": 1822,
+  "inReports": []
+ },
+ {
+  "t": 1792768307932,
+  "label": "auto-gain run (5 s)",
+  "path": "/auto_gain/trigger_auto_gain",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f01d0205f700000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 1131,
+  "inReports": []
+ },
+ {
+  "t": 1792768317189,
+  "label": "auto-gain cancel start",
+  "path": "/auto_gain/trigger_auto_gain",
+  "out": [
+   {
+    "type": "interrupt",
+    "ep": 1,
+    "setup": null,
+    "data": "f01d020af700000000000000000000000000000000000000000000000000000000000000000000"
+   }
+  ],
+  "in": 181,
+  "inReports": []
+ },
+ {
+  "t": 1792768318730,
+  "label": "auto-gain cancel stop",
+  "path": "/auto_gain/stop_auto_gain",
+  "out": [],
+  "in": 372,
+  "inReports": []
+ },
+ {
+  "t": 1792768321791,
+  "label": "idle",
+  "out": [],
+  "in": 2212,
+  "inReports": []
+ }
+]

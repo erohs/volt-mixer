@@ -1,0 +1,152 @@
+---
+import { faderTicks } from "../../lib/taper.ts";
+import Icon from "../ui/Icon.astro";
+import Meter from "../ui/Meter.astro";
+import Slider from "../ui/Slider.astro";
+---
+
+<!--
+    Cloned once per channel strip by src/scripts/strips.ts, which fills in the name, the meters'
+    names and the labels. A stereo strip keeps both meters; a mono one hides the second.
+-->
+<template id="strip-template">
+    <li class="strip" data-strip>
+        <div class="head">
+            <h3 class="name">
+                <span class="phantom" data-strip-phantom hidden>
+                    48V
+                </span>
+                <span data-strip-name></span>
+                <span class="visually-hidden" data-strip-tone-name></span>
+            </h3>
+            <button class="button button--icon gear" type="button" aria-haspopup="dialog" data-strip-action="settings">
+                <Icon name="settings" />
+                <span class="visually-hidden" data-strip-settings-label>
+                    Channel settings
+                </span>
+            </button>
+        </div>
+        <div class="fader">
+            <Slider kind="fader" name="fader" orientation="vertical" ticks={faderTicks()} />
+            <div class="meters">
+                <Meter name="" />
+                <Meter name="" />
+            </div>
+        </div>
+        <div class="actions">
+            <button class="button button--mute" type="button" aria-pressed="false" data-strip-action="mute">
+                M
+            </button>
+            <button class="button button--solo" type="button" aria-pressed="false" data-strip-action="solo">
+                S
+            </button>
+            <button class="button button--icon" type="button" aria-pressed="false" data-strip-action="link">
+                <Icon name="link" />
+            </button>
+        </div>
+    </li>
+</template>
+
+<style>
+    /*
+     * Each strip spans three rows of the strip list's grid in src/pages/index.astro (head, fader,
+     * buttons) as a subgrid, so they line up across strips even when a name wraps.
+     */
+    .strip {
+        position: relative;
+        display: grid;
+        grid-row: span 3;
+        grid-template-rows: subgrid;
+        gap: var(--space-between-text);
+        padding: var(--space-padding-compact);
+        border: var(--border-width-default) solid var(--color-border-subtle);
+        border-radius: var(--radius-large);
+        background-color: var(--color-background-surface);
+    }
+
+    /* Pinned to the top of its row, so a longer name in another strip can't push this one down. */
+    .head {
+        align-self: start;
+        padding-inline-end: calc(var(--size-icon) + var(--space-between-lines));
+    }
+
+    .name {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.125rem var(--space-between-lines);
+        font-size: var(--font-size-body);
+        overflow-wrap: anywhere;
+    }
+
+    /* With TONE on, the fader takes the colour of the Volt's TONE ring; off, it keeps the accent. */
+    [data-tone="warmth"] {
+        --slider-colour: var(--color-fader-warmth);
+    }
+
+    [data-tone="focus"] {
+        --slider-colour: var(--color-fader-focus);
+    }
+
+    [data-tone="shine"] {
+        --slider-colour: var(--color-fader-shine);
+    }
+
+    /* Lit red like the Volt's 48V label when phantom power is on. */
+    .phantom:not([hidden]) {
+        display: inline-block;
+        padding: 0 var(--space-between-lines);
+        border-radius: 999px;
+        background-color: var(--color-background-danger);
+        color: var(--color-text-on-danger);
+        font-size: var(--font-size-meta);
+        font-weight: var(--font-weight-semi-bold);
+        line-height: 1.25rem;
+    }
+
+    /* A quiet gear in the corner, partly in the padding, so the name keeps the width. */
+    .gear {
+        position: absolute;
+        /* Centred on the name's first line: the padding plus half a line, less half the button. */
+        inset-block-start: calc(var(--space-padding-compact) + 0.6875rem - 1rem);
+        inset-inline-end: var(--space-between-lines);
+        min-inline-size: 2rem;
+        min-block-size: 2rem;
+        border-color: transparent;
+        background-color: transparent;
+        color: var(--color-text-secondary);
+
+        &:hover {
+            color: var(--color-text-primary);
+        }
+    }
+
+    .fader {
+        display: flex;
+        justify-content: center;
+        gap: var(--space-between-text);
+    }
+
+    .meters {
+        display: flex;
+        gap: 3px;
+        block-size: var(--size-fader-length);
+        padding-block: calc(var(--size-slider-thumb) / 2);
+
+        & :global([data-meter=""]) {
+            display: none;
+        }
+    }
+
+    /* M, S and Link are equal squares on one line, so every strip's button row matches. */
+    .actions {
+        display: flex;
+        justify-content: center;
+        gap: var(--space-between-lines);
+
+        & .button {
+            inline-size: var(--size-action-minimum);
+            padding: 0;
+        }
+    }
+</style>

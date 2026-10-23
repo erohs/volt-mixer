@@ -1,0 +1,74 @@
+body {
+    background-color: var(--color-background-page);
+    color: var(--color-text-primary);
+    font-family: var(--font-family-body);
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--line-height-body);
+}
+
+h1,
+h2,
+h3 {
+    font-weight: var(--font-weight-semi-bold);
+    line-height: var(--line-height-heading);
+    text-wrap: balance;
+}
+
+h1 {
+    font-size: var(--font-size-title);
+}
+
+h2,
+h3 {
+    font-size: var(--font-size-heading);
+}
+
+p {
+    max-inline-size: 65ch;
+}
+
+:focus-visible {
+    outline: var(--border-width-highlight) solid var(--color-focus);
+    outline-offset: 2px;
+}
+
+input,
+select {
+    min-block-size: var(--size-action-minimum);
+    padding-inline: var(--space-between-text);
+    border: var(--border-width-default) solid var(--color-border);
+    border-radius: var(--radius-small);
+    background-color: var(--color-background-surface);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+    min-block-size: auto;
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+    accent-color: var(--color-background-accent);
+}
+
+dialog {
+    margin: auto;
+    max-inline-size: min(var(--size-dialog), calc(100vw - 2 * var(--space-padding-page)));
+    max-block-size: calc(100dvh - 2 * var(--space-padding-page));
+    padding: 0;
+    border: var(--border-width-default) solid var(--color-border);
+    border-radius: var(--radius-large);
+    background-color: var(--color-background-surface);
+    color: var(--color-text-primary);
+
+    &::backdrop {
+        background-color: rgb(0 0 0 / 45%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0s;
+    }
+}

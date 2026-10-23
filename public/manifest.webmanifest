@@ -1,0 +1,18 @@
+{
+    "name": "Volt Mixer",
+    "short_name": "Volt Mixer",
+    "description": "Browser control for the UA Volt 4 Gen 2's built-in mixer.",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "background_color": "#141416",
+    "theme_color": "#141416",
+    "icons": [
+        {
+            "src": "icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}
