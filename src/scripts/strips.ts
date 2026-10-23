@@ -41,16 +41,9 @@ const label = (strip: HTMLElement, selector: string, text: string): void => {
 const isAnalog = (id: string): boolean => channelById[id]?.kind === "analog";
 const hasPreamp = (ids: string[]): boolean => ids.some((id) => channelById[id]?.preampIndex !== undefined);
 
-/**
- * Analog inputs show what they are (MIC or LINE) and their 48V, and their M is the Volt's DIRECT
- * monitoring (an ear, lit while on). Digital and loopback channels keep a plain mute.
- */
-const buildInputControls = (strip: HTMLElement, group: IStripGroup): void => {
-    const isInput = isAnalog(group.ids[0] ?? "");
-    strip.querySelector<HTMLElement>("[data-strip-tags]")!.hidden = !isInput;
-    strip.querySelector<HTMLElement>('[data-strip-action="mute"]')!.hidden = isInput;
-    strip.querySelector<HTMLElement>('[data-strip-action="direct"]')!.hidden = !isInput;
-    label(strip, '[data-strip-action="direct"]', `Direct monitoring, ${group.name}`);
+/** Analog inputs show what they are (MIC or LINE) and their 48V. */
+const buildInputTags = (strip: HTMLElement, group: IStripGroup): void => {
+    strip.querySelector<HTMLElement>("[data-strip-tags]")!.hidden = !isAnalog(group.ids[0] ?? "");
     const input = strip.querySelector<HTMLElement>("[data-strip-input]")!;
     input.dataset["input"] = hasPreamp(group.ids) ? "mic" : "line";
     input.textContent = hasPreamp(group.ids) ? "Mic" : "Line";
@@ -65,7 +58,7 @@ const buildStrip = (group: IStripGroup, meterNames: Set<string>): HTMLElement =>
     label(strip, "[data-slider]", `${group.name} level`);
     label(strip, '[data-strip-action="mute"]', `Mute ${group.name}`);
     label(strip, '[data-strip-action="solo"]', `Solo ${group.name}`);
-    buildInputControls(strip, group);
+    buildInputTags(strip, group);
     const meters = [...strip.querySelectorAll<HTMLElement>("[data-meter]")];
     group.ids.forEach((id, i) => meters[i] && meterNames.has(id) && (meters[i].dataset["meter"] = id));
     const link = strip.querySelector<HTMLElement>('[data-strip-action="link"]')!;
@@ -120,7 +113,6 @@ export const refreshStrips = (state: IMixerState, isLive: boolean): void => {
         setSliderValue(fader, channel.fader);
         fader.setAttribute("aria-disabled", String(!isLive || !state.isMixOwned));
         press(strip, "mute", channel.isMuted);
-        press(strip, "direct", !channel.isMuted);
         press(strip, "solo", channel.isSoloed);
         press(strip, "link", isLinked(state, ids[0] ?? ""));
         refreshIndicators(strip, state, ids);

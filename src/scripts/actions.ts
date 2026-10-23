@@ -23,8 +23,6 @@ export const runIntent = (intent: Intent): IntentResult => {
 
 const stripIntents: Record<string, (ids: string[]) => Intent> = {
     mute: (ids) => ({ type: "mute", ids }),
-    // An analog input's mute is the Volt's DIRECT flag, shown as Direct monitoring.
-    direct: (ids) => ({ type: "mute", ids }),
     solo: (ids) => ({ type: "solo", ids }),
     link: (ids) => ({ type: "link", id: ids[0] ?? "" }),
 };

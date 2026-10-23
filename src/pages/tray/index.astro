@@ -23,30 +23,21 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
             <a class="button" href={import.meta.env.BASE_URL} data-tray-open>
                 Open Volt Mixer
             </a>
-            <button class="button button--icon" type="button" data-tray-close hidden>
-                <Icon name="close" />
-                <span class="visually-hidden">Close</span>
+            <button class="button" type="button" data-tray-quit hidden>
+                Quit
             </button>
         </div>
     </div>
 
-    <!-- A row: what it is (icon, with its name for screen readers), mute, and its level. -->
+    <!--
+        A row: its icon is its mute button (named for screen readers by the row's name), and turns
+        into a struck-through speaker while muted; then its level.
+    -->
     <template id="tray-row-template">
         <li class="row" data-tray-row>
-            <span class="what" data-row-icon></span>
-            <span class="visually-hidden" data-row-name></span>
             <button class="button button--icon mute" type="button" aria-pressed="false" data-row-action="mute">
-                <Icon name="volume-2" class="unmuted" />
+                <span class="what" data-row-icon></span>
                 <Icon name="volume-x" class="muted" />
-            </button>
-            <!-- Analog inputs: the Volt's DIRECT monitoring, lit while on (as on the page's strips). -->
-            <button
-                class="button button--icon direct"
-                type="button"
-                aria-pressed="false"
-                data-row-action="direct"
-                hidden>
-                <Icon name="ear" />
             </button>
             <Slider kind="fader" name="row" class="row-slider" />
         </li>
@@ -114,42 +105,42 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
 
     .row {
         display: grid;
-        grid-template-columns: auto auto minmax(0, 1fr);
+        grid-template-columns: auto minmax(0, 1fr);
         align-items: center;
         gap: var(--space-between-text);
     }
 
-    .what {
-        display: grid;
-        place-items: center;
-        color: var(--color-text-secondary);
-
-        & :global(.icon) {
-            inline-size: var(--size-icon);
-            block-size: var(--size-icon);
-        }
-    }
-
-    /* A speaker, struck through while muted; the button's pressed state says which. */
+    /* The row's icon is its mute: muted, it shows a red struck-through speaker instead. */
     .mute {
         border-color: transparent;
         background-color: transparent;
+        color: var(--color-text-secondary);
+
+        &:hover {
+            color: var(--color-text-primary);
+        }
 
         & :global(.muted) {
             display: none;
         }
 
         &[aria-pressed="true"] {
+            border-color: transparent;
+            background-color: transparent;
             color: var(--color-background-danger);
+
+            & .what {
+                display: none;
+            }
 
             & :global(.muted) {
                 display: inline-block;
             }
-
-            & :global(.unmuted) {
-                display: none;
-            }
         }
+    }
+
+    .what {
+        display: inline-grid;
     }
 
     /*

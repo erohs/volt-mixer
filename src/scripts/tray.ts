@@ -31,24 +31,13 @@ const showNote = (text: string): void => {
 const rowTemplate = (): Element =>
     document.querySelector<HTMLTemplateElement>("#tray-row-template")!.content.firstElementChild!;
 
-/** An analog input's button is Direct monitoring (an ear); anything else has a speaker mute. */
-const buildButton = (item: HTMLElement, row: ITrayRow): void => {
-    const mute = item.querySelector<HTMLElement>("[data-row-action='mute']")!;
-    const direct = item.querySelector<HTMLElement>("[data-row-action='direct']")!;
-    mute.hidden = row.isDirect;
-    direct.hidden = !row.isDirect;
-    mute.setAttribute("aria-label", `Mute ${row.name}`);
-    direct.setAttribute("aria-label", `Direct monitoring, ${row.name}`);
-};
-
-/** The row's icon says what it is; its name is there for screen readers only. */
+/** The row's icon says what it is and is its mute button; its name is there for screen readers. */
 const buildRow = (row: ITrayRow): HTMLElement => {
     const item = rowTemplate().cloneNode(true) as HTMLElement;
     item.dataset["key"] = row.key;
     const icon = cloneIcon(row.icon);
     if (icon) item.querySelector("[data-row-icon]")!.replaceChildren(icon);
-    item.querySelector("[data-row-name]")!.textContent = row.name;
-    buildButton(item, row);
+    item.querySelector("[data-row-action='mute']")!.setAttribute("aria-label", `Mute ${row.name}`);
     const slider = item.querySelector<HTMLElement>("[data-slider]")!;
     slider.dataset["kind"] = row.kind === "channel" ? "fader" : "level";
     slider.setAttribute("aria-label", `${row.name} level`);
@@ -63,10 +52,8 @@ const updateRow = (item: HTMLElement, row: ITrayRow, snapshot: ITraySnapshot): v
     const isFaderLocked = row.kind === "channel" && !snapshot.isMixOwned;
     slider.setAttribute("aria-disabled", String(!snapshot.isLive || isFaderLocked));
     const mute = item.querySelector<HTMLButtonElement>("[data-row-action='mute']")!;
-    const direct = item.querySelector<HTMLButtonElement>("[data-row-action='direct']")!;
     mute.setAttribute("aria-pressed", String(row.isMuted));
-    direct.setAttribute("aria-pressed", String(!row.isMuted));
-    mute.disabled = direct.disabled = !snapshot.isLive;
+    mute.disabled = !snapshot.isLive;
 };
 
 const render = (snapshot: ITraySnapshot): void => {
@@ -131,12 +118,12 @@ const neededHeight = (): number => {
 
 const fitWindow = (): void => desktopApp()?.fitTray(Math.ceil(neededHeight()));
 
-/** In a browser there's no app: Open is a plain link to the page, and there's nothing to close. */
+/** In a browser there's no app: Open is a plain link to the page, and there's nothing to quit. */
 const wireButtons = (): void => {
     const desktop = desktopApp();
-    const close = document.querySelector<HTMLButtonElement>("[data-tray-close]")!;
-    close.hidden = !desktop;
-    close.addEventListener("click", () => desktop?.hideTray());
+    const quit = document.querySelector<HTMLButtonElement>("[data-tray-quit]")!;
+    quit.hidden = !desktop;
+    quit.addEventListener("click", () => desktop?.quit());
     document.querySelector("[data-tray-open]")!.addEventListener("click", (event) => {
         if (!desktop) return;
         event.preventDefault();

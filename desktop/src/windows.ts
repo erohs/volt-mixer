@@ -16,10 +16,6 @@ let trayWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let trayHiddenAt = 0;
 let trayIcon: Rectangle | undefined;
-/* Tray window events, printed when running from source (pnpm start) to follow show/hide timing. */
-const debug = (...parts: unknown[]): void => {
-    if (!app.isPackaged) console.log(`[tray ${Date.now() % 100000}]`, ...parts);
-};
 
 /** Lets close and quit through: set when the user chose Quit, or the system is shutting down. */
 export const markQuitting = (): void => {
@@ -104,12 +100,10 @@ const createTrayWindow = (): BrowserWindow => {
     lockNavigation(window);
     if (process.platform === "darwin") window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     // Like the Windows volume flyout: clicking anywhere else puts it away.
-    window.on("show", () => debug("show event"));
-    window.on("hide", () => debug("hide event"));
-    window.on("focus", () => debug("focus event"));
     window.on("blur", () => {
-        debug("blur event, visible:", window.isVisible());
-        if (isLinux) return;
+        // Windows also sends blur to the window after it's hidden (when the taskbar is clicked);
+        // counting that one would swallow the next click on the tray icon.
+        if (isLinux || !window.isVisible()) return;
         trayHiddenAt = Date.now();
         window.hide();
     });
@@ -145,16 +139,9 @@ export const prepareTrayWindow = (): void => {
     trayWindow ??= createTrayWindow();
 };
 
-/** The tray window's own close button. */
-export const hideTrayWindow = (): void => {
-    debug("close button, visible:", trayWindow?.isVisible());
-    trayWindow?.hide();
-};
-
 /** Opens or closes the tray window. `icon` is where the tray icon is (none on Linux). */
 export const toggleTrayWindow = (icon?: Rectangle): void => {
     trayWindow ??= createTrayWindow();
-    debug("icon click, visible:", trayWindow.isVisible(), "since hide:", Date.now() - trayHiddenAt);
     // The click that blurred it shouldn't reopen it straight away.
     if (trayWindow.isVisible() || Date.now() - trayHiddenAt < 250) return trayWindow.hide();
     if (icon && icon.width > 0) trayIcon = icon;

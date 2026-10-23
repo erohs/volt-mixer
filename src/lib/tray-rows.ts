@@ -1,5 +1,5 @@
 import { iconOf } from "./channel-icons.ts";
-import { channelById, type IMixerState } from "./mixer.ts";
+import type { IMixerState } from "./mixer.ts";
 import { stripGroups, toneOf, type IStripView, type ToneName } from "./strip-groups.ts";
 
 /*
@@ -19,8 +19,6 @@ export interface ITrayRow {
     /** Fader dB for a channel, 0–100 for an output. */
     level: number;
     isMuted: boolean;
-    /** An analog input: its mute is the Volt's DIRECT monitoring, shown as Direct (on = unmuted). */
-    isDirect: boolean;
     tone: ToneName;
 }
 
@@ -34,7 +32,6 @@ const outputRows = (state: IMixerState): ITrayRow[] => [
         ids: [],
         level: state.headphone.level,
         isMuted: state.headphone.isMuted,
-        isDirect: false,
         tone: "off",
     },
     {
@@ -45,7 +42,6 @@ const outputRows = (state: IMixerState): ITrayRow[] => [
         ids: [],
         level: state.monitor.level,
         isMuted: state.monitor.isMuted,
-        isDirect: false,
         tone: "off",
     },
 ];
@@ -68,7 +64,6 @@ export const trayRows = (state: IMixerState, view: IStripView, hidden: string[])
                 ids: group.ids,
                 level: first?.fader ?? 0,
                 isMuted: first?.isMuted ?? false,
-                isDirect: channelById[group.ids[0] ?? ""]?.kind === "analog",
                 tone: toneOf(state, group.ids),
             };
         }),

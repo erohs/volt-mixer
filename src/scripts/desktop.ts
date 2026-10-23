@@ -30,7 +30,8 @@ export interface IVoltDesktop {
     checkForUpdate: () => Promise<IUpdate | null>;
     setTheme: (theme: string) => void;
     openMainWindow: () => void;
-    hideTray: () => void;
+    /** Quits the app, like the tray menu's Quit. */
+    quit: () => void;
     /** The tray window's content height in CSS px; the app sizes the window to it. */
     fitTray: (height: number) => void;
 }

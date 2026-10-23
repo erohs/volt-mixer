@@ -39,17 +39,14 @@ import Slider from "../ui/Slider.astro";
             </div>
         </div>
         <div class="actions">
-            <button class="button button--mute" type="button" aria-pressed="false" data-strip-action="mute">
-                M
-            </button>
-            <!-- Analog inputs: the Volt's DIRECT monitoring, lit while on like the Volt's light. -->
+            <!-- A speaker, struck through while muted. On Inputs 1-4 this is the Volt's DIRECT. -->
             <button
-                class="button button--icon button--direct"
+                class="button button--icon button--mute"
                 type="button"
                 aria-pressed="false"
-                data-strip-action="direct"
-                hidden>
-                <Icon name="ear" />
+                data-strip-action="mute">
+                <Icon name="volume-2" class="unmuted" />
+                <Icon name="volume-x" class="muted" />
             </button>
             <button class="button button--solo" type="button" aria-pressed="false" data-strip-action="solo">
                 S
@@ -120,8 +117,9 @@ import Slider from "../ui/Slider.astro";
     /* Small and quiet, so they never compete with the fader. */
     .tags:not([hidden]) {
         display: flex;
+        justify-content: center;
         gap: var(--space-between-lines);
-        margin-block-start: var(--space-between-lines);
+        margin-block-start: var(--space-between-text);
     }
 
     .tag {
@@ -210,5 +208,14 @@ import Slider from "../ui/Slider.astro";
             inline-size: var(--size-action-minimum);
             padding: 0;
         }
+    }
+
+    .button--mute :global(.muted),
+    .button--mute[aria-pressed="true"] :global(.unmuted) {
+        display: none;
+    }
+
+    .button--mute[aria-pressed="true"] :global(.muted) {
+        display: inline-block;
     }
 </style>

@@ -4,7 +4,7 @@ import { appOrigin } from "./protocol";
 import { loadSettings, saveSettings } from "./settings";
 import { refreshTrayMenu } from "./tray";
 import { checkForUpdate } from "./update";
-import { fitTrayWindow, hideTrayWindow, showMainWindow } from "./windows";
+import { fitTrayWindow, markQuitting, showMainWindow } from "./windows";
 
 /* What the page can ask of the app (through preload.ts). Only the app's own pages are answered. */
 
@@ -37,7 +37,11 @@ export const answerPages = (): void => {
             nativeTheme.themeSource = theme as "system" | "light" | "dark";
     });
     ipcMain.on("desktop:open-main", (event) => isFromApp(event) && showMainWindow());
-    ipcMain.on("desktop:hide-tray", (event) => isFromApp(event) && hideTrayWindow());
+    ipcMain.on("desktop:quit", (event) => {
+        if (!isFromApp(event)) return;
+        markQuitting();
+        app.quit();
+    });
     ipcMain.on("desktop:fit-tray", (event, height: unknown) => {
         if (isFromApp(event) && typeof height === "number") fitTrayWindow(height);
     });
