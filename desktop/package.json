@@ -12,7 +12,7 @@
     "scripts": {
         "postinstall": "node node_modules/electron/install.js",
         "build:site": "node scripts/build-site.mjs",
-        "build": "pnpm build:site && tsc -p tsconfig.json",
+        "build": "pnpm build:site && node scripts/clean-out.mjs && tsc -p tsconfig.json",
         "start": "pnpm build && electron .",
         "dist": "pnpm build && electron-builder --publish never",
         "release": "pnpm build && electron-builder --publish always"

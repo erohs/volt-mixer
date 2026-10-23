@@ -1,4 +1,5 @@
 import { app, net } from "electron";
+import { isNewer } from "./versions";
 
 /*
  * Checks GitHub Releases for a newer version. Builds are unsigned, so there's no automatic
@@ -12,20 +13,6 @@ export interface IUpdate {
     version: string;
     url: string;
 }
-
-const parts = (version: string): number[] =>
-    version
-        .replace(/^v/, "")
-        .split(".")
-        .map((part) => Number.parseInt(part, 10) || 0);
-
-const isNewer = (candidate: string, current: string): boolean => {
-    const [a, b] = [parts(candidate), parts(current)];
-    for (let i = 0; i < Math.max(a.length, b.length); i++) {
-        if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) > (b[i] ?? 0);
-    }
-    return false;
-};
 
 /** The latest release, or null when GitHub can't be reached. */
 export const checkForUpdate = async (): Promise<IUpdate | null> => {

@@ -5,6 +5,7 @@ import http from "http";
 import os from "os";
 import path from "path";
 import { readJson, send } from "./http-helpers";
+import { homeAddresses, refusalFor, type IPhoneAddress } from "./phone-rules";
 import { askPage } from "./page-requests";
 import { isFromApp } from "./protocol";
 import { csp, readSiteFile } from "./site-files";
@@ -74,35 +75,8 @@ const hasToken = (authorization: string | undefined): boolean =>
 
 // ---------- addresses ----------
 
-const isPrivate = (ip: string): boolean => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(ip);
-
-export interface IPhoneAddress {
-    address: string;
-    /** The adapter's name, e.g. "Ethernet" or "Wi-Fi". */
-    name: string;
-}
-
-/* Adapters a phone can't come in through: virtual switches, VPN tunnels, Bluetooth and the like. */
-const unreachable =
-    /vethernet|hyper-v|virtualbox|vmware|wsl|docker|vpn|wireguard|tailscale|zerotier|nordlynx|bluetooth|loopback|^(tun|tap|utun|wg)\d*$/i;
-
-/** Home routers mostly hand out 192.168.x.x, then 10.x.x.x; 172.16–31 is often a virtual network. */
-const rank = (address: string): number => (address.startsWith("192.168.") ? 0 : address.startsWith("10.") ? 1 : 2);
-
-/**
- * This computer's addresses on its home network (Wi-Fi or Ethernet), best first, for the QR code.
- * If every adapter looks virtual, all the private ones are offered rather than none.
- */
-export const phoneAddresses = (): IPhoneAddress[] => {
-    const all = Object.entries(os.networkInterfaces()).flatMap(([name, nets]) =>
-        (nets ?? [])
-            .filter((net) => net.family === "IPv4" && !net.internal && isPrivate(net.address))
-            .filter((net) => !net.address.startsWith("169.254."))
-            .map((net) => ({ address: net.address, name })),
-    );
-    const real = all.filter((entry) => !unreachable.test(entry.name));
-    return (real.length > 0 ? real : all).sort((a, b) => rank(a.address) - rank(b.address));
-};
+/** This computer's addresses on its home network, best first, for the QR code. */
+export const phoneAddresses = (): IPhoneAddress[] => homeAddresses(os.networkInterfaces());
 
 // ---------- snapshots from the main window, to the phones ----------
 
@@ -133,13 +107,11 @@ const tellPageHowMany = (): void => getMainWindow()?.webContents.send("phone:cou
 
 const remoteIp = (req: http.IncomingMessage): string => req.socket.remoteAddress?.replace(/^::ffff:/, "") ?? "";
 
-/** Why a request is refused (a status), or 0 if it may go on. */
-const refusal = (req: http.IncomingMessage): number => {
-    if (req.headers.host !== `${boundAddress}:${port}`) return 421;
-    if (!isPrivate(remoteIp(req))) return 403;
-    const origin = req.headers.origin;
-    return origin && origin !== `http://${boundAddress}:${port}` ? 403 : 0;
-};
+const refusal = (req: http.IncomingMessage): number =>
+    refusalFor(
+        { host: req.headers.host, origin: req.headers.origin, remoteIp: remoteIp(req) },
+        `${boundAddress}:${port}`,
+    );
 
 const serveFile = async (res: http.ServerResponse, pathname: string): Promise<void> => {
     if (pathname === "/") return send(res, 302, { Location: "/tray/" });
