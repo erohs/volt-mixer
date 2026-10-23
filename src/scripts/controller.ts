@@ -15,7 +15,7 @@ import { noteInputLevels, watchInputs } from "./input-activity.ts";
 import { resetMeters, showMeterLevels } from "./meters-view.ts";
 import { refreshSettings, settingsActions, wireSettingsDialog } from "./settings-dialog.ts";
 import { publish, wireRemote, type ITraySnapshot } from "./remote.ts";
-import { toast } from "./toast.ts";
+import { toast, wireToast } from "./toast.ts";
 import {
     clearRetiredSettings,
     loadMix,
@@ -37,7 +37,19 @@ const isLive = (): boolean =>
     volt.connectedSpec() !== null && app.isHardwareKnown && app.isSendAllowed && app.hasControl;
 let isFlushPending = false;
 
+/**
+ * A control that just became disabled loses focus. It goes to the open dialog's Close button, or
+ * to Connect, or to the start of the page.
+ */
+const keepFocus = (focused: Element | null): void => {
+    if (focused === document.body || document.activeElement !== document.body) return;
+    const connect = element<HTMLButtonElement>("[data-action='connect']");
+    const fallback = connect.hidden || connect.disabled ? element("#main") : connect;
+    (document.querySelector<HTMLElement>("dialog[open] .head button") ?? fallback).focus();
+};
+
 const refresh = (): void => {
+    const focused = document.activeElement;
     const live = isLive();
     refreshStrips(app.state, live);
     refreshOutputs(live);
@@ -46,6 +58,7 @@ const refresh = (): void => {
     const isMixMissing = app.isHardwareKnown && !app.state.isMixOwned && !app.isMixPaused;
     element("[data-mix-setup]").hidden = !(volt.connectedSpec() && isMixMissing);
     element<HTMLButtonElement>("[data-action='push-mix']").disabled = !live || !app.state.isMixOwned;
+    keepFocus(focused);
     publish();
 };
 
@@ -280,7 +293,8 @@ const pageActions: Record<string, () => void> = {
             .pair()
             .then(
                 (result) =>
-                    result === "cancelled" && toast('No Volt was chosen. Click Connect Volt and pick "Volt 4 Gen 2".'),
+                    result === "cancelled" &&
+                    toast('No Volt was chosen. Click Connect Volt and pick "Volt 4 Gen 2".', { isInstruction: true }),
             ),
     disconnect: () => void volt.disconnect(),
     identify: () => {
@@ -375,6 +389,7 @@ export const start = (): void => {
     Object.assign(hooks, { commit, layout: relayout, refresh, autoGain: startAutoGain });
     wireMixPause(takeSavedMix);
     clearRetiredSettings();
+    wireToast();
     applyTheme(loadTheme());
     initSliders(document);
     initDialogs();

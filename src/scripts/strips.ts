@@ -2,6 +2,7 @@ import { channelById, isLinked } from "../lib/mixer.ts";
 import type { IMixerState } from "../lib/mixer.ts";
 import { iconOf } from "../lib/channel-icons.ts";
 import { toneOf, type IStripGroup } from "../lib/strip-groups.ts";
+import { setText } from "./dom.ts";
 import { cloneIcon } from "./icons.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 
@@ -98,9 +99,9 @@ const refreshIndicators = (strip: HTMLElement, state: IMixerState, ids: string[]
     press(strip, "phantom", isPhantomOn);
     refreshIcon(strip, state, ids);
     const tone = toneOf(state, ids);
-    strip.dataset["tone"] = tone;
+    if (strip.dataset["tone"] !== tone) strip.dataset["tone"] = tone;
     const toneName = tone.charAt(0).toUpperCase() + tone.slice(1);
-    strip.querySelector("[data-strip-tone-name]")!.textContent = tone === "off" ? "" : `, ${toneName} tone`;
+    setText(strip.querySelector("[data-strip-tone-name]"), tone === "off" ? "" : `, ${toneName} tone`);
 };
 
 /** Updates every strip's values from state. `isLive` false makes the controls read-only. */

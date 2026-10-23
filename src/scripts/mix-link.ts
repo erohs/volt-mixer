@@ -34,7 +34,7 @@ const copy = async (input: HTMLInputElement): Promise<void> => {
         await navigator.clipboard.writeText(input.value);
         toast("Mix link copied.");
     } catch {
-        toast("Couldn't copy it: the link is selected, so copy it with Ctrl+C.");
+        toast("Couldn't copy it: the link is selected, so copy it with Ctrl+C.", { isInstruction: true });
     }
 };
 

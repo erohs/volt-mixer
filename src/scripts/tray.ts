@@ -1,6 +1,7 @@
 import type { Intent } from "../lib/intents.ts";
 import type { ITrayRow } from "../lib/tray-rows.ts";
 import { desktopApp } from "./desktop.ts";
+import { setText } from "./dom.ts";
 import { cloneIcon } from "./icons.ts";
 import { loadTheme } from "./store.ts";
 import { applyTheme } from "./theme.ts";
@@ -26,7 +27,7 @@ const inputHoldMs = 400;
 const post = (message: RemoteMessage): void => link.send(message);
 
 const showNote = (text: string): void => {
-    note().textContent = text;
+    setText(note(), text);
     note().hidden = !text;
 };
 
@@ -64,7 +65,7 @@ const updateRow = (item: HTMLElement, row: ITrayRow, snapshot: ITraySnapshot): v
 const render = (snapshot: ITraySnapshot): void => {
     const status = document.querySelector<HTMLElement>("[data-tray-status]")!;
     // Just the connection: "Connected · firmware 1.0.3" is more than the tray needs.
-    status.textContent = snapshot.status.split(" · ")[0] ?? "";
+    setText(status, snapshot.status.split(" · ")[0] ?? "");
     status.dataset["status"] = snapshot.statusKind;
     const key = snapshot.rows.map((row) => `${row.key}:${row.icon}:${row.name}`).join("|");
     if (key !== layoutKey) {
@@ -140,6 +141,8 @@ const wireButtons = (): void => {
     // On a phone the computer's page can't be opened, so the footer goes.
     document.querySelector<HTMLElement>(".foot")!.hidden = link.isPhone;
     close.addEventListener("click", () => desktop?.hideTray());
+    // Escape puts the flyout away, like the click elsewhere that does.
+    document.addEventListener("keydown", (event) => event.key === "Escape" && desktop?.hideTray());
     document.querySelector("[data-tray-open]")!.addEventListener("click", (event) => {
         if (!desktop) return;
         event.preventDefault();

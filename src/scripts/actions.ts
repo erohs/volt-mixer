@@ -10,12 +10,10 @@ import { stripIds } from "./strips.ts";
 /* What the strip and output controls do to the page state, through the same intents as the tray. */
 
 /** Solo, digital mutes and faders are mix levels, so they need this computer to own the mix. */
-const explainNeedsMix = (): void =>
-    toast(
-        app.isMixPaused
-            ? "The mix is with the other Volt Mixer on this computer until it closes."
-            : "That works once this computer has your mix. Set one up above, or open a mix link.",
-    );
+const explainNeedsMix = (): void => {
+    if (app.isMixPaused) return toast("The mix is with the other Volt Mixer on this computer until it closes.");
+    toast("That works once this computer has your mix. Set one up above, or open a mix link.", { isInstruction: true });
+};
 
 /** Applies an intent from any view (this page's controls or the tray window) and commits it. */
 export const runIntent = (intent: Intent): IntentResult => {
