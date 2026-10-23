@@ -44,6 +44,8 @@ dmg:
   artifactName: Volt-Mixer-${version}-${arch}.${ext}
 linux:
   target: [AppImage, deb]
+  # A .deb must name a maintainer with an email: GitHub's no-reply address, as on the commits.
+  maintainer: Naomi <65184830+erohs@users.noreply.github.com>
   category: AudioVideo
   icon: build/icon.png
   artifactName: Volt-Mixer-${version}-${arch}.${ext}
