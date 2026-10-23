@@ -8,6 +8,17 @@ const levelTicks = [0, 25, 50, 75, 100].map((level) => ({ label: `${level}`, pos
 
 <section class="outputs" aria-labelledby="outputs-heading">
     <h2 id="outputs-heading">Outputs</h2>
+    <!--
+        The Volt meters its monitor mix before the Monitor level, which is also what the headphones
+        hear while their cue follows the monitor mix. It reports no other output meter.
+    -->
+    <div class="mix">
+        <span class="mix-name">Mix</span>
+        <span class="side">L</span>
+        <Meter name="monitorL" orientation="horizontal" />
+        <span class="side">R</span>
+        <Meter name="monitorR" orientation="horizontal" />
+    </div>
     <div class="cards">
         <article class="output" data-output="monitor" aria-labelledby="monitor-heading">
             <div class="head">
@@ -31,10 +42,6 @@ const levelTicks = [0, 25, 50, 75, 100].map((level) => ({ label: `${level}`, pos
                     data-action="monitor-mono">
                     Mono
                 </button>
-            </div>
-            <div class="meters">
-                <Meter name="monitorL" orientation="horizontal" />
-                <Meter name="monitorR" orientation="horizontal" />
             </div>
             <Slider kind="level" name="monitor-level" labelledBy="monitor-heading" ticks={levelTicks} />
         </article>
@@ -105,8 +112,22 @@ const levelTicks = [0, 25, 50, 75, 100].map((level) => ({ label: `${level}`, pos
         color: var(--color-headphone);
     }
 
-    .meters {
+    /* "Mix" spanning both rows, then a small L and R before each meter. */
+    .mix {
         display: grid;
-        gap: 3px;
+        grid-template-columns: auto auto minmax(0, 1fr);
+        align-items: center;
+        gap: 3px var(--space-between-text);
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+
+    .mix-name {
+        grid-row: span 2;
+        font-weight: var(--font-weight-semi-bold);
+    }
+
+    .side {
+        font-size: var(--font-size-meta);
     }
 </style>
