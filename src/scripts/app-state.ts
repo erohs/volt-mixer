@@ -17,6 +17,8 @@ export const app = {
     hasControl: true,
     /** The user changed something since the last flush (so a changed mix is dated now). */
     hasEdit: false,
+    /** When the user last changed something (performance.now()), so re-reading the Volt waits. */
+    lastEditAt: -Infinity,
 };
 
 /** Set by the controller: `commit` sends what changed and refreshes; `layout` rebuilds the strips. */
@@ -33,6 +35,7 @@ export const hooks = {
 /** For the user's own changes, from the controls; the controller's housekeeping commits directly. */
 export const commit = (): void => {
     app.hasEdit = true;
+    app.lastEditAt = performance.now();
     hooks.commit();
 };
 export const layout = (): void => hooks.layout();

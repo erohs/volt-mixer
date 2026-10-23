@@ -6,12 +6,13 @@ import { loadAppSync, loadMixEntry, saveAppSync } from "./store.ts";
 /*
  * The website keeping its mix in step with the desktop app on the same computer, which answers on
  * 127.0.0.1 (desktop/src/mix-share.ts). Off unless chosen (Settings › Your mix), so the work laptop
- * never tries. The browser asks once before the site may talk to an app on this computer.
+ * never tries. The browser asks once before the site may talk to an app on this computer. The mix
+ * travels this way; the Volt's own settings (levels, mutes, 48V…) both pages re-read from the Volt.
  */
 
 const endpoint = "http://127.0.0.1:48191/api/mix";
-const pollMs = 5000;
-const pushDelayMs = 500;
+const pollMs = 1000;
+const pushDelayMs = 150;
 let pushTimer = 0;
 
 const isOn = (): boolean => loadAppSync() && desktopApp() === null;

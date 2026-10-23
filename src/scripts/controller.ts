@@ -112,7 +112,26 @@ const onFirstState = (data: Uint8Array): void => {
 };
 
 /** A later state dump (after a link change or a failed send): adopt it, re-send the mix legs. */
+/*
+ * The Volt doesn't tell this page when something else changes it (the app or website on this
+ * computer, the front panel's level knobs), so the page re-reads it now and then. Not while the
+ * user is moving something here: a reading taken just before their latest move would undo it.
+ */
+const editHoldMs = 1500;
+const rereadMs = 1500;
+let isStateWanted = false;
+const isEditing = (): boolean => performance.now() - app.lastEditAt < editHoldMs;
+
+const rereadVolt = (): void => {
+    if (!volt.connectedSpec() || !app.isHardwareKnown || isEditing()) return;
+    isStateWanted = true;
+    volt.requestState();
+};
+
 const onLaterState = (data: Uint8Array): void => {
+    // Another program's reading can arrive here too; mid-change, only one this page asked for counts.
+    if (!isStateWanted && isEditing()) return;
+    isStateWanted = false;
     const spec = volt.connectedSpec() ?? newestSpec();
     const changed = applyHardwareState(app.state, parseState(spec, data));
     app.sync.prime(app.state, spec, (key) => !isMixKey(key));
@@ -128,7 +147,7 @@ const showMeters = (levels: Record<string, number>): void => {
 let stateTimer = 0;
 const requestStateSoon = (): void => {
     clearTimeout(stateTimer);
-    stateTimer = window.setTimeout(volt.requestState, 150);
+    stateTimer = window.setTimeout(() => ((isStateWanted = true), volt.requestState()), 150);
 };
 
 const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): void => {
@@ -272,6 +291,7 @@ const wireConnection = (): void => {
         app.sync.forget(isMixKey);
         requestStateSoon();
     });
+    window.setInterval(rereadVolt, rereadMs);
 };
 
 /**
