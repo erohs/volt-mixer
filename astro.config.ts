@@ -10,7 +10,11 @@ export default defineConfig({
     site: process.env["SITE_ORIGIN"] ?? "http://localhost:4321",
     base,
     trailingSlash: "always",
-    build: { format: "directory" },
+    /*
+     * Stylesheets stay files: the desktop app's CSP allows inline styles in attributes only
+     * (desktop/src/site-files.ts), so an inlined <style> would be blocked there.
+     */
+    build: { format: "directory", inlineStylesheets: "never" },
     scopedStyleStrategy: "where",
     /* The toolbar injects hidden, focusable controls, so dev would no longer behave like the built site. */
     devToolbar: { enabled: false },

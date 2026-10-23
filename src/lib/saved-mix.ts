@@ -1,6 +1,8 @@
 import { isChannelIcon } from "./channel-icons.ts";
+import { bytesToBase64Url, base64UrlToBytes } from "./base64url.ts";
 import { minDb } from "./gain.ts";
 import { decodeMixCode } from "./mix-code.ts";
+import { clamp, isFiniteNumber } from "./numbers.ts";
 import {
     channels,
     defaultChannel,
@@ -26,9 +28,8 @@ export interface ISavedMix {
     headphoneSource: CueName;
 }
 
-const isFiniteNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 const clamped = (value: unknown, low: number, high: number, fallback: number): number =>
-    isFiniteNumber(value) ? Math.max(low, Math.min(high, value)) : fallback;
+    isFiniteNumber(value) ? clamp(value, low, high) : fallback;
 const flag = (value: unknown, fallback: boolean): boolean => (typeof value === "boolean" ? value : fallback);
 const record = (value: unknown): Record<string, unknown> =>
     value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -128,24 +129,13 @@ export const adoptSavedMix = (state: IMixerState, value: unknown, maxDb: number)
     state.isMixOwned = true;
 };
 
-const toBase64Url = (text: string): string =>
-    btoa(String.fromCharCode(...new TextEncoder().encode(text)))
-        .replaceAll("+", "-")
-        .replaceAll("/", "_")
-        .replace(/=+$/, "");
-
-const fromBase64Url = (code: string): string => {
-    const binary = atob(code.replaceAll("-", "+").replaceAll("_", "/"));
-    return new TextDecoder().decode(Uint8Array.from(binary, (char) => char.charCodeAt(0)));
-};
-
 /** A mix as a URL-safe code, for the `#mix=` link that carries it to another computer. */
-export const encodeMix = (mix: ISavedMix): string => toBase64Url(JSON.stringify(mix));
+export const encodeMix = (mix: ISavedMix): string => bytesToBase64Url(new TextEncoder().encode(JSON.stringify(mix)));
 
 /** Decodes a mix code; null when it isn't one. */
 export const decodeMix = (code: string): unknown => {
     try {
-        return JSON.parse(fromBase64Url(code));
+        return JSON.parse(new TextDecoder().decode(base64UrlToBytes(code)));
     } catch {
         return null;
     }

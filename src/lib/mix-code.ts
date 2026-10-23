@@ -1,3 +1,4 @@
+import { base64UrlToBytes, bytesToBase64Url } from "./base64url.ts";
 import { channelIcons, isChannelIcon } from "./channel-icons.ts";
 import { minDb } from "./gain.ts";
 import { channels, defaultChannel, pairKey, pairs, trimName, type IChannel, type ISend } from "./mixer.ts";
@@ -119,19 +120,13 @@ const writeExtras = (out: IWriter, mix: ISavedMix): void => {
     }
 };
 
-const toBase64Url = (bytes: number[]): string =>
-    btoa(String.fromCharCode(...bytes))
-        .replaceAll("+", "-")
-        .replaceAll("/", "_")
-        .replace(/=+$/, "");
-
 /** A saved mix as the short code that follows `#m=`. */
 export const encodeMixCode = (mix: ISavedMix): string => {
     const out = writer();
     out.u8(version);
     writeChannels(out, mix);
     writeExtras(out, mix);
-    return toBase64Url(out.bytes);
+    return bytesToBase64Url(out.bytes);
 };
 
 interface IReader {
@@ -195,15 +190,10 @@ const readIcons = (input: IReader): Record<string, string> => {
     return icons;
 };
 
-const fromBase64Url = (code: string): DataView => {
-    const binary = atob(code.replaceAll("-", "+").replaceAll("_", "/"));
-    return new DataView(Uint8Array.from(binary, (char) => char.charCodeAt(0)).buffer);
-};
-
 /** Reads a `#m=` code into a saved mix (still to be validated by applySavedMix); null if it isn't one. */
 export const decodeMixCode = (code: string): ISavedMix | null => {
     try {
-        const input = reader(fromBase64Url(code));
+        const input = reader(new DataView(base64UrlToBytes(code).buffer));
         if (input.u8() !== version) return null;
         const mixChannels = readChannels(input);
         const linkBits = input.u8();

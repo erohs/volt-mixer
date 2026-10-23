@@ -22,7 +22,6 @@ export interface IMixerSync {
     forget: (filter?: KeyFilter) => void;
 }
 
-export const isCrosspointKey: KeyFilter = (key) => key.startsWith("x");
 export const isMixKey: KeyFilter = (key) => key.startsWith("x") || key.startsWith("route");
 
 const crosspointEntries = (state: IMixerState, spec: ISpec): IEntry[] =>

@@ -2,6 +2,7 @@ import { isChannelIcon } from "./channel-icons.ts";
 import { minDb } from "./gain.ts";
 import { channelById, isChannelId, matchQuieterGain, pairKey, pairOf, setLinked, trimName } from "./mixer.ts";
 import type { ChannelId, CueName, DigitalFormat, IChannel, IMixerState } from "./mixer.ts";
+import { clamp, isFiniteNumber } from "./numbers.ts";
 import type { ISpec } from "./spec.ts";
 
 /*
@@ -55,9 +56,6 @@ type Applier<T extends Intent["type"]> = (
     intent: Extract<Intent, { type: T }>,
     spec: ISpec,
 ) => boolean;
-
-const clamp = (value: number, low: number, high: number): number => Math.max(low, Math.min(high, value));
-const isNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
 /** The preamp (or TONE) slots of the channels among `ids` that have one. */
 const slots = (ids: Ids, slot: "preampIndex" | "toneIndex"): number[] =>
@@ -185,9 +183,9 @@ export const isRemoteIntent = (value: unknown): value is RemoteIntent => {
     if (typeof value !== "object" || value === null) return false;
     const { type, ids, id, db, level, to } = value as Record<string, unknown>;
     if (to !== undefined && typeof to !== "boolean") return false;
-    if (type === "fader") return isIdList(ids) && isNumber(db);
+    if (type === "fader") return isIdList(ids) && isFiniteNumber(db);
     if (type === "mute" || type === "solo") return isIdList(ids);
     if (type === "link") return isChannelId(id);
-    if (type === "monitorLevel" || type === "headphoneLevel") return isNumber(level);
+    if (type === "monitorLevel" || type === "headphoneLevel") return isFiniteNumber(level);
     return typeof type === "string" && toggleTypes.has(type);
 };

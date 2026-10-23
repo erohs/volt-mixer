@@ -50,15 +50,13 @@ export const saveMix = (serial: string, mix: ISavedMix | null): void => {
 export const loadPendingMix = (): unknown => read(pendingKey);
 export const savePendingMix = (mix: unknown): void => write(pendingKey, mix);
 
-export type IViewPreferences = IStripView;
-
 /** Digital inputs start hidden and the loopback channel shown, as in Console. */
-export const loadView = (): IViewPreferences => {
-    const view = read(viewKey) as Partial<IViewPreferences> | null;
+export const loadView = (): IStripView => {
+    const view = read(viewKey) as Partial<IStripView> | null;
     return { isDigitalShown: view?.isDigitalShown === true, isLoopbackShown: view?.isLoopbackShown !== false };
 };
 
-export const saveView = (view: IViewPreferences): void => write(viewKey, view);
+export const saveView = (view: IStripView): void => write(viewKey, view);
 
 /** public/theme.js reads this key too, before the page's script loads. */
 export const loadTheme = (): Theme => {

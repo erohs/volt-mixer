@@ -1,4 +1,5 @@
 import { crosspointValue, panGains } from "./gain.ts";
+import { clamp } from "./numbers.ts";
 import type { BusName, CommandName, ISpec, MuteField } from "./spec.ts";
 
 /** A HID output report: its report ID and the data bytes after it. */
@@ -14,7 +15,6 @@ const u32le = (value: number): number[] => [
     (value >>> 16) & 0xff,
     (value >>> 24) & 0xff,
 ];
-const clamp = (value: number, low: number, high: number): number => Math.max(low, Math.min(high, value));
 
 /** A command report: `cmd, ...payload, END`, zero-padded, sent as report `spec.reports.command.id`. */
 export const command = (spec: ISpec, cmd: number, payload: number[] = []): IReport => {
@@ -96,7 +96,7 @@ export const monitorLevel = (spec: ISpec, level: number): IReport =>
 
 /** Headphone level on Console's 0–100 scale. */
 export const headphone = (spec: ISpec, level: number, isMuted: boolean): IReport => {
-    const raw = Math.round(clamp(level, 0, 100) * spec.headphoneLevelScale);
+    const raw = Math.round(clamp(level * spec.headphoneLevelScale, 0, spec.headphoneLevelMax));
     return command(spec, cmd(spec, "headphone"), [...u16le(raw), Number(isMuted)]);
 };
 

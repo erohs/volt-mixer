@@ -1,4 +1,5 @@
 import { minDb } from "./gain.ts";
+import { clamp } from "./numbers.ts";
 import { dbToPosition, formatDb, formatPan, positionToDb, snapPan, spokenDb, spokenPan, stepDb } from "./taper.ts";
 
 /** How a slider maps its value to travel (0–1), steps with the keyboard and reads out. */
@@ -13,8 +14,6 @@ export interface ISliderModel {
     format: (value: number) => string;
     speak: (value: number) => string;
 }
-
-const clamp = (value: number, low: number, high: number): number => Math.max(low, Math.min(high, value));
 
 /** A linear slider from `min` to `max`, rounded to `stepSize`. */
 const linear = (
