@@ -25,7 +25,7 @@ const render = (info: IPhoneInfo | null): void => {
     if (info.link) drawQr("phone", info.link);
     const select = element.querySelector<HTMLSelectElement>("[data-phone-address]")!;
     element.querySelector<HTMLElement>("[data-phone-address-row]")!.hidden = info.addresses.length < 2;
-    select.replaceChildren(...info.addresses.map((address) => new Option(address, address)));
+    select.replaceChildren(...info.addresses.map(({ address, name }) => new Option(`${address} (${name})`, address)));
     select.value = info.address;
 };
 

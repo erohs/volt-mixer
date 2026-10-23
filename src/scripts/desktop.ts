@@ -31,7 +31,8 @@ export interface IUpdate {
 export interface IPhoneInfo {
     isRunning: boolean;
     address: string;
-    addresses: string[];
+    /** This computer's home-network addresses, best first, with their adapters' names. */
+    addresses: { address: string; name: string }[];
     /** The link the QR code carries, with the pairing token; empty while it's off. */
     link: string;
     error: string;

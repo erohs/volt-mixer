@@ -76,12 +76,33 @@ const hasToken = (authorization: string | undefined): boolean =>
 
 const isPrivate = (ip: string): boolean => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(ip);
 
-/** This computer's addresses on private networks (home Wi-Fi or Ethernet), for the QR code. */
-export const phoneAddresses = (): string[] =>
-    Object.values(os.networkInterfaces())
-        .flat()
-        .filter((net) => net?.family === "IPv4" && !net.internal && isPrivate(net.address))
-        .map((net) => net!.address);
+export interface IPhoneAddress {
+    address: string;
+    /** The adapter's name, e.g. "Ethernet" or "Wi-Fi". */
+    name: string;
+}
+
+/* Adapters a phone can't come in through: virtual switches, VPN tunnels, Bluetooth and the like. */
+const unreachable =
+    /vethernet|hyper-v|virtualbox|vmware|wsl|docker|vpn|wireguard|tailscale|zerotier|nordlynx|bluetooth|loopback|^(tun|tap|utun|wg)\d*$/i;
+
+/** Home routers mostly hand out 192.168.x.x, then 10.x.x.x; 172.16–31 is often a virtual network. */
+const rank = (address: string): number => (address.startsWith("192.168.") ? 0 : address.startsWith("10.") ? 1 : 2);
+
+/**
+ * This computer's addresses on its home network (Wi-Fi or Ethernet), best first, for the QR code.
+ * If every adapter looks virtual, all the private ones are offered rather than none.
+ */
+export const phoneAddresses = (): IPhoneAddress[] => {
+    const all = Object.entries(os.networkInterfaces()).flatMap(([name, nets]) =>
+        (nets ?? [])
+            .filter((net) => net.family === "IPv4" && !net.internal && isPrivate(net.address))
+            .filter((net) => !net.address.startsWith("169.254."))
+            .map((net) => ({ address: net.address, name })),
+    );
+    const real = all.filter((entry) => !unreachable.test(entry.name));
+    return (real.length > 0 ? real : all).sort((a, b) => rank(a.address) - rank(b.address));
+};
 
 // ---------- snapshots from the main window, to the phones ----------
 
@@ -192,7 +213,7 @@ export const stopPhoneRemote = (): void => {
 /** Serves phones on `address` (or this computer's first private address). */
 export const startPhoneRemote = (address: string): void => {
     stopPhoneRemote();
-    const addresses = phoneAddresses();
+    const addresses = phoneAddresses().map((entry) => entry.address);
     boundAddress = addresses.includes(address) ? address : (addresses[0] ?? "");
     startError = boundAddress ? "" : "This computer isn't on a home network.";
     if (!boundAddress) return;
