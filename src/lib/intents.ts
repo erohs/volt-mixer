@@ -1,5 +1,5 @@
 import { minDb } from "./gain.ts";
-import { channelById, pairOf, pairKey, setLinked, type IChannel, type IMixerState } from "./mixer.ts";
+import { channelById, matchQuieterGain, pairOf, pairKey, setLinked, type IChannel, type IMixerState } from "./mixer.ts";
 
 /*
  * What a view asks for, from the page's own controls or from the tray window. Intents from another
@@ -78,7 +78,9 @@ const applyToChannels = (state: IMixerState, intent: ChannelIntent, maxDb: numbe
 const toggleLink = (state: IMixerState, id: string): boolean => {
     const pair = pairOf(id);
     if (!pair) return false;
-    setLinked(state, pair, !state.linked[pairKey(pair)]);
+    const isOn = !state.linked[pairKey(pair)];
+    setLinked(state, pair, isOn);
+    if (isOn) matchQuieterGain(state, pair);
     return true;
 };
 

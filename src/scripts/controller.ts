@@ -1,6 +1,6 @@
 import { autoGain, identifyLights } from "../lib/commands.ts";
 import { applyDeviceReport } from "../lib/device-report.ts";
-import { applyHardwareState, defaultState } from "../lib/mixer.ts";
+import { applyHardwareState, defaultState, isLinked, matchQuieterGain } from "../lib/mixer.ts";
 import { isMixKey } from "../lib/mixer-sync.ts";
 import { parseCommandReport, parseMeters, parseState } from "../lib/reports.ts";
 import { adoptSavedMix, mixFromHash, toSavedMix } from "../lib/saved-mix.ts";
@@ -150,6 +150,8 @@ const onLaterState = (data: Uint8Array): void => {
     const spec = volt.connectedSpec() ?? newestSpec();
     const changed = applyHardwareState(app.state, parseState(spec, data));
     app.sync.prime(app.state, spec, (key) => !isMixKey(key));
+    // Linked with the INPUT button: the preamps take the lower gain, which the commit sends.
+    for (const pair of changed) if (isLinked(app.state, pair[0])) matchQuieterGain(app.state, pair);
     if (changed.length > 0) relayout();
     commit();
 };
@@ -183,8 +185,9 @@ const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): v
     if (report.type === "state") return onStateReading(data);
     if (!app.isHardwareKnown) return;
     if (report.type === "links" || report.type === "panel") return requestStateSoon();
-    if (!applyDeviceReport(app.state, report)) return;
+    // This page's own pending changes go out first, so the Volt's report isn't sent back to it.
     if (isFlushPending) flush();
+    if (!applyDeviceReport(app.state, report)) return;
     app.sync.prime(app.state, spec, (key) => !isMixKey(key));
     if (report.type === "digitalFormat") relayout();
     else refresh();

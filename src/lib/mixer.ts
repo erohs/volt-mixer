@@ -1,10 +1,10 @@
 import { minDb, panGains } from "./gain.ts";
 import type { IHardwareState } from "./reports.ts";
-import type { ISpec } from "./spec.ts";
+import { busNames, type BusName, type ISpec } from "./spec.ts";
 
 export type ChannelKind = "analog" | "digital" | "loopback";
 export type CueName = "cue1" | "cue2";
-export type BusName = "monitor" | CueName;
+export type { BusName };
 
 export interface IChannelInfo {
     id: string;
@@ -87,7 +87,7 @@ export const pairs: [string, string][] = [
 ];
 /** The analog pairs: bit 0 and bit 1 of the Volt's link mask. */
 export const hardwarePairs: [string, string][] = [pairs[0] as [string, string], pairs[1] as [string, string]];
-export const buses: BusName[] = ["monitor", "cue1", "cue2"];
+export const buses: readonly BusName[] = busNames;
 const analogIds = channels.filter((c) => c.kind === "analog").map((c) => c.id);
 
 export const pairKey = (pair: [string, string]): string => pair.join("-");
@@ -150,30 +150,61 @@ const panPair = (state: IMixerState, [a, b]: [string, string], isLinkedNow: bool
     right.pan = right.cue1.pan = right.cue2.pan = rightPan;
 };
 
+/** The quieter of two sends: the lower level, muted if either side is. Pan is set by the link. */
+const quieterSend = (a: ISend, b: ISend): ISend => ({
+    db: Math.min(a.db, b.db),
+    pan: a.pan,
+    isMuted: a.isMuted || b.isMuted,
+});
+
 /**
- * Links or unlinks a pair. A link from the page copies the left channel's mix to the right, like
- * Console. Preamp gain and tone are never copied: In 2 could be a different source.
+ * Gives a linked pair's two sides the quieter side's mix, so a link can only turn things down:
+ * the lower fader and sends, muted if either side is. Solo follows either side, so linking never
+ * ends a solo (which would bring every other channel back).
  */
-export const setLinked = (state: IMixerState, pair: [string, string], isOn: boolean, shouldCopy = true): void => {
-    const [a, b] = pair;
+export const matchQuieterMix = (state: IMixerState, [a, b]: [string, string]): void => {
     const left = state.channels[a];
     const right = state.channels[b];
     if (!left || !right) return;
+    const fader = Math.min(left.fader, right.fader);
+    const [isMuted, isSoloed] = [left.isMuted || right.isMuted, left.isSoloed || right.isSoloed];
+    const [cue1, cue2] = [quieterSend(left.cue1, right.cue1), quieterSend(left.cue2, right.cue2)];
+    for (const side of [left, right])
+        Object.assign(side, { fader, isMuted, isSoloed, cue1: { ...cue1 }, cue2: { ...cue2 } });
+};
+
+/**
+ * Inputs 1/2 just linked (on the page, or with the Volt's INPUT button): both preamps take the
+ * lower gain. Not on connecting to a pair that was already linked. Other pairs have no preamp.
+ */
+export const matchQuieterGain = (state: IMixerState, [a, b]: [string, string]): void => {
+    const [first, second] = [channelById[a]?.preampIndex, channelById[b]?.preampIndex];
+    if (first === undefined || second === undefined) return;
+    const gain = Math.min(state.preamp.gain[first] ?? 0, state.preamp.gain[second] ?? 0);
+    state.preamp.gain[first] = state.preamp.gain[second] = gain;
+};
+
+/**
+ * Links or unlinks a pair. Linking gives both sides the quieter side's mix (preamp gain is matched
+ * separately, by matchQuieterGain); tone is never shared, as In 2 could be a different source.
+ */
+export const setLinked = (state: IMixerState, pair: [string, string], isOn: boolean): void => {
+    if (!state.channels[pair[0]] || !state.channels[pair[1]]) return;
     state.linked[pairKey(pair)] = isOn;
-    if (isOn && shouldCopy) {
-        Object.assign(right, { fader: left.fader, isMuted: left.isMuted, isSoloed: left.isSoloed });
-        right.cue1 = { ...left.cue1 };
-        right.cue2 = { ...left.cue2 };
-    }
+    if (isOn) matchQuieterMix(state, pair);
     panPair(state, pair, isOn);
 };
 
-/** Adopts what the Volt reports. Links first, so the hardware's own mutes win. Returns changed pairs. */
+/**
+ * Adopts what the Volt reports. Links first, so the hardware's own mutes win. Returns the pairs whose
+ * link changed; the preamp gain the Volt reports wins too, so for a pair that just linked the caller
+ * matches its gains afterwards (matchQuieterGain), once the reported gains count as sent.
+ */
 export const applyHardwareState = (state: IMixerState, hardware: IHardwareState): [string, string][] => {
     const changed = hardwarePairs.filter(
         (pair, i) => Boolean(state.linked[pairKey(pair)]) !== Boolean(hardware.linkMask & (1 << i)),
     );
-    for (const pair of changed) setLinked(state, pair, !state.linked[pairKey(pair)], false);
+    for (const pair of changed) setLinked(state, pair, !state.linked[pairKey(pair)]);
     analogIds.forEach((id, i) => {
         const channel = state.channels[id];
         if (channel) channel.isMuted = !(hardware.directMask & (1 << i));
@@ -208,7 +239,7 @@ export const crosspointTable = (state: IMixerState, spec: ISpec): Map<string, nu
         for (const bus of buses) {
             const send = bus === "monitor" ? monitorSend(info, channel, isSoloActive) : channel[bus];
             const [gainLeft, gainRight] = panGains(send.isMuted ? minDb : Math.min(send.db, spec.faderMaxDb), send.pan);
-            const [left, right] = spec.mixBuses[bus] ?? [0, 1];
+            const [left, right] = spec.mixBuses[bus];
             table.set(`${source}:${left}`, gainLeft);
             table.set(`${source}:${right}`, gainRight);
         }

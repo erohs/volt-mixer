@@ -1,5 +1,33 @@
 import protocolData from "../data/volt4-gen2.json" with { type: "json" };
 
+/** Every command the page sends. A firmware's spec must name them all before anything is sent. */
+export const commandNames = [
+    "crosspoint",
+    "route",
+    "phantomMask",
+    "digitalFormat",
+    "stateRequest",
+    "muteWord",
+    "preampGain",
+    "monitorMono",
+    "headphone",
+    "clipProtection",
+    "brightness",
+    "tone",
+    "identifyLights",
+    "panelState",
+    "autoGain",
+] as const;
+export type CommandName = (typeof commandNames)[number];
+
+/** The fields of the mute word (command `muteWord`) the page reads and writes. */
+export const muteFields = ["direct", "monitorMute", "monitorLevel"] as const;
+export type MuteField = (typeof muteFields)[number];
+
+/** The stereo buses each channel feeds. */
+export const busNames = ["monitor", "cue1", "cue2"] as const;
+export type BusName = (typeof busNames)[number];
+
 export interface IReportIds {
     command: { id: number; bytes: number };
     identify: { id: number; bytes: number; payload: number[] };
@@ -28,7 +56,7 @@ export interface IStateLayout {
 export interface ISpec {
     reports: IReportIds;
     end: number;
-    commands: Record<string, number>;
+    commands: Record<CommandName, number>;
     gainUnity: number;
     faderMaxDb: number;
     preampGainStepsPerDb: number;
@@ -39,11 +67,11 @@ export interface ISpec {
     monitorLevelPerUnit: number;
     autoGainSeconds: { min: number; max: number; default: number };
     sources: Record<string, number>;
-    mixBuses: Record<string, [number, number]>;
+    mixBuses: Record<BusName, [number, number]>;
     routeDestinations: Record<string, [number, number]>;
     routeSources: Record<string, [number, number]>;
-    muteWordFields: Record<string, number>;
-    muteWordOffsets: Record<string, number>;
+    muteWordFields: Record<MuteField, number>;
+    muteWordOffsets: Record<MuteField, number>;
     linkState: { field: number; hostFlag: number };
     stateLayout: IStateLayout;
     tone: string[];
@@ -81,12 +109,34 @@ export const compareVersions = (a: string, b: string): number => {
     return 0;
 };
 
-/** The spec for a firmware version, or the newest known one when the version isn't recorded. */
+const isNumber = (value: unknown): boolean => typeof value === "number" && Number.isInteger(value);
+const isPair = (value: unknown): boolean => Array.isArray(value) && value.length === 2 && value.every(isNumber);
+
+/** What a firmware's spec lacks of what the page needs ("commands.tone", …); empty when it's complete. */
+export const missingFromSpec = (spec: ISpec): string[] => {
+    const lacking = <T extends string>(group: string, names: readonly T[], record: unknown, check = isNumber) =>
+        names
+            .filter((name) => !check((record as Record<string, unknown> | undefined)?.[name]))
+            .map((name) => `${group}.${name}`);
+    return [
+        ...lacking("commands", commandNames, spec.commands),
+        ...lacking("muteWordFields", muteFields, spec.muteWordFields),
+        ...lacking("muteWordOffsets", muteFields, spec.muteWordOffsets),
+        ...lacking("mixBuses", busNames, spec.mixBuses, isPair),
+    ];
+};
+
+/**
+ * The spec for a firmware version, or the newest known one when the version isn't recorded. A
+ * spec missing anything the page sends is never chosen, so no command goes out with a guessed byte.
+ */
 export const specFor = (version: string, source: IProtocol = protocol): ISpecChoice => {
-    const known = Object.keys(source.firmware).sort(compareVersions);
-    const exact = source.firmware[version];
-    const chosen = exact ? version : (known.at(-1) ?? "");
-    return { version: chosen, isExact: Boolean(exact), spec: source.firmware[chosen] as ISpec };
+    const complete = Object.keys(source.firmware)
+        .filter((known) => missingFromSpec(source.firmware[known] as ISpec).length === 0)
+        .sort(compareVersions);
+    const isExact = complete.includes(version);
+    const chosen = isExact ? version : (complete.at(-1) ?? "");
+    return { version: chosen, isExact, spec: source.firmware[chosen] as ISpec };
 };
 
 export const newestSpec = (): ISpec => specFor("").spec;

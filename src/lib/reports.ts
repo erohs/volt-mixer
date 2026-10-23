@@ -1,4 +1,4 @@
-import type { ISpec } from "./spec.ts";
+import { commandNames, type CommandName, type ISpec, type MuteField } from "./spec.ts";
 
 export interface IIdentity {
     vendorId: number;
@@ -56,11 +56,10 @@ export const parseIdentify = (data: Uint8Array): IIdentity => {
 
 const muteWordReport = (spec: ISpec, data: Uint8Array): DeviceReport => {
     const field = byte(data, 7);
-    const value = (name: string): number => byte(data, 1 + (spec.muteWordOffsets[name] ?? 0));
-    if (field === spec.muteWordFields["direct"]) return { type: "direct", mask: value("direct") };
-    if (field === spec.muteWordFields["monitorMute"])
-        return { type: "monitorMute", isMuted: value("monitorMute") === 1 };
-    if (field === spec.muteWordFields["monitorLevel"]) {
+    const value = (name: MuteField): number => byte(data, 1 + spec.muteWordOffsets[name]);
+    if (field === spec.muteWordFields.direct) return { type: "direct", mask: value("direct") };
+    if (field === spec.muteWordFields.monitorMute) return { type: "monitorMute", isMuted: value("monitorMute") === 1 };
+    if (field === spec.muteWordFields.monitorLevel) {
         return { type: "monitorLevel", level: value("monitorLevel") / spec.monitorLevelPerUnit };
     }
     return { type: "unknown", cmd: byte(data, 0) };
@@ -71,38 +70,39 @@ const panelReport = (spec: ISpec, data: Uint8Array): DeviceReport =>
         ? { type: "links", mask: byte(data, 2) & 0x0f }
         : { type: "panel", field: byte(data, 1), value: byte(data, 2) };
 
-/** Decodes a command-format report from the Volt (`data` starts at the command byte). */
-export const parseCommandReport = (spec: ISpec, data: Uint8Array): DeviceReport => {
-    const c = spec.commands;
-    const cmd = byte(data, 0);
-    const decoders: Record<number, () => DeviceReport> = {
-        [c["stateRequest"] ?? -1]: () => ({ type: "state", data }),
-        [c["muteWord"] ?? -1]: () => muteWordReport(spec, data),
-        [c["headphone"] ?? -1]: () => ({
-            type: "headphone",
-            level: u16(data, 1) / spec.headphoneLevelScale,
-            isMuted: byte(data, 3) === 1,
-        }),
-        [c["tone"] ?? -1]: () => ({ type: "tone", tones: toneNibbles(byte(data, 1), byte(data, 2)) }),
-        [c["phantomMask"] ?? -1]: () => ({ type: "phantom", mask: byte(data, 1) }),
-        [c["preampGain"] ?? -1]: () => ({
-            type: "preampGain",
-            channel: byte(data, 1),
-            db: u16(data, 2) / spec.preampGainStepsPerDb,
-        }),
-        [c["monitorMono"] ?? -1]: () => ({ type: "mono", isOn: byte(data, 2) === 1 }),
-        [c["clipProtection"] ?? -1]: () => ({ type: "clipProtection", isOn: byte(data, 1) === 1 }),
-        [c["brightness"] ?? -1]: () => ({ type: "brightness", raw: byte(data, 1) }),
-        [c["digitalFormat"] ?? -1]: () => ({
-            type: "digitalFormat",
-            format: spec.digitalFormat[byte(data, 1)] ?? "adat",
-        }),
-        [c["panelState"] ?? -1]: () => panelReport(spec, data),
-    };
-    return decoders[cmd]?.() ?? { type: "unknown", cmd };
+const toneNibbles = (first: number, second: number): number[] => [first & 0xf, first >> 4, second & 0xf, second >> 4];
+
+type Decoder = (spec: ISpec, data: Uint8Array) => DeviceReport;
+
+/** The reports the Volt sends in command format, by the command they share a byte with. */
+const decoders: Partial<Record<CommandName, Decoder>> = {
+    stateRequest: (_spec, data) => ({ type: "state", data }),
+    muteWord: muteWordReport,
+    headphone: (spec, data) => ({
+        type: "headphone",
+        level: u16(data, 1) / spec.headphoneLevelScale,
+        isMuted: byte(data, 3) === 1,
+    }),
+    tone: (_spec, data) => ({ type: "tone", tones: toneNibbles(byte(data, 1), byte(data, 2)) }),
+    phantomMask: (_spec, data) => ({ type: "phantom", mask: byte(data, 1) }),
+    preampGain: (spec, data) => ({
+        type: "preampGain",
+        channel: byte(data, 1),
+        db: u16(data, 2) / spec.preampGainStepsPerDb,
+    }),
+    monitorMono: (_spec, data) => ({ type: "mono", isOn: byte(data, 2) === 1 }),
+    clipProtection: (_spec, data) => ({ type: "clipProtection", isOn: byte(data, 1) === 1 }),
+    brightness: (_spec, data) => ({ type: "brightness", raw: byte(data, 1) }),
+    digitalFormat: (spec, data) => ({ type: "digitalFormat", format: spec.digitalFormat[byte(data, 1)] ?? "adat" }),
+    panelState: panelReport,
 };
 
-const toneNibbles = (first: number, second: number): number[] => [first & 0xf, first >> 4, second & 0xf, second >> 4];
+/** Decodes a command-format report from the Volt (`data` starts at the command byte). */
+export const parseCommandReport = (spec: ISpec, data: Uint8Array): DeviceReport => {
+    const cmd = byte(data, 0);
+    const name = commandNames.find((candidate) => spec.commands[candidate] === cmd);
+    return (name && decoders[name]?.(spec, data)) ?? { type: "unknown", cmd };
+};
 
 /** State dump (reply to the state request): `data` starts at the command byte. */
 export const parseState = (spec: ISpec, data: Uint8Array): IHardwareState => {

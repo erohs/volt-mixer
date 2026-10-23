@@ -27,9 +27,18 @@ step over the network, and at phone control.
 
 ## Relative sliders instead of ramps
 
-A click on a slider never jumps its value; it moves only as far as the pointer travels. End goes to
-0 dB on faders and does nothing on level controls. This prevents sudden loud jumps without ramping
+A click on a slider never jumps its value; it moves only as far as the pointer travels. End and a
+double-click go to 0 dB on faders and cue sends, from anywhere (kept on purpose, like a console's
+reset), and do nothing louder on level controls. This prevents sudden loud jumps without ramping
 levels in code.
+
+## A link takes the quieter side
+
+Console copies the left channel to the right when a pair links, which can turn the right side up.
+Here a link, from the page or the Volt's INPUT button, gives both sides the quieter side's
+settings instead: the lower fader and sends, muted if either is, and on Inputs 1/2 the lower
+preamp gain (`matchQuieterMix`, `matchQuieterGain` in `src/lib/mixer.ts`). A saved mix whose
+linked sides differ is evened out the same way. So a link can only turn things down.
 
 ## Lean toolchain
 

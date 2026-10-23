@@ -1,7 +1,16 @@
 import { isChannelIcon } from "./channel-icons.ts";
 import { minDb } from "./gain.ts";
 import { decodeMixCode } from "./mix-code.ts";
-import { channels, defaultChannel, hardwarePairs, pairs, pairKey, setLinked, trimName } from "./mixer.ts";
+import {
+    channels,
+    defaultChannel,
+    hardwarePairs,
+    matchQuieterMix,
+    pairs,
+    pairKey,
+    setLinked,
+    trimName,
+} from "./mixer.ts";
 import type { CueName, IChannel, ICueRouting, IMixerState, ISend } from "./mixer.ts";
 
 /** The page-owned part of the mix: what is saved per computer and carried by a mix link. */
@@ -70,8 +79,11 @@ export const applySavedMix = (state: IMixerState, value: unknown, maxDb: number)
         state.channels[info.id] = readChannel(savedChannels[info.id], defaultChannel(info), maxDb);
     }
     const linked = record(saved["linked"]);
-    for (const pair of pairs)
+    for (const pair of pairs) {
         state.linked[pairKey(pair)] = flag(linked[pairKey(pair)], Boolean(state.linked[pairKey(pair)]));
+        // A saved pair's sides should match; if they don't, the quieter one wins.
+        if (state.linked[pairKey(pair)]) matchQuieterMix(state, pair);
+    }
     const cues = record(saved["cues"]);
     state.cues = { cue1: readCue(cues["cue1"]), cue2: readCue(cues["cue2"]) };
     state.headphoneSource = saved["headphoneSource"] === "cue2" ? "cue2" : "cue1";
@@ -108,7 +120,7 @@ export const adoptSavedMix = (state: IMixerState, value: unknown, maxDb: number)
     const hardwareLinks = hardwarePairs.map((pair) => [pair, Boolean(state.linked[pairKey(pair)])] as const);
     applySavedMix(state, value, maxDb);
     for (const [pair, isLinkedOnVolt] of hardwareLinks) {
-        if (Boolean(state.linked[pairKey(pair)]) !== isLinkedOnVolt) setLinked(state, pair, isLinkedOnVolt, false);
+        if (Boolean(state.linked[pairKey(pair)]) !== isLinkedOnVolt) setLinked(state, pair, isLinkedOnVolt);
     }
     for (const [id, isMuted] of analogMutes) {
         const channel = state.channels[id];

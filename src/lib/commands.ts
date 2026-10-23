@@ -1,5 +1,5 @@
 import { crosspointValue, panGains } from "./gain.ts";
-import type { ISpec } from "./spec.ts";
+import type { BusName, CommandName, ISpec, MuteField } from "./spec.ts";
 
 /** A HID output report: its report ID and the data bytes after it. */
 export interface IReport {
@@ -25,14 +25,14 @@ export const command = (spec: ISpec, cmd: number, payload: number[] = []): IRepo
     return { reportId: spec.reports.command.id, data };
 };
 
-const cmd = (spec: ISpec, name: string): number => spec.commands[name] ?? 0;
+const cmd = (spec: ISpec, name: CommandName): number => spec.commands[name];
 
 export const crosspoint = (spec: ISpec, source: number, destination: number, linear: number): IReport =>
     command(spec, cmd(spec, "crosspoint"), [source, destination, ...u32le(crosspointValue(spec, linear))]);
 
 /** Both legs of a mono source into a stereo bus. */
-export const sendToBus = (spec: ISpec, source: number, bus: string, db: number, pan: number): IReport[] => {
-    const [left, right] = spec.mixBuses[bus] ?? [0, 1];
+export const sendToBus = (spec: ISpec, source: number, bus: BusName, db: number, pan: number): IReport[] => {
+    const [left, right] = spec.mixBuses[bus];
     const [gainLeft, gainRight] = panGains(db, pan);
     return [crosspoint(spec, source, left, gainLeft), crosspoint(spec, source, right, gainRight)];
 };
@@ -82,11 +82,11 @@ export const phantomMask = (spec: ISpec, mask: number): IReport => command(spec,
  * One field of the mute word ("direct", "monitorMute", "monitorLevel"); the last byte names the field.
  * Monitor level is clamped at 0: turning below 0 on the hardware makes it jump loud.
  */
-export const muteWord = (spec: ISpec, field: string, value: number | boolean): IReport => {
-    const payload = [0, 0, 0, 0, 0, 0, spec.muteWordFields[field] ?? 0];
+export const muteWord = (spec: ISpec, field: MuteField, value: number | boolean): IReport => {
+    const payload = [0, 0, 0, 0, 0, 0, spec.muteWordFields[field]];
     let raw = typeof value === "boolean" ? Number(value) : value;
     if (field === "monitorLevel") raw = clamp(Math.round(raw), 0, spec.monitorLevelMax);
-    payload[spec.muteWordOffsets[field] ?? 0] = raw & 0xff;
+    payload[spec.muteWordOffsets[field]] = raw & 0xff;
     return command(spec, cmd(spec, "muteWord"), payload);
 };
 
