@@ -1,12 +1,11 @@
 ---
 import Dialog from "../ui/Dialog.astro";
+import QrCode from "../ui/QrCode.astro";
 ---
 
 <!-- Settings › Your mix › Show QR (qr-dialog.ts fills it in). Black on white, whatever the theme, so it scans. -->
 <Dialog id="qr-dialog" title="Mix link">
-    <svg class="code" role="img" aria-labelledby="qr-caption" data-qr>
-        <path data-qr-path></path>
-    </svg>
+    <QrCode name="mix" label="QR code of this mix link" />
     <p class="note" id="qr-caption">
         A QR code of this mix. Scan it with your phone, or on the work laptop with the Windows Camera app (Scan › QR
         code), to open the mix there.
@@ -18,18 +17,6 @@ import Dialog from "../ui/Dialog.astro";
 </Dialog>
 
 <style>
-    .code {
-        justify-self: center;
-        inline-size: min(18rem, 100%);
-        aspect-ratio: 1;
-        border-radius: var(--radius-medium);
-        background-color: #ffffff;
-        color: #000000;
-        fill: currentColor;
-        shape-rendering: crispEdges;
-        forced-color-adjust: none;
-    }
-
     .note {
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);

@@ -129,3 +129,24 @@ describe("Using isIntent, when a monitor mute message arrives", () => {
         expect(isIntent({ type: "monitorMute" })).toBe(true);
     });
 });
+
+describe("Using applyIntent, when a mute asks for a state rather than a flip", () => {
+    test("then sending it twice should leave the channel muted", () => {
+        const state = after({ type: "mute", ids: ["loopbackL", "loopbackR"], to: true });
+        expect(
+            after({ type: "mute", ids: ["loopbackL", "loopbackR"], to: true }, state).channels["loopbackL"]?.isMuted,
+        ).toBe(true);
+    });
+});
+
+describe("Using applyIntent, when headphone mute asks to be off and it already is", () => {
+    test("then it should stay off", () => {
+        expect(after({ type: "headphoneMute", to: false }).headphone.isMuted).toBe(false);
+    });
+});
+
+describe("Using isIntent, when a switch's target isn't true or false", () => {
+    test("then it should reject it", () => {
+        expect(isIntent({ type: "monitorMute", to: "yes" })).toBe(false);
+    });
+});

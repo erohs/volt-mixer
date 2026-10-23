@@ -1,7 +1,7 @@
 import { app, session } from "electron";
-import path from "path";
 import { allowVolt } from "./hid";
-import { answerPages } from "./ipc";
+import { answerPages, applyPhoneRemote } from "./ipc";
+import { stopPhoneRemote } from "./phone";
 import { applyLoginItem, isStartedInTray } from "./login";
 import { shareMixWithWebsite } from "./mix-share";
 import { registerAppScheme, serveSite } from "./protocol";
@@ -14,8 +14,6 @@ import { createMainWindow, markQuitting, prepareTrayWindow, showMainWindow } fro
  * the Volt, plus a tray icon and tray mixer. One instance at a time: a second launch shows the first.
  */
 
-const siteDir = app.isPackaged ? path.join(process.resourcesPath, "site") : path.join(__dirname, "..", "site");
-
 if (!app.requestSingleInstanceLock()) {
     app.quit();
 } else {
@@ -23,18 +21,20 @@ if (!app.requestSingleInstanceLock()) {
     app.on("second-instance", showMainWindow);
     app.on("before-quit", () => {
         markQuitting();
+        stopPhoneRemote();
         // The saved mix lives in the page's storage; make sure it reaches the disk.
         session.defaultSession.flushStorageData();
     });
     void app.whenReady().then(() => {
         const settings = loadSettings();
-        serveSite(siteDir);
+        serveSite();
         allowVolt(session.defaultSession);
         answerPages();
         applyLoginItem(settings.startAtLogin);
         createTray();
         createMainWindow(!isStartedInTray(settings));
         shareMixWithWebsite(settings.shareMix);
+        applyPhoneRemote(settings);
         prepareTrayWindow();
     });
 }

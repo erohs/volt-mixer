@@ -1,5 +1,6 @@
 import { notice } from "./app-state.ts";
 import { desktopApp, type IDesktopSettings, type IDesktopState } from "./desktop.ts";
+import { refreshPhone, wirePhone } from "./phone-settings.ts";
 
 /* Settings › Desktop app: start at login, the tray, updates. Shown only in the desktop app. */
 
@@ -21,6 +22,7 @@ const render = (): void => {
     }
     // How it starts at sign-in only matters while Auto start is on.
     element.querySelector<HTMLElement>("[data-desktop-login-start]")!.hidden = !state.settings.startAtLogin;
+    refreshPhone(state.settings.phoneRemote);
     element.querySelector("#updates-description")!.textContent = `Version ${state.version}`;
     const login = element.querySelector<HTMLElement>("[data-desktop-login-status]")!;
     login.textContent = state.loginStatus;
@@ -76,6 +78,7 @@ export const wireDesktopSettings = async (): Promise<void> => {
     element.addEventListener("change", (event) => void onChange(event));
     const check = element.querySelector<HTMLButtonElement>("[data-action='check-update']")!;
     check.addEventListener("click", () => void checkForUpdate(check));
+    wirePhone();
     state = await app.getState();
     render();
     showTrayHint();

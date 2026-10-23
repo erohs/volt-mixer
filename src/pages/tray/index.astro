@@ -197,4 +197,20 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
         padding: var(--space-padding-compact) var(--space-padding-container);
         border-block-start: var(--border-width-default) solid var(--color-border-subtle);
     }
+
+    /* On a phone: bigger handles and buttons, and more room between rows, for fingers. */
+    @media (pointer: coarse) {
+        .rows {
+            gap: var(--space-between-blocks);
+        }
+
+        .row {
+            --size-slider-thumb: 1.75rem;
+        }
+
+        .mute {
+            min-inline-size: 2.75rem;
+            min-block-size: 2.75rem;
+        }
+    }
 </style>

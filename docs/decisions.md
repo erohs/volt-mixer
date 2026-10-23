@@ -68,3 +68,14 @@ has no WebHID on macOS or Linux, so the USB part would have to be rewritten nati
   Apple silicon opens them. Updates are a check and a link, not an automatic install.
 - Electron, electron-builder and the main process's TypeScript live in `desktop/` with their own
   `package.json`, so the site's toolchain stays Astro, TypeScript, Vitest and Prettier.
+
+## Other devices without a server
+
+Nothing is hosted, so nothing needs an account and the work laptop reaches nothing new
+(`docs/remote-sync.md`). A mix travels as a short `#m=` link or QR code: a compact binary form
+that rounds levels down, so a link can never make anything louder. On one computer the desktop
+app answers the website on `127.0.0.1` only, and the most recent change wins. The phone remote is
+the tray page served by the app on the home network, behind a token from a QR code. Phones send
+switches as target states (`to`) and every change with a rising sequence number, so a message
+that arrives twice or late can't undo a newer one. It's plain HTTP on the home network, which the
+setting says plainly.

@@ -7,14 +7,25 @@ import { channelById, pairOf, pairKey, setLinked, type IChannel, type IMixerStat
  * channels are ignored, and mix changes wait until this computer owns the mix.
  */
 
-type ChannelIntent = { type: "fader"; ids: string[]; db: number } | { type: "mute" | "solo"; ids: string[] };
+/*
+ * A switch either flips (`to` left out: a button on the page or in the tray) or is set to `to`
+ * (the phone, whose messages could arrive twice or late, so flipping could undo a change).
+ */
+type ChannelIntent =
+    | { type: "fader"; ids: string[]; db: number }
+    | { type: "mute"; ids: string[]; to?: boolean }
+    | { type: "solo"; ids: string[]; to?: boolean };
 type OutputToggle = "monitorMute" | "monitorMono" | "headphoneMute";
 
+/* One member per type, so TypeScript can narrow each check. */
 export type Intent =
     | ChannelIntent
     | { type: "link"; id: string }
-    | { type: "monitorLevel" | "headphoneLevel"; level: number }
-    | { type: OutputToggle };
+    | { type: "monitorLevel"; level: number }
+    | { type: "headphoneLevel"; level: number }
+    | { type: "monitorMute"; to?: boolean }
+    | { type: "monitorMono"; to?: boolean }
+    | { type: "headphoneMute"; to?: boolean };
 
 /** "needsMix": the change is a mix level, and this computer doesn't have the mix yet. */
 export type IntentResult = "ok" | "needsMix" | "ignored";
@@ -24,16 +35,17 @@ const isNumber = (value: unknown): value is number => typeof value === "number" 
 const isIdList = (value: unknown): value is string[] =>
     Array.isArray(value) && value.length > 0 && value.every((id) => typeof id === "string");
 
-const toggles: Record<OutputToggle, (state: IMixerState) => void> = {
-    monitorMute: ({ monitor }) => (monitor.isMuted = !monitor.isMuted),
-    monitorMono: ({ monitor }) => (monitor.isMono = !monitor.isMono),
-    headphoneMute: ({ headphone }) => (headphone.isMuted = !headphone.isMuted),
+const toggles: Record<OutputToggle, (state: IMixerState, to: boolean | undefined) => void> = {
+    monitorMute: ({ monitor }, to) => (monitor.isMuted = to ?? !monitor.isMuted),
+    monitorMono: ({ monitor }, to) => (monitor.isMono = to ?? !monitor.isMono),
+    headphoneMute: ({ headphone }, to) => (headphone.isMuted = to ?? !headphone.isMuted),
 };
 
 /** Whether a message from another window has an intent's shape. Values are checked when applied. */
 export const isIntent = (value: unknown): value is Intent => {
     if (typeof value !== "object" || value === null) return false;
-    const { type, ids, id, db, level } = value as Record<string, unknown>;
+    const { type, ids, id, db, level, to } = value as Record<string, unknown>;
+    if (to !== undefined && typeof to !== "boolean") return false;
     if (type === "fader") return isIdList(ids) && isNumber(db);
     if (type === "mute" || type === "solo") return isIdList(ids);
     if (type === "link") return typeof id === "string";
@@ -57,8 +69,8 @@ const applyToChannels = (state: IMixerState, intent: ChannelIntent, maxDb: numbe
         intent.type === "fader"
             ? { fader: clamp(intent.db, minDb, maxDb) }
             : intent.type === "mute"
-              ? { isMuted: !first.isMuted }
-              : { isSoloed: !first.isSoloed };
+              ? { isMuted: intent.to ?? !first.isMuted }
+              : { isSoloed: intent.to ?? !first.isSoloed };
     for (const channel of channels) Object.assign(channel, change);
     return true;
 };
@@ -76,13 +88,13 @@ export const applyIntent = (state: IMixerState, intent: Intent, maxDb: number): 
     if (intent.type === "fader" || intent.type === "mute" || intent.type === "solo")
         return applyToChannels(state, intent, maxDb) ? "ok" : "ignored";
     if (intent.type === "link") return toggleLink(state, intent.id) ? "ok" : "ignored";
-    if (intent.type === "monitorLevel" || intent.type === "headphoneLevel") {
-        // Console's 0–100 scale. The Volt jumps loud below 0, so 0 is the floor.
-        const level = clamp(intent.level, 0, 100);
-        if (intent.type === "monitorLevel") state.monitor.level = level;
-        else state.headphone.level = level;
+    if (intent.type === "monitorMute" || intent.type === "monitorMono" || intent.type === "headphoneMute") {
+        toggles[intent.type](state, intent.to);
         return "ok";
     }
-    toggles[intent.type](state);
+    // Console's 0–100 scale. The Volt jumps loud below 0, so 0 is the floor.
+    const level = clamp(intent.level, 0, 100);
+    if (intent.type === "monitorLevel") state.monitor.level = level;
+    else state.headphone.level = level;
     return "ok";
 };

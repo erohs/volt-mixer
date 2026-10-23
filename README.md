@@ -57,10 +57,19 @@ signed, so the first launch needs one extra step:
 
     On GNOME, tray icons need the AppIndicator extension. The tray mixer opens from the icon's menu.
 
-Only Windows has been tried with a Volt so far; reports from macOS and Linux are welcome. Don't
-run the app and the website against the same Volt at once: like Console, they can't see each
-other. To bring the website's mix into the app, copy its mix link (Settings › Your mix) and paste
-it into the app.
+Only Windows has been tried with a Volt so far; reports from macOS and Linux are welcome.
+
+### Your mix on other devices
+
+- **Another computer:** Settings › Your mix › **Copy link** or **Show QR**. The link is short
+  (about 140 characters) and the QR code can be scanned with a phone or, on a Windows laptop,
+  with the Camera app. Opening it there applies the mix.
+- **The app and the website on one computer:** turn on Settings › Your mix › **Sync with the
+  desktop app** on the website (the app shares by default). The browser asks once before the site
+  may talk to an app on this computer. The most recent change wins.
+- **Your phone:** turn on Settings › Desktop app › **Phone remote** and scan its QR code. The
+  phone shows the tray mixer and works on the same Wi-Fi while the app is running. Windows asks
+  whether to let Volt Mixer through the firewall: allow it on private networks.
 
 ## Developing
 

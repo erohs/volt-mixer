@@ -1,0 +1,29 @@
+---
+interface Props {
+    /** Names the code for its script (data-qr); the code is drawn by src/scripts/qr.ts. */
+    name: string;
+    /** Spoken for the image: what scanning it does. */
+    label: string;
+}
+
+const { name, label } = Astro.props;
+---
+
+<!-- Black on white in any theme, so cameras read it. -->
+<svg class="qr" role="img" aria-label={label} data-qr={name}>
+    <path></path>
+</svg>
+
+<style>
+    .qr {
+        justify-self: center;
+        inline-size: min(16rem, 100%);
+        aspect-ratio: 1;
+        border-radius: var(--radius-medium);
+        background-color: #ffffff;
+        color: #000000;
+        fill: currentColor;
+        shape-rendering: crispEdges;
+        forced-color-adjust: none;
+    }
+</style>

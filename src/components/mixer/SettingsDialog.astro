@@ -1,5 +1,6 @@
 ---
 import Dialog from "../ui/Dialog.astro";
+import QrCode from "../ui/QrCode.astro";
 import SettingGroup from "../ui/SettingGroup.astro";
 import SettingRow from "../ui/SettingRow.astro";
 import Slider from "../ui/Slider.astro";
@@ -163,6 +164,39 @@ import Slider from "../ui/Slider.astro";
                 data-desktop="shareMix"
             />
         </SettingRow>
+        <SettingRow
+            id="phone-remote"
+            name="Phone remote"
+            description="The tray mixer on your phone, on the same Wi-Fi."
+            for="phone-remote-input">
+            <input
+                id="phone-remote-input"
+                type="checkbox"
+                role="switch"
+                aria-describedby="phone-remote-description"
+                data-desktop="phoneRemote"
+            />
+        </SettingRow>
+        <!-- phone-settings.ts fills this in while Phone remote is on. -->
+        <div class="phone" data-phone hidden>
+            <QrCode name="phone" label="QR code that opens the phone remote" />
+            <p class="note">
+                Scan it with your phone's camera. If the phone can't connect, allow Volt Mixer through Windows Firewall
+                on private networks, and check your home network is set to Private.
+            </p>
+            <p class="note" role="status" data-phone-status></p>
+            <label class="address" data-phone-address-row hidden>
+                <span>Address</span>
+                <select data-phone-address></select>
+            </label>
+            <button class="button" type="button" data-phone-rotate>
+                New code
+            </button>
+            <p class="note">
+                New code unpairs every phone. The connection isn't encrypted, like most home gadgets: someone who can
+                watch your home network could use it.
+            </p>
+        </div>
         <SettingRow id="updates" name="Updates" description="Version">
             <button class="button" type="button" aria-describedby="updates-description" data-action="check-update">
                 Check
@@ -235,5 +269,20 @@ import Slider from "../ui/Slider.astro";
 
     .note:empty {
         display: none;
+    }
+
+    .phone:not([hidden]) {
+        display: grid;
+        gap: var(--space-between-text);
+
+        & .button {
+            justify-self: start;
+        }
+    }
+
+    .address:not([hidden]) {
+        display: flex;
+        align-items: center;
+        gap: var(--space-between-text);
     }
 </style>

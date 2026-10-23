@@ -4,15 +4,17 @@ import { desktopApp } from "./desktop.ts";
 import { cloneIcon } from "./icons.ts";
 import { loadTheme } from "./store.ts";
 import { applyTheme } from "./theme.ts";
-import { openChannel, type ITraySnapshot, type RemoteMessage } from "./remote.ts";
+import type { ITraySnapshot, RemoteMessage } from "./remote.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
+import { openTrayLink, type LinkStatus } from "./tray-link.ts";
 
 /*
- * The desktop app's tray mixer (src/pages/tray). It never touches the Volt: it draws the rows the
- * main window sends and asks for changes as intents, which the main window checks and applies.
+ * The tray mixer (src/pages/tray), in the desktop app's tray window or on a phone. It never
+ * touches the Volt: it draws the rows the main window sends and asks for changes as intents,
+ * which the main window checks and applies.
  */
 
-const channel = openChannel();
+const link = openTrayLink();
 const list = (): HTMLElement => document.querySelector<HTMLElement>("[data-tray-rows]")!;
 const note = (): HTMLElement => document.querySelector<HTMLElement>("[data-tray-note]")!;
 let rows: ITrayRow[] = [];
@@ -21,7 +23,7 @@ let layoutKey = "";
 const recentInputs = new Map<string, number>();
 const inputHoldMs = 400;
 
-const post = (message: RemoteMessage): void => channel?.postMessage(message);
+const post = (message: RemoteMessage): void => link.send(message);
 
 const showNote = (text: string): void => {
     note().textContent = text;
@@ -82,8 +84,11 @@ const levelIntent = (row: ITrayRow, value: number): Intent =>
         ? { type: "fader", ids: row.ids, db: value }
         : { type: row.kind === "monitor" ? "monitorLevel" : "headphoneLevel", level: value };
 
+/** The state it should end up in, not a flip, so a repeated message can't undo it. */
 const muteIntent = (row: ITrayRow): Intent =>
-    row.kind === "channel" ? { type: "mute", ids: row.ids } : { type: `${row.kind}Mute` };
+    row.kind === "channel"
+        ? { type: "mute", ids: row.ids, to: !row.isMuted }
+        : { type: `${row.kind}Mute`, to: !row.isMuted };
 
 const onSlider = (event: Event): void => {
     const row = rowOf(event.target as Element);
@@ -98,8 +103,7 @@ const onClick = (event: Event): void => {
     if (row) post({ kind: "intent", intent: muteIntent(row) });
 };
 
-const onMessage = ({ data }: MessageEvent): void => {
-    const message = data as Partial<RemoteMessage> | null;
+const onMessage = (message: Partial<RemoteMessage> | null): void => {
     if (message?.kind === "snapshot" && message.snapshot) render(message.snapshot);
     if (message?.kind === "result" && message.result === "needsMix")
         showNote("Set up your mix in the main window first: the faders work once this computer has it.");
@@ -118,11 +122,19 @@ const neededHeight = (): number => {
 
 const fitWindow = (): void => desktopApp()?.fitTray(Math.ceil(neededHeight()));
 
+const phoneStatus: Record<LinkStatus, string> = {
+    connected: "",
+    lost: "Can't reach Volt Mixer on your computer. Is it running, with Phone remote on?",
+    unpaired: "This phone isn't paired any more: scan the QR code in Volt Mixer › Settings › Phone remote.",
+};
+
 /** In a browser there's no app: Open is a plain link to the page, and there's nothing to quit. */
 const wireButtons = (): void => {
     const desktop = desktopApp();
     const quit = document.querySelector<HTMLButtonElement>("[data-tray-quit]")!;
     quit.hidden = !desktop;
+    // On a phone the computer's page can't be opened, so the footer goes.
+    document.querySelector<HTMLElement>(".foot")!.hidden = link.isPhone;
     quit.addEventListener("click", () => desktop?.quit());
     document.querySelector("[data-tray-open]")!.addEventListener("click", (event) => {
         if (!desktop) return;
@@ -134,7 +146,7 @@ const wireButtons = (): void => {
 export const startTray = (): void => {
     list().addEventListener("slider-input", onSlider);
     list().addEventListener("click", onClick);
-    channel?.addEventListener("message", onMessage);
+    link.listen(onMessage, (status) => showNote(phoneStatus[status]));
     window.addEventListener("pagehide", () => post({ kind: "bye" }));
     wireButtons();
     new ResizeObserver(fitWindow).observe(document.querySelector("[data-tray-content]")!);

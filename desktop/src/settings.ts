@@ -17,6 +17,10 @@ export interface IDesktopSettings {
     closeToTray: boolean;
     /** Share the mix with the website on this computer (desktop/src/mix-share.ts). */
     shareMix: boolean;
+    /** Serve the phone remote on the home network (desktop/src/phone.ts). */
+    phoneRemote: boolean;
+    /** Which of this computer's addresses the phone uses; empty for the first one. */
+    phoneAddress: string;
     /** The one-time hint on keeping the tray icon visible (Windows hides new ones). */
     hasSeenTrayHint: boolean;
 }
@@ -27,13 +31,17 @@ const defaults: IDesktopSettings = {
     minimiseToTray: true,
     closeToTray: true,
     shareMix: true,
+    phoneRemote: false,
+    phoneAddress: "",
     hasSeenTrayHint: false,
 };
 
 const file = (): string => path.join(app.getPath("userData"), "settings.json");
 let current: IDesktopSettings | null = null;
 
-type Flag = "startAtLogin" | "minimiseToTray" | "closeToTray" | "shareMix" | "hasSeenTrayHint";
+type Flag = "startAtLogin" | "minimiseToTray" | "closeToTray" | "shareMix" | "phoneRemote" | "hasSeenTrayHint";
+const isAddress = (value: unknown): value is string =>
+    typeof value === "string" && /^(\d{1,3}\.){3}\d{1,3}$/.test(value);
 
 /** Keeps only known keys with valid values: the file can be edited, and the page is a renderer. */
 const clean = (value: unknown, base: IDesktopSettings): IDesktopSettings => {
@@ -46,6 +54,8 @@ const clean = (value: unknown, base: IDesktopSettings): IDesktopSettings => {
         minimiseToTray: flag("minimiseToTray"),
         closeToTray: flag("closeToTray"),
         shareMix: flag("shareMix"),
+        phoneRemote: flag("phoneRemote"),
+        phoneAddress: isAddress(input["phoneAddress"]) ? input["phoneAddress"] : base.phoneAddress,
         hasSeenTrayHint: flag("hasSeenTrayHint"),
     };
 };

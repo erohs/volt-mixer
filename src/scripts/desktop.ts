@@ -9,6 +9,8 @@ export interface IDesktopSettings {
     minimiseToTray: boolean;
     closeToTray: boolean;
     shareMix: boolean;
+    phoneRemote: boolean;
+    phoneAddress: string;
     hasSeenTrayHint: boolean;
 }
 
@@ -26,6 +28,16 @@ export interface IUpdate {
     url: string;
 }
 
+export interface IPhoneInfo {
+    isRunning: boolean;
+    address: string;
+    addresses: string[];
+    /** The link the QR code carries, with the pairing token; empty while it's off. */
+    link: string;
+    error: string;
+    phones: number;
+}
+
 export interface IVoltDesktop {
     getState: () => Promise<IDesktopState | null>;
     setSettings: (change: Partial<IDesktopSettings>) => Promise<IDesktopState | null>;
@@ -36,6 +48,12 @@ export interface IVoltDesktop {
     quit: () => void;
     /** Main passes on the website's requests for this app's mix; the answer goes back to it. */
     onMixRequest: (answer: (request: unknown) => unknown) => void;
+    /** The phone remote (desktop/src/phone.ts). */
+    phoneInfo: () => Promise<IPhoneInfo | null>;
+    rotatePhone: () => Promise<IPhoneInfo | null>;
+    publishToPhones: (snapshot: unknown) => void;
+    onPhoneCount: (listen: (count: number) => void) => void;
+    onPhoneIntent: (answer: (intent: unknown) => unknown) => void;
     /** The tray window's content height in CSS px; the app sizes the window to it. */
     fitTray: (height: number) => void;
 }
