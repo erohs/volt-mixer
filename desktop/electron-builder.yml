@@ -1,0 +1,57 @@
+# Unsigned builds, published as a draft GitHub Release by .github/workflows/release.yml.
+appId: io.github.erohs.voltmixer
+productName: Volt Mixer
+copyright: Copyright © 2026 Naomi
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+# The site and the tray icons sit beside the app (see site and iconPath in src/).
+extraResources:
+  - from: site
+    to: site
+  - from: build/tray.png
+    to: tray.png
+  - from: build/trayTemplate.png
+    to: trayTemplate.png
+  - from: build/trayTemplate@2x.png
+    to: trayTemplate@2x.png
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+win:
+  target: nsis
+  icon: build/icon.png
+nsis:
+  artifactName: Volt-Mixer-Setup-${version}.${ext}
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.music
+  icon: build/icon.png
+  # Ad hoc: Apple silicon won't open an unsigned app at all. Not notarised, so Gatekeeper asks once.
+  identity: "-"
+  hardenedRuntime: false
+  notarize: false
+dmg:
+  artifactName: Volt-Mixer-${version}-${arch}.${ext}
+linux:
+  target: [AppImage, deb]
+  category: AudioVideo
+  icon: build/icon.png
+  artifactName: Volt-Mixer-${version}-${arch}.${ext}
+deb:
+  afterInstall: build/linux/after-install.sh
+  afterRemove: build/linux/after-remove.sh
+publish:
+  provider: github
+  owner: erohs
+  repo: volt-mixer
+  releaseType: draft

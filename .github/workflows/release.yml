@@ -1,0 +1,49 @@
+# Builds the desktop app on each system and attaches the installers to a draft GitHub Release when
+# a v* tag is pushed. Publish the draft by hand once it's been tried. Builds are unsigned.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm install --frozen-lockfile
+        working-directory: desktop
+      # A tag publishes to its draft release; a manual run only builds, and keeps the files as artefacts.
+      - run: pnpm ${{ github.event_name == 'push' && 'release' || 'dist' }}
+        working-directory: desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check the macOS app is signed (ad hoc), or Apple silicon won't open it
+        if: runner.os == 'macOS'
+        run: codesign -dv "desktop/release/mac-arm64/Volt Mixer.app"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: volt-mixer-${{ matrix.os }}
+          path: |
+            desktop/release/*.exe
+            desktop/release/*.dmg
+            desktop/release/*.AppImage
+            desktop/release/*.deb
+          if-no-files-found: error

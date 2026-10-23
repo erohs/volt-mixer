@@ -32,6 +32,36 @@ another Volt, the page names it and says it isn't supported yet.
 
 Close UAD Console on the same computer: both would control the Volt and disagree.
 
+## Desktop app
+
+For a computer of your own, there's also a desktop app for Windows, macOS and Linux. It's the same
+mixer, without a browser. It connects to the Volt by itself, can start at login, and lives in the
+system tray: click the tray icon for a small mixer (like the Windows volume flyout), and choose
+what it shows in **Settings › Tray mixer**.
+
+Download it from [Releases](https://github.com/erohs/volt-mixer/releases). The builds aren't
+signed, so the first launch needs one extra step:
+
+- **Windows:** SmartScreen says it protected your PC: choose **More info › Run anyway**. Windows
+  hides new tray icons; to keep Volt Mixer's in view, turn it on in **Settings › Personalisation ›
+  Taskbar › Other system tray icons**.
+- **macOS:** open it once, then **System Settings › Privacy & Security › Open Anyway**. Its icon
+  is in the menu bar.
+- **Linux:** the `.deb` sets up USB access for you. For the AppImage (or the website in Chrome),
+  add a udev rule once, then unplug and replug the Volt:
+
+    ```sh
+    echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="2b5a", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-volt-mixer.rules
+    sudo udevadm control --reload-rules && sudo udevadm trigger
+    ```
+
+    On GNOME, tray icons need the AppIndicator extension. The tray mixer opens from the icon's menu.
+
+Only Windows has been tried with a Volt so far; reports from macOS and Linux are welcome. Don't
+run the app and the website against the same Volt at once: like Console, they can't see each
+other. To bring the website's mix into the app, copy its mix link (Settings › Your mix) and paste
+it into the app.
+
 ## Developing
 
 ```sh
@@ -39,7 +69,15 @@ pnpm install
 pnpm dev       # http://localhost:4321
 pnpm test      # library tests, capture re-encoding, colour contrast
 pnpm lint      # astro check + prettier
+
+cd desktop
+pnpm install
+pnpm start     # builds the site into desktop/site and runs the app
+pnpm dist      # installers for this system, in desktop/release
 ```
+
+Releases: push a `v*` tag (matching `desktop/package.json`'s version) and
+`.github/workflows/release.yml` builds every system's installer into a draft release.
 
 `docs/protocol.md` is the reverse-engineered HID protocol, `docs/maintaining.md` the update loop
 when UA ships new firmware or software, and `docs/decisions.md` the reasoning behind the design.
