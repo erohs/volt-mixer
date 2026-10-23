@@ -73,7 +73,7 @@ describe("Using the mixer sync, when Line 3/4 is linked on the page", () => {
 describe("Using the mixer sync, when Line 3 and Line 4 are unmuted", () => {
     test("then it should send one Direct mask with bits 2 and 3", () => {
         const { state, diff } = synced(true);
-        for (const id of ["in3", "in4"]) (state.channels[id] ?? { isMuted: true }).isMuted = false;
+        for (const id of ["in3", "in4"] as const) state.channels[id].isMuted = false;
         expect(diff()).toEqual(["f0150c000000000001f7"]);
     });
 });

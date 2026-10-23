@@ -1,17 +1,11 @@
-import { channels } from "./mixer.ts";
+import { analogIds } from "./mixer.ts";
 import type { IMixerState } from "./mixer.ts";
 import type { DeviceReport } from "./reports.ts";
-
-const analogIds = channels.filter((c) => c.kind === "analog").map((c) => c.id);
 
 const appliers: {
     [Type in DeviceReport["type"]]?: (state: IMixerState, report: Extract<DeviceReport, { type: Type }>) => void;
 } = {
-    direct: (state, { mask }) =>
-        analogIds.forEach((id, i) => {
-            const channel = state.channels[id];
-            if (channel) channel.isMuted = !(mask & (1 << i));
-        }),
+    direct: (state, { mask }) => analogIds.forEach((id, i) => (state.channels[id].isMuted = !(mask & (1 << i)))),
     monitorMute: (state, { isMuted }) => void (state.monitor.isMuted = isMuted),
     monitorLevel: (state, { level }) => void (state.monitor.level = level),
     headphone: (state, { level, isMuted }) => void (state.headphone = { level, isMuted }),

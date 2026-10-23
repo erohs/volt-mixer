@@ -1,4 +1,4 @@
-import { channelById } from "./mixer.ts";
+import { channelById, type ChannelId } from "./mixer.ts";
 
 /*
  * The icons a channel can show (on its strip and in the tray mixer), chosen in its settings like
@@ -54,15 +54,15 @@ export const isChannelIcon = (value: unknown): value is ChannelIcon =>
     typeof value === "string" && Object.hasOwn(channelIcons, value);
 
 /** What a channel is, at a glance: a mic preamp, a line input, a digital input or the computer. */
-export const defaultIcon = (id: string): ChannelIcon => {
+export const defaultIcon = (id: ChannelId): ChannelIcon => {
     const info = channelById[id];
-    if (info?.kind === "loopback") return "laptop";
-    if (info?.kind === "digital") return "cable";
-    return info?.preampIndex === undefined ? "audio-lines" : "mic";
+    if (info.kind === "loopback") return "laptop";
+    if (info.kind === "digital") return "cable";
+    return info.preampIndex === undefined ? "audio-lines" : "mic";
 };
 
 /** A channel's chosen icon (a pair uses its first channel's, like its name), or its default. */
-export const iconOf = (icons: Record<string, string>, id: string): ChannelIcon => {
+export const iconOf = (icons: Partial<Record<ChannelId, string>>, id: ChannelId): ChannelIcon => {
     const icon = icons[id];
     return isChannelIcon(icon) ? icon : defaultIcon(id);
 };

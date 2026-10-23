@@ -1,7 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { minDb } from "./gain.ts";
-import { applyIntent, isIntent, type Intent } from "./intents.ts";
+import { applyIntent, isRemoteIntent, type Intent } from "./intents.ts";
 import { defaultState, setLinked, type IMixerState } from "./mixer.ts";
+import { specFor } from "./spec.ts";
+
+const spec = specFor("1.0.3").spec;
 
 const ownedState = (): IMixerState => {
     const state = defaultState();
@@ -11,7 +14,7 @@ const ownedState = (): IMixerState => {
 };
 
 const after = (intent: Intent, state = ownedState()): IMixerState => {
-    applyIntent(state, intent, 12);
+    applyIntent(state, intent, spec);
     return state;
 };
 
@@ -76,7 +79,7 @@ describe("Using applyIntent, when the headphone level is asked for above 100", (
 
 describe("Using applyIntent, when a fader moves before this computer has the mix", () => {
     test("then it should report that the mix is needed", () => {
-        expect(applyIntent(defaultState(), { type: "fader", ids: ["in1"], db: -10 }, 12)).toBe("needsMix");
+        expect(applyIntent(defaultState(), { type: "fader", ids: ["in1"], db: -10 }, spec)).toBe("needsMix");
     });
 });
 
@@ -88,9 +91,15 @@ describe("Using applyIntent, when an analog input is muted before this computer 
     });
 });
 
-describe("Using applyIntent, when the intent names a channel that doesn't exist", () => {
-    test("then it should ignore it", () => {
-        expect(applyIntent(ownedState(), { type: "fader", ids: ["in1", "in9"], db: -10 }, 12)).toBe("ignored");
+describe("Using isRemoteIntent, when the message names a channel that doesn't exist", () => {
+    test("then it should refuse it", () => {
+        expect(isRemoteIntent({ type: "fader", ids: ["in1", "in9"], db: -10 })).toBe(false);
+    });
+});
+
+describe("Using isRemoteIntent, when a phone asks for 48V", () => {
+    test("then it should refuse it, as only the page's own controls may", () => {
+        expect(isRemoteIntent({ type: "phantom", ids: ["in1"], to: true })).toBe(false);
     });
 });
 
@@ -106,27 +115,27 @@ describe("Using applyIntent, when headphone mute is pressed", () => {
     });
 });
 
-describe("Using isIntent, when a message has an unknown type", () => {
+describe("Using isRemoteIntent, when a message has an unknown type", () => {
     test("then it should reject it", () => {
-        expect(isIntent({ type: "eraseEverything" })).toBe(false);
+        expect(isRemoteIntent({ type: "eraseEverything" })).toBe(false);
     });
 });
 
-describe("Using isIntent, when a fader message has no level", () => {
+describe("Using isRemoteIntent, when a fader message has no level", () => {
     test("then it should reject it", () => {
-        expect(isIntent({ type: "fader", ids: ["in1"] })).toBe(false);
+        expect(isRemoteIntent({ type: "fader", ids: ["in1"] })).toBe(false);
     });
 });
 
-describe("Using isIntent, when a message names an inherited property as its type", () => {
+describe("Using isRemoteIntent, when a message names an inherited property as its type", () => {
     test("then it should reject it", () => {
-        expect(isIntent({ type: "toString" })).toBe(false);
+        expect(isRemoteIntent({ type: "toString" })).toBe(false);
     });
 });
 
-describe("Using isIntent, when a monitor mute message arrives", () => {
+describe("Using isRemoteIntent, when a monitor mute message arrives", () => {
     test("then it should accept it", () => {
-        expect(isIntent({ type: "monitorMute" })).toBe(true);
+        expect(isRemoteIntent({ type: "monitorMute" })).toBe(true);
     });
 });
 
@@ -145,8 +154,8 @@ describe("Using applyIntent, when headphone mute asks to be off and it already i
     });
 });
 
-describe("Using isIntent, when a switch's target isn't true or false", () => {
+describe("Using isRemoteIntent, when a switch's target isn't true or false", () => {
     test("then it should reject it", () => {
-        expect(isIntent({ type: "monitorMute", to: "yes" })).toBe(false);
+        expect(isRemoteIntent({ type: "monitorMute", to: "yes" })).toBe(false);
     });
 });

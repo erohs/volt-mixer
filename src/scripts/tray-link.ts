@@ -1,4 +1,4 @@
-import { isIntent } from "../lib/intents.ts";
+import { isRemoteIntent } from "../lib/intents.ts";
 import { openChannel, type RemoteMessage } from "./remote.ts";
 
 /*
@@ -98,7 +98,7 @@ const phoneLink = (token: string): ITrayLink => {
     return {
         isPhone: true,
         send: (message) => {
-            if (message.kind !== "intent" || !isIntent(message.intent)) return;
+            if (message.kind !== "intent" || !isRemoteIntent(message.intent)) return;
             const intent = message.intent as { type: string; ids?: string[] };
             pending.set(`${intent.type}:${intent.ids?.join(",") ?? ""}`, intent);
             void drain();

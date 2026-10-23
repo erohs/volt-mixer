@@ -5,13 +5,14 @@ import {
     channels,
     defaultChannel,
     hardwarePairs,
+    isChannelId,
     matchQuieterMix,
     pairs,
     pairKey,
     setLinked,
     trimName,
 } from "./mixer.ts";
-import type { CueName, IChannel, ICueRouting, IMixerState, ISend } from "./mixer.ts";
+import type { ChannelId, CueName, IChannel, ICueRouting, IMixerState, ISend } from "./mixer.ts";
 
 /** The page-owned part of the mix: what is saved per computer and carried by a mix link. */
 export interface ISavedMix {
@@ -91,20 +92,18 @@ export const applySavedMix = (state: IMixerState, value: unknown, maxDb: number)
     state.icons = readIcons(saved["icons"]);
 };
 
-const readNames = (value: unknown): Record<string, string> => {
-    const names: Record<string, string> = {};
+const readNames = (value: unknown): Partial<Record<ChannelId, string>> => {
+    const names: Partial<Record<ChannelId, string>> = {};
     for (const [id, name] of Object.entries(record(value))) {
-        if (typeof name === "string" && channels.some((c) => c.id === id) && name.trim()) {
-            names[id] = trimName(name);
-        }
+        if (isChannelId(id) && typeof name === "string" && name.trim()) names[id] = trimName(name);
     }
     return names;
 };
 
-const readIcons = (value: unknown): Record<string, string> => {
-    const icons: Record<string, string> = {};
+const readIcons = (value: unknown): Partial<Record<ChannelId, string>> => {
+    const icons: Partial<Record<ChannelId, string>> = {};
     for (const [id, icon] of Object.entries(record(value))) {
-        if (channels.some((c) => c.id === id) && isChannelIcon(icon)) icons[id] = icon;
+        if (isChannelId(id) && isChannelIcon(icon)) icons[id] = icon;
     }
     return icons;
 };

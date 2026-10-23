@@ -66,7 +66,8 @@ export interface ISpec {
     monitorLevelMax: number;
     monitorLevelPerUnit: number;
     autoGainSeconds: { min: number; max: number; default: number };
-    sources: Record<string, number>;
+    /** Mixer source per channel (src/lib/mixer.ts channel IDs). */
+    sources: Partial<Record<string, number>>;
     mixBuses: Record<BusName, [number, number]>;
     routeDestinations: Record<string, [number, number]>;
     routeSources: Record<string, [number, number]>;

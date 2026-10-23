@@ -1,8 +1,10 @@
 import { channelIcons, defaultIcon, iconOf, isChannelIcon } from "../lib/channel-icons.ts";
+import type { ChannelId } from "../lib/mixer.ts";
 import { isShownInTray } from "../lib/tray-rows.ts";
-import { app, commit, hooks } from "./app-state.ts";
+import { app, hooks } from "./app-state.ts";
 import { desktopApp } from "./desktop.ts";
 import { cloneIcon } from "./icons.ts";
+import { runPageIntent } from "./run-intent.ts";
 import { loadTrayHidden, saveTrayHidden } from "./store.ts";
 
 /*
@@ -40,11 +42,11 @@ const showCurrentIcon = (icon: keyof typeof channelIcons): void => {
 };
 
 /** Shows the open channel's icon and ticks it; Show in tray appears only in the desktop app. */
-export const refreshChannelIcon = (ids: string[]): void => {
+export const refreshChannelIcon = (ids: ChannelId[]): void => {
     const element = section();
-    if (!element || ids.length === 0) return;
+    const id = ids[0];
+    if (!element || id === undefined) return;
     element.querySelector<HTMLElement>("[data-channel-tray-show]")!.hidden = desktopApp() === null;
-    const id = ids[0] ?? "";
     showCurrentIcon(iconOf(app.state.icons, id));
     for (const input of fields("show")) input.checked = isShownInTray(ids, loadTrayHidden());
     // Without a choice of its own, Default is ticked rather than the icon it falls back to.
@@ -54,24 +56,14 @@ export const refreshChannelIcon = (ids: string[]): void => {
     if (fallback) fallback.title = `Default: ${channelIcons[defaultIcon(id)]}`;
 };
 
-const setShown = (ids: string[], isShown: boolean): void => {
-    const hidden = loadTrayHidden().filter((id) => !ids.includes(id));
+const setShown = (ids: ChannelId[], isShown: boolean): void => {
+    const hidden = loadTrayHidden().filter((id) => !(ids as string[]).includes(id));
     saveTrayHidden(isShown ? hidden : [...hidden, ...ids]);
     hooks.refresh();
 };
 
-/** A pair takes one icon for both sides; Default ("") removes the choice, so the channel's own shows. */
-const setIcon = (ids: string[], icon: string): void => {
-    if (icon !== "" && !isChannelIcon(icon)) return;
-    for (const id of ids) {
-        if (icon === "") delete app.state.icons[id];
-        else app.state.icons[id] = icon;
-    }
-    commit();
-};
-
 /** `openIds` reads the channels the dialog is open for. */
-export const wireChannelIcon = (openIds: () => string[]): void => {
+export const wireChannelIcon = (openIds: () => ChannelId[]): void => {
     toggle()?.addEventListener("click", () => showList(list()?.hidden === true));
     // Picked with a click, the list closes. Arrow keys also fire a click on a radio, but with a
     // count of 0; they move through the list and leave it open.
@@ -83,6 +75,8 @@ export const wireChannelIcon = (openIds: () => string[]): void => {
     section()?.addEventListener("change", (event) => {
         const input = (event.target as Element).closest<HTMLInputElement>("[data-channel-icon-field]");
         if (input?.dataset["channelIconField"] === "show") setShown(openIds(), input.checked);
-        if (input?.dataset["channelIconField"] === "icon") setIcon(openIds(), input.value);
+        // A pair takes one icon for both sides; Default ("") puts back the channel's own.
+        if (input?.dataset["channelIconField"] === "icon")
+            runPageIntent({ type: "icon", ids: openIds(), icon: input.value });
     });
 };

@@ -1,7 +1,9 @@
 import { isRouteKnown } from "../lib/commands.ts";
+import type { Intent } from "../lib/intents.ts";
 import type { CueName } from "../lib/mixer.ts";
 import { newestSpec } from "../lib/spec.ts";
-import { app, commit, hooks, layout } from "./app-state.ts";
+import { app, hooks, layout } from "./app-state.ts";
+import { runPageIntent } from "./run-intent.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 import { loadTheme, saveTheme, saveView } from "./store.ts";
 import { applyTheme, isTheme } from "./theme.ts";
@@ -62,13 +64,16 @@ export const refreshSettings = (isLive: boolean): void => {
     }
 };
 
-const settingChanges: Record<string, (input: HTMLInputElement | HTMLSelectElement) => void> = {
-    clip: (input) => (app.state.device.isClipProtected = (input as HTMLInputElement).checked),
-    digital: (input) => ((app.state.device.digitalFormat = input.value), layout()),
-    "headphone-source": (input) => (app.state.headphoneSource = input.value === "cue2" ? "cue2" : "cue1"),
-    "cue1-source": (input) => (app.state.cues.cue1.isMix = input.value === "mix"),
-    "cue2-source": (input) => (app.state.cues.cue2.isMix = input.value === "mix"),
-    mirror: (input) => cues.forEach((cue) => (app.state.cues[cue].isMirroredToLine34 = input.value === cue)),
+const cueOf = (value: string): CueName => (value === "cue2" ? "cue2" : "cue1");
+
+/** What each Volt setting in the dialog asks for, from its control. */
+const settingIntents: Record<string, (input: HTMLInputElement | HTMLSelectElement) => Intent> = {
+    clip: (input) => ({ type: "clipProtection", to: (input as HTMLInputElement).checked }),
+    digital: (input) => ({ type: "digitalFormat", format: input.value === "spdif" ? "spdif" : "adat" }),
+    "headphone-source": (input) => ({ type: "headphoneSource", cue: cueOf(input.value) }),
+    "cue1-source": (input) => ({ type: "cueSource", cue: "cue1", isMix: input.value === "mix" }),
+    "cue2-source": (input) => ({ type: "cueSource", cue: "cue2", isMix: input.value === "mix" }),
+    mirror: (input) => ({ type: "mirror", cue: input.value === "none" ? null : cueOf(input.value) }),
 };
 
 const onChange = (input: HTMLInputElement | HTMLSelectElement): void => {
@@ -81,8 +86,8 @@ const onChange = (input: HTMLInputElement | HTMLSelectElement): void => {
         layout();
         return hooks.refresh();
     }
-    settingChanges[setting]?.(input);
-    commit();
+    const intent = settingIntents[setting]?.(input);
+    if (intent) runPageIntent(intent);
 };
 
 export const settingsActions: Record<string, () => void> = {
@@ -99,8 +104,6 @@ export const wireSettingsDialog = (): void => {
     });
     dialog().addEventListener("slider-input", (event) => {
         const { name, value } = (event as CustomEvent<{ name: string; value: number }>).detail;
-        if (name !== "brightness") return;
-        app.state.device.brightness = value;
-        commit();
+        if (name === "brightness") runPageIntent({ type: "brightness", raw: value });
     });
 };

@@ -1,3 +1,4 @@
+import type { DigitalFormat } from "./mixer.ts";
 import { commandNames, type CommandName, type ISpec, type MuteField } from "./spec.ts";
 
 export interface IIdentity {
@@ -10,7 +11,7 @@ export interface IIdentity {
 /** Everything the Volt reports about itself in its state dump. Fader and pan positions aren't in it. */
 export interface IHardwareState {
     phantom: [boolean, boolean];
-    digitalFormat: string;
+    digitalFormat: DigitalFormat;
     linkMask: number;
     directMask: number;
     monitor: { isMuted: boolean; level: number; isMono: boolean };
@@ -34,12 +35,14 @@ export type DeviceReport =
     | { type: "mono"; isOn: boolean }
     | { type: "clipProtection"; isOn: boolean }
     | { type: "brightness"; raw: number }
-    | { type: "digitalFormat"; format: string }
+    | { type: "digitalFormat"; format: DigitalFormat }
     | { type: "links"; mask: number }
     | { type: "panel"; field: number; value: number }
     | { type: "unknown"; cmd: number };
 
 const byte = (data: Uint8Array, i: number): number => data[i] ?? 0;
+const formatAt = (spec: ISpec, index: number): DigitalFormat =>
+    spec.digitalFormat[index] === "spdif" ? "spdif" : "adat";
 const u16 = (data: Uint8Array, i: number): number => byte(data, i) | (byte(data, i + 1) << 8);
 
 /** Identify reply (report 0x0E): VID, PID, bcdDevice (BCD major, minor/patch nibbles), ASCII serial. */
@@ -93,7 +96,7 @@ const decoders: Partial<Record<CommandName, Decoder>> = {
     monitorMono: (_spec, data) => ({ type: "mono", isOn: byte(data, 2) === 1 }),
     clipProtection: (_spec, data) => ({ type: "clipProtection", isOn: byte(data, 1) === 1 }),
     brightness: (_spec, data) => ({ type: "brightness", raw: byte(data, 1) }),
-    digitalFormat: (spec, data) => ({ type: "digitalFormat", format: spec.digitalFormat[byte(data, 1)] ?? "adat" }),
+    digitalFormat: (spec, data) => ({ type: "digitalFormat", format: formatAt(spec, byte(data, 1)) }),
     panelState: panelReport,
 };
 
@@ -113,7 +116,7 @@ export const parseState = (spec: ISpec, data: Uint8Array): IHardwareState => {
     const [tone1 = 0, tone2 = 0] = layout.toneNibbles;
     return {
         phantom: [Boolean(at(layout.phantomMask) & 1), Boolean(at(layout.phantomMask) & 2)],
-        digitalFormat: spec.digitalFormat[at(layout.digitalFormat)] ?? "adat",
+        digitalFormat: formatAt(spec, at(layout.digitalFormat)),
         linkMask: at(layout.linkMask) & 0x0f,
         directMask: at(layout.directMask),
         monitor: {

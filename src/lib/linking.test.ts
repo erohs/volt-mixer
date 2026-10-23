@@ -65,7 +65,7 @@ describe("Using applyIntent, when Inputs 1/2 are linked with different preamp ga
     test("then both preamps should take the lower gain", () => {
         const state = defaultState();
         state.preamp.gain = [50, 10];
-        applyIntent(state, { type: "link", id: "in1" }, 12);
+        applyIntent(state, { type: "link", id: "in1" }, spec);
         expect(state.preamp.gain).toEqual([10, 10]);
     });
 });

@@ -1,25 +1,27 @@
-import { channelById, trimName } from "../lib/mixer.ts";
-import type { CueName } from "../lib/mixer.ts";
 import { minDb } from "../lib/gain.ts";
+import type { Intent } from "../lib/intents.ts";
+import { channelById } from "../lib/mixer.ts";
+import type { ChannelId, CueName } from "../lib/mixer.ts";
 import { formatDb } from "../lib/taper.ts";
-import { app, commit, hooks, layout } from "./app-state.ts";
+import { app, hooks } from "./app-state.ts";
 import { closeIconList, refreshChannelIcon, wireChannelIcon } from "./channel-icon.ts";
 import { togglePhantom } from "./phantom.ts";
+import { runPageIntent } from "./run-intent.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 
 /* The channel settings dialog (ChannelDialog.astro), for whichever strip opened it. */
 
-let openIds: string[] = [];
+/** The channels it's open for: one, or a linked pair (left, then right); none while closed. */
+let openIds: ChannelId[] = [];
 const dialog = (): HTMLDialogElement => document.querySelector<HTMLDialogElement>("#channel-dialog")!;
 const part = <T extends Element>(selector: string): T | null => dialog().querySelector<T>(selector);
 const cues: CueName[] = ["cue1", "cue2"];
 
 const preampIndexes = (): number[] =>
-    openIds.map((id) => channelById[id]?.preampIndex).filter((index): index is number => index !== undefined);
+    openIds.map((id) => channelById[id].preampIndex).filter((index): index is number => index !== undefined);
 
-const showSections = (isStereo: boolean): void => {
-    const info = channelById[openIds[0] ?? ""];
-    const isAnalog = info?.kind === "analog";
+const showSections = (first: ChannelId, isStereo: boolean): void => {
+    const isAnalog = channelById[first].kind === "analog";
     const sections: Record<string, boolean> = {
         preamp: isAnalog,
         gain: preampIndexes().length > 0,
@@ -38,13 +40,13 @@ const showSections = (isStereo: boolean): void => {
 };
 
 /** Opens the dialog for a strip's channels (one, or a linked pair). */
-export const openChannelDialog = (ids: string[]): void => {
-    openIds = ids;
+export const openChannelDialog = (ids: readonly [ChannelId, ...ChannelId[]]): void => {
+    openIds = [...ids];
     const name = document.querySelector(`[data-ids="${ids.join(",")}"] [data-strip-name]`)?.textContent ?? "";
     dialog().querySelector("[data-dialog-title]")!.textContent = `${name} settings`;
-    part<HTMLInputElement>("[data-channel-field='name']")!.value = app.state.names[ids[0] ?? ""] ?? "";
+    part<HTMLInputElement>("[data-channel-field='name']")!.value = app.state.names[ids[0]] ?? "";
     part<HTMLInputElement>("[data-channel-field='name']")!.placeholder = name;
-    showSections(ids.length > 1);
+    showSections(ids[0], ids.length > 1);
     closeIconList();
     dialog().showModal();
     hooks.refresh();
@@ -82,7 +84,8 @@ const refreshPreamp = (isLive: boolean): void => {
     if (preamp !== undefined) setSlider("gain", app.state.preamp.gain[preamp] ?? 0, isLive);
     const isPhantomOn = preamp !== undefined && app.state.preamp.phantom[preamp] === true;
     part("[data-channel-action='phantom']")?.setAttribute("aria-pressed", String(isPhantomOn));
-    const tone = app.state.tone[channelById[openIds[0] ?? ""]?.toneIndex ?? 0] ?? 0;
+    const toneIndex = openIds[0] && channelById[openIds[0]].toneIndex;
+    const tone = toneIndex === undefined ? 0 : (app.state.tone[toneIndex] ?? 0);
     for (const radio of dialog().querySelectorAll<HTMLInputElement>("input[name='tone']")) {
         radio.checked = Number(radio.value) === tone;
     }
@@ -105,33 +108,25 @@ export const refreshChannelDialog = (isLive: boolean): void => {
     }
 };
 
-/** Sets one entry of a per-input array, for channels that have that input (preamp, tone). */
-const setAt = (values: number[], index: number | undefined, value: number): void => {
-    if (index !== undefined) values[index] = value;
-};
+/** A pan slider for one side (0 left, 1 right) of the mix or a cue; −100…100 on the slider. */
+const panIntent =
+    (side: 0 | 1, cue?: CueName) =>
+    (value: number): Intent | null => {
+        const id = openIds[side];
+        if (!id) return null;
+        return cue ? { type: "cuePan", id, cue, pan: value / 100 } : { type: "pan", id, pan: value / 100 };
+    };
 
-const forOpen = (change: (id: string, i: number) => void): void => {
-    openIds.forEach(change);
-    commit();
-};
-
-const sliderChanges: Record<string, (value: number) => void> = {
-    gain: (db) => forOpen((id) => setAt(app.state.preamp.gain, channelById[id]?.preampIndex, db)),
-    "pan-0": (pan) => forOpen((id, i) => i === 0 && (app.state.channels[id]!.pan = pan / 100)),
-    "pan-1": (pan) => forOpen((id, i) => i === 1 && (app.state.channels[id]!.pan = pan / 100)),
-    ...Object.fromEntries(
-        cues.flatMap((cue) => [
-            [`${cue}-level`, (db: number) => forOpen((id) => (app.state.channels[id]![cue].db = db))],
-            [
-                `${cue}-pan-0`,
-                (pan: number) => forOpen((id, i) => i === 0 && (app.state.channels[id]![cue].pan = pan / 100)),
-            ],
-            [
-                `${cue}-pan-1`,
-                (pan: number) => forOpen((id, i) => i === 1 && (app.state.channels[id]![cue].pan = pan / 100)),
-            ],
-        ]),
-    ),
+const sliderIntents: Record<string, (value: number) => Intent | null> = {
+    gain: (db) => ({ type: "preampGain", ids: openIds, db }),
+    "pan-0": panIntent(0),
+    "pan-1": panIntent(1),
+    "cue1-level": (db) => ({ type: "cueSend", ids: openIds, cue: "cue1", db }),
+    "cue2-level": (db) => ({ type: "cueSend", ids: openIds, cue: "cue2", db }),
+    "cue1-pan-0": panIntent(0, "cue1"),
+    "cue1-pan-1": panIntent(1, "cue1"),
+    "cue2-pan-0": panIntent(0, "cue2"),
+    "cue2-pan-1": panIntent(1, "cue2"),
 };
 
 let autoGainTimer = 0;
@@ -155,24 +150,17 @@ const startAutoGain = (): void => {
     }, 5000);
 };
 
-/** Switches and dropdowns in the dialog, by their data-channel-field. */
-const onFieldChange = (input: HTMLInputElement | HTMLSelectElement): void => {
+/** Switches, dropdowns and the name field, by their data-channel-field. */
+const fieldIntent = (input: HTMLInputElement | HTMLSelectElement): Intent | null => {
     const field = input.dataset["channelField"] ?? "";
-    if (field === "name") return onRename(input as HTMLInputElement);
-    if (field === "tone")
-        return forOpen((id) => setAt(app.state.tone, channelById[id]?.toneIndex, Number(input.value)));
+    if (field === "name") return { type: "rename", ids: openIds, name: input.value };
+    if (field === "tone") return { type: "tone", ids: openIds, tone: Number(input.value) };
     const cue = cues.find((name) => field === `${name}-mute`);
-    if (cue) forOpen((id) => (app.state.channels[id]![cue].isMuted = (input as HTMLInputElement).checked));
+    return cue ? { type: "cueMute", ids: openIds, cue, to: (input as HTMLInputElement).checked } : null;
 };
 
-const onRename = (input: HTMLInputElement): void => {
-    const name = trimName(input.value);
-    for (const id of openIds) {
-        if (name) app.state.names[id] = name;
-        else delete app.state.names[id];
-    }
-    layout();
-    commit();
+const run = (intent: Intent | null | undefined): void => {
+    if (intent) runPageIntent(intent);
 };
 
 export const wireChannelDialog = (): void => {
@@ -180,7 +168,7 @@ export const wireChannelDialog = (): void => {
     wireChannelIcon(() => openIds);
     dialog().addEventListener("slider-input", (event) => {
         const { name, value } = (event as CustomEvent<{ name: string; value: number }>).detail;
-        sliderChanges[name]?.(value);
+        run(sliderIntents[name]?.(value));
     });
     dialog().addEventListener("click", (event) => {
         const action = (event.target as Element).closest<HTMLElement>("[data-channel-action]")?.dataset[
@@ -191,7 +179,7 @@ export const wireChannelDialog = (): void => {
     });
     dialog().addEventListener("change", (event) => {
         const input = (event.target as Element).closest<HTMLInputElement | HTMLSelectElement>("[data-channel-field]");
-        if (input) onFieldChange(input);
+        if (input) run(fieldIntent(input));
     });
     dialog().addEventListener("close", () => (openIds = []));
 };

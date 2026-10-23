@@ -3,7 +3,7 @@ import { toSavedMix } from "../lib/saved-mix.ts";
 import { newestSpec } from "../lib/spec.ts";
 import { stripGroups } from "../lib/strip-groups.ts";
 import { trayRows } from "../lib/tray-rows.ts";
-import { refreshOutputs, runIntent, wireMixerControls } from "./actions.ts";
+import { refreshOutputs, wireMixerControls } from "./actions.ts";
 import { app, hooks, isLive, notice, setStatus } from "./app-state.ts";
 import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { holdControlLock } from "./control-lock.ts";
@@ -21,6 +21,7 @@ import {
 } from "./mix-ownership.ts";
 import { restartMixPause, wireMixPause } from "./mix-pause.ts";
 import { publish, wireRemote, type ITraySnapshot } from "./remote.ts";
+import { runIntent } from "./run-intent.ts";
 import { refreshSettings, settingsActions, wireSettingsDialog } from "./settings-dialog.ts";
 import { initSliders } from "./slider.ts";
 import { clearRetiredSettings, loadTheme, loadTrayHidden } from "./store.ts";

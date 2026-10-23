@@ -1,3 +1,5 @@
+import { stripIds } from "./strips.ts";
+
 /*
  * Whether anything is coming in on each analog input, judged from its meter: the Volt can't say
  * whether a jack is plugged in. An empty input reads digital silence; a connected mic at least
@@ -14,13 +16,12 @@ export const noteInputLevels = (levels: Record<string, number>): void => {
     for (const [name, db] of Object.entries(levels)) if (db > heardDb) lastHeard.set(name, now);
 };
 
-const isHearing = (ids: string[]): boolean =>
+const isHearing = (ids: readonly string[]): boolean =>
     ids.some((id) => performance.now() - (lastHeard.get(id) ?? -Infinity) < quietMs);
 
 const updateTags = (): void => {
     for (const tag of document.querySelectorAll<HTMLElement>("[data-strip-input]")) {
-        const ids = (tag.closest<HTMLElement>("[data-strip]")?.dataset["ids"] ?? "").split(",");
-        const isIdle = String(!isHearing(ids));
+        const isIdle = String(!isHearing(stripIds(tag) ?? []));
         if (tag.dataset["idle"] !== isIdle) tag.dataset["idle"] = isIdle;
     }
 };

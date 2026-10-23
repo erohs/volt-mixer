@@ -1,4 +1,4 @@
-import type { Intent } from "../lib/intents.ts";
+import type { RemoteIntent } from "../lib/intents.ts";
 import type { ITrayRow } from "../lib/tray-rows.ts";
 import { desktopApp } from "./desktop.ts";
 import { setText } from "./dom.ts";
@@ -84,13 +84,13 @@ const rowOf = (element: Element): ITrayRow | undefined => {
     return rows[[...list().children].indexOf(item as HTMLElement)];
 };
 
-const levelIntent = (row: ITrayRow, value: number): Intent =>
+const levelIntent = (row: ITrayRow, value: number): RemoteIntent =>
     row.kind === "channel"
         ? { type: "fader", ids: row.ids, db: value }
         : { type: row.kind === "monitor" ? "monitorLevel" : "headphoneLevel", level: value };
 
 /** The state it should end up in, not a flip, so a repeated message can't undo it. */
-const muteIntent = (row: ITrayRow): Intent =>
+const muteIntent = (row: ITrayRow): RemoteIntent =>
     row.kind === "channel"
         ? { type: "mute", ids: row.ids, to: !row.isMuted }
         : { type: `${row.kind}Mute`, to: !row.isMuted };

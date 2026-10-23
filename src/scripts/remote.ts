@@ -1,4 +1,4 @@
-import { isIntent, type Intent, type IntentResult } from "../lib/intents.ts";
+import { isRemoteIntent, type Intent, type IntentResult } from "../lib/intents.ts";
 import type { ITrayRow } from "../lib/tray-rows.ts";
 import { desktopApp } from "./desktop.ts";
 
@@ -54,7 +54,9 @@ export const publish = (): void => {
     if (phoneCount > 0) desktopApp()?.publishToPhones(snapshot);
 };
 
-const run = (intent: unknown): IntentResult => (isActive() && isIntent(intent) ? responder!.run(intent) : "ignored");
+/** Another window and a phone may only ask for the remote intents (no 48V, no routing, no renaming). */
+const run = (intent: unknown): IntentResult =>
+    isActive() && isRemoteIntent(intent) ? responder!.run(intent) : "ignored";
 
 const onMessage = ({ data }: MessageEvent): void => {
     const message = data as Partial<RemoteMessage> | null;
