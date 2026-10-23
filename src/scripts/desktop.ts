@@ -30,6 +30,7 @@ export interface IVoltDesktop {
     checkForUpdate: () => Promise<IUpdate | null>;
     setTheme: (theme: string) => void;
     openMainWindow: () => void;
+    hideTray: () => void;
 }
 
 export const desktopApp = (): IVoltDesktop | null => (window as { voltDesktop?: IVoltDesktop }).voltDesktop ?? null;

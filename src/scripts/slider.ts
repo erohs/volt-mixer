@@ -64,11 +64,14 @@ const startDrag = (control: HTMLElement, event: PointerEvent): void => {
     const start = { pointer: isVertical(control) ? event.clientY : event.clientX, position: model.toPosition(value) };
     control.setPointerCapture(event.pointerId);
     control.focus();
+    // For styling: a value readout can show only while the handle is held.
+    control.toggleAttribute("data-dragging", true);
     const onMove = (move: PointerEvent): void => {
         const travel = isVertical(control) ? start.pointer - move.clientY : move.clientX - start.pointer;
         change(control, model.fromPosition(clamp01(start.position + travel / length)));
     };
     const onUp = (): void => {
+        control.removeAttribute("data-dragging");
         control.removeEventListener("pointermove", onMove);
         control.removeEventListener("pointerup", onUp);
         control.removeEventListener("pointercancel", onUp);

@@ -76,6 +76,7 @@ const mix = {
     version: 1,
     channels: {},
     names: {},
+    icons: {},
     linked: {},
     ...(await readRouting(api, await ua.outputs(api, device))),
 };

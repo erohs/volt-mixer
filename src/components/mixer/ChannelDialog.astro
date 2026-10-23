@@ -1,4 +1,5 @@
 ---
+import { channelIcons } from "../../lib/channel-icons.ts";
 import { faderTicks } from "../../lib/taper.ts";
 import Dialog from "../ui/Dialog.astro";
 import Icon from "../ui/Icon.astro";
@@ -29,6 +30,27 @@ const cues = [
         </label>
         <input id="channel-name-input" type="text" maxlength="24" autocomplete="off" data-channel-field="name" />
         <Icon name="pencil" class="pencil" />
+    </div>
+
+    <!-- Desktop app only (channel-tray.ts shows it): the tray mixer shows each channel as its icon. -->
+    <div data-channel-tray hidden>
+        <SettingGroup id="tray-mixer" title="Tray" isCollapsible>
+            <SettingRow id="show-in-tray" name="Show in tray" for="show-in-tray-input">
+                <input id="show-in-tray-input" type="checkbox" role="switch" data-channel-tray-field="show" />
+            </SettingRow>
+            <fieldset class="icons">
+                <legend class="icons-legend">Icon</legend>
+                <div class="icon-choices">
+                    {Object.entries(channelIcons).map(([icon, label]) => (
+                        <label class="icon-choice" title={label}>
+                            <input type="radio" name="channel-icon" value={icon} data-channel-tray-field="icon" />
+                            <Icon name={icon} />
+                            <span class="visually-hidden">{label}</span>
+                        </label>
+                    ))}
+                </div>
+            </fieldset>
+        </SettingGroup>
     </div>
 
     <div data-channel-section="preamp">
@@ -257,6 +279,71 @@ const cues = [
 
         .tone:has(:checked) {
             outline: var(--border-width-standout) solid Highlight;
+        }
+    }
+
+    /* Like the tone choices: the label is the button, its radio sits invisibly on top. */
+    .icons {
+        display: grid;
+        gap: var(--space-between-text);
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .icons-legend {
+        margin-block-end: var(--space-between-text);
+        padding: 0;
+        font-weight: var(--font-weight-semi-bold);
+    }
+
+    .icon-choices {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(var(--size-action-minimum), 1fr));
+        gap: var(--space-between-lines);
+    }
+
+    .icon-choice {
+        position: relative;
+        display: grid;
+        place-items: center;
+        aspect-ratio: 1;
+        border: var(--border-width-default) solid transparent;
+        border-radius: var(--radius-small);
+        color: var(--color-text-primary);
+        cursor: pointer;
+
+        & input {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        & :global(.icon) {
+            inline-size: var(--size-icon);
+            block-size: var(--size-icon);
+        }
+
+        &:hover {
+            border-color: var(--color-border);
+        }
+
+        &:has(:checked) {
+            border-color: var(--color-background-accent);
+            background-color: var(--color-background-accent);
+            color: var(--color-text-on-accent);
+        }
+
+        &:has(:focus-visible) {
+            outline: var(--border-width-highlight) solid var(--color-focus);
+            outline-offset: 2px;
+        }
+
+        &:has(:disabled) {
+            cursor: not-allowed;
+            opacity: 0.6;
         }
     }
 </style>

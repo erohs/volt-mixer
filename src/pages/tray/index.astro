@@ -1,7 +1,11 @@
 ---
-import Meter from "../../components/ui/Meter.astro";
+import Icon from "../../components/ui/Icon.astro";
 import Slider from "../../components/ui/Slider.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { channelIcons } from "../../lib/channel-icons.ts";
+
+/* Every icon a row can show: the channel icons, plus the Monitor output's speaker. */
+const rowIcons = [...new Set([...Object.keys(channelIcons), "speaker", "headphones"])];
 ---
 
 <BaseLayout title="Volt Mixer tray" description="The desktop app's tray mixer for Volt Mixer." isIndexed={false}>
@@ -20,21 +24,32 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
             <a class="button" href={import.meta.env.BASE_URL} data-tray-open>
                 Open Volt Mixer
             </a>
+            <button class="button button--icon" type="button" data-tray-close hidden>
+                <Icon name="close" />
+                <span class="visually-hidden">Close</span>
+            </button>
         </div>
     </div>
 
+    <!-- A row: what it is (icon, with its name for screen readers), mute, and its level. -->
     <template id="tray-row-template">
         <li class="row" data-tray-row>
-            <span class="name" data-row-name></span>
-            <button class="button button--mute" type="button" aria-pressed="false" data-row-action="mute">
-                M
+            <span class="what" data-row-icon></span>
+            <span class="visually-hidden" data-row-name></span>
+            <button class="button button--icon mute" type="button" aria-pressed="false" data-row-action="mute">
+                <Icon name="volume-2" class="unmuted" />
+                <Icon name="volume-x" class="muted" />
             </button>
             <Slider kind="fader" name="row" class="row-slider" />
-            <div class="meters" data-row-meters>
-                <Meter name="" orientation="horizontal" />
-                <Meter name="" orientation="horizontal" />
-            </div>
         </li>
+    </template>
+
+    <template id="tray-icons">
+        {rowIcons.map((name) => (
+            <span data-icon-name={name}>
+                <Icon name={name} />
+            </span>
+        ))}
     </template>
 </BaseLayout>
 
@@ -45,7 +60,7 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 </script>
 
 <style>
-    /* A fixed column: the header and the button stay, only the rows scroll (docs/decisions.md). */
+    /* A fixed column: the header and footer stay, only the rows scroll (docs/decisions.md). */
     .tray {
         position: fixed;
         inset: 0;
@@ -72,10 +87,11 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         font-size: var(--font-size-small);
     }
 
+    /* Room above the first row for its value bubble. */
     .body {
         overflow-y: auto;
         overscroll-behavior: contain;
-        padding: var(--space-padding-compact) var(--space-padding-container);
+        padding: var(--space-between-blocks) var(--space-padding-container) var(--space-padding-compact);
     }
 
     .rows {
@@ -85,31 +101,70 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
         list-style: none;
     }
 
-    /* Name and mute on the left, the fader (with its value) filling the rest, meters under it. */
     .row {
         display: grid;
-        grid-template-columns: minmax(5rem, 7rem) auto minmax(0, 1fr);
+        grid-template-columns: auto auto minmax(0, 1fr);
         align-items: center;
-        gap: var(--space-between-lines) var(--space-between-text);
+        gap: var(--space-between-text);
     }
 
-    .name {
-        overflow: hidden;
-        font-size: var(--font-size-small);
-        font-weight: var(--font-weight-semi-bold);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /* Two meters for a stereo row, one for mono, none where the Volt has no meter. */
-    .meters {
+    .what {
         display: grid;
-        grid-column: 3;
-        gap: 2px;
+        place-items: center;
+        color: var(--color-text-secondary);
 
-        & :global([data-meter=""]) {
+        & :global(.icon) {
+            inline-size: var(--size-icon);
+            block-size: var(--size-icon);
+        }
+    }
+
+    /* A speaker, struck through while muted; the button's pressed state says which. */
+    .mute {
+        border-color: transparent;
+        background-color: transparent;
+
+        & :global(.muted) {
             display: none;
         }
+
+        &[aria-pressed="true"] {
+            color: var(--color-background-danger);
+
+            & :global(.muted) {
+                display: inline-block;
+            }
+
+            & :global(.unmuted) {
+                display: none;
+            }
+        }
+    }
+
+    /*
+     * No value beside the slider: it shows in a bubble above the handle while the handle is held
+     * or moved with the keyboard. The slider's own readout becomes the bubble.
+     */
+    .row :global(.slider) {
+        position: relative;
+        grid-template: "control" var(--size-slider-thumb) / 1fr;
+    }
+
+    .row :global(.value) {
+        position: absolute;
+        inset-block-end: calc(100% + var(--space-between-lines));
+        inset-inline-start: calc(var(--slider-position) * var(--slider-travel) + var(--size-slider-thumb) / 2);
+        padding: 0.125rem var(--space-between-text);
+        border-radius: var(--radius-small);
+        background-color: var(--color-text-primary);
+        color: var(--color-background-surface);
+        white-space: nowrap;
+        translate: -50% 0;
+        visibility: hidden;
+    }
+
+    .row :global(.slider:has(.control:focus-visible, .control[data-dragging])) :global(.value) {
+        visibility: visible;
     }
 
     /* The TONE colours, as on the page's strips. */
@@ -133,7 +188,9 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 
     .foot {
         display: flex;
-        justify-content: center;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-between-text);
         padding: var(--space-padding-compact) var(--space-padding-container);
         border-block-start: var(--border-width-default) solid var(--color-border-subtle);
     }

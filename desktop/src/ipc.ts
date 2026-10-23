@@ -4,7 +4,7 @@ import { appOrigin } from "./protocol";
 import { loadSettings, saveSettings } from "./settings";
 import { refreshTrayMenu } from "./tray";
 import { checkForUpdate } from "./update";
-import { showMainWindow } from "./windows";
+import { hideTrayWindow, showMainWindow } from "./windows";
 
 /* What the page can ask of the app (through preload.ts). Only the app's own pages are answered. */
 
@@ -37,4 +37,5 @@ export const answerPages = (): void => {
             nativeTheme.themeSource = theme as "system" | "light" | "dark";
     });
     ipcMain.on("desktop:open-main", (event) => isFromApp(event) && showMainWindow());
+    ipcMain.on("desktop:hide-tray", (event) => isFromApp(event) && hideTrayWindow());
 };

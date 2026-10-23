@@ -67,3 +67,15 @@ describe("Using adoptSavedMix, when the saved mix has Line 3 unmuted but the Vol
         expect(state.channels["in3"]?.isMuted).toBe(true);
     });
 });
+
+describe("Using applySavedMix, when a saved icon isn't one of the channel icons", () => {
+    test("then it should drop it, so the channel keeps its default", () => {
+        expect(fromSaved({ icons: { in1: "skull", in2: "guitar" } }).icons).toEqual({ in2: "guitar" });
+    });
+});
+
+describe("Using applySavedMix, when the saved mix predates icons", () => {
+    test("then it should have no custom icons", () => {
+        expect(fromSaved({ names: { in1: "Mic" } }).icons).toEqual({});
+    });
+});

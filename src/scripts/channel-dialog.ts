@@ -4,6 +4,7 @@ import { minDb } from "../lib/gain.ts";
 import { maxNameLength } from "../lib/saved-mix.ts";
 import { formatDb } from "../lib/taper.ts";
 import { app, commit, hooks, layout } from "./app-state.ts";
+import { refreshChannelTray, wireChannelTray } from "./channel-tray.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 
 /* The channel settings dialog (ChannelDialog.astro), for whichever strip opened it. */
@@ -89,6 +90,7 @@ const refreshPreamp = (isLive: boolean): void => {
 /** Updates the open dialog's values from state. */
 export const refreshChannelDialog = (isLive: boolean): void => {
     if (openIds.length === 0) return;
+    refreshChannelTray(openIds);
     refreshPreamp(isLive);
     refreshMix(isLive);
     const controls = dialog().querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>(
@@ -179,6 +181,7 @@ const onRename = (input: HTMLInputElement): void => {
 
 export const wireChannelDialog = (): void => {
     initSliders(dialog());
+    wireChannelTray(() => openIds);
     dialog().addEventListener("slider-input", (event) => {
         const { name, value } = (event as CustomEvent<{ name: string; value: number }>).detail;
         sliderChanges[name]?.(value);

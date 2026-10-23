@@ -1,3 +1,4 @@
+import { isChannelIcon } from "./channel-icons.ts";
 import { minDb } from "./gain.ts";
 import { channels, defaultChannel, hardwarePairs, pairs, pairKey, setLinked } from "./mixer.ts";
 import type { CueName, IChannel, ICueRouting, IMixerState, ISend } from "./mixer.ts";
@@ -7,6 +8,8 @@ export interface ISavedMix {
     version: 1;
     channels: Record<string, Omit<IChannel, "isSoloed">>;
     names: Record<string, string>;
+    /** Added later than the rest: older links and saved mixes have none. */
+    icons: Record<string, string>;
     linked: Record<string, boolean>;
     cues: Record<CueName, ICueRouting>;
     headphoneSource: CueName;
@@ -52,6 +55,7 @@ export const toSavedMix = (state: IMixerState): ISavedMix => ({
         Object.entries(state.channels).map(([id, { isSoloed: _isSoloed, ...rest }]) => [id, structuredClone(rest)]),
     ),
     names: { ...state.names },
+    icons: { ...state.icons },
     linked: { ...state.linked },
     cues: structuredClone(state.cues),
     headphoneSource: state.headphoneSource,
@@ -71,6 +75,7 @@ export const applySavedMix = (state: IMixerState, value: unknown, maxDb: number)
     state.cues = { cue1: readCue(cues["cue1"]), cue2: readCue(cues["cue2"]) };
     state.headphoneSource = saved["headphoneSource"] === "cue2" ? "cue2" : "cue1";
     state.names = readNames(saved["names"]);
+    state.icons = readIcons(saved["icons"]);
 };
 
 export const maxNameLength = 24;
@@ -83,6 +88,14 @@ const readNames = (value: unknown): Record<string, string> => {
         }
     }
     return names;
+};
+
+const readIcons = (value: unknown): Record<string, string> => {
+    const icons: Record<string, string> = {};
+    for (const [id, icon] of Object.entries(record(value))) {
+        if (channels.some((c) => c.id === id) && isChannelIcon(icon)) icons[id] = icon;
+    }
+    return icons;
 };
 
 /**

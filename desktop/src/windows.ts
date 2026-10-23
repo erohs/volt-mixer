@@ -119,6 +119,9 @@ const placeNear = (window: BrowserWindow, icon: Rectangle): void => {
     window.setPosition(x, Math.round(y));
 };
 
+/** The tray window's own close button. */
+export const hideTrayWindow = (): void => trayWindow?.hide();
+
 /** Opens or closes the tray window. `icon` is where the tray icon is (none on Linux). */
 export const toggleTrayWindow = (icon?: Rectangle): void => {
     trayWindow ??= createTrayWindow();

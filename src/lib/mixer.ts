@@ -44,6 +44,8 @@ export interface IMixerState {
     headphoneSource: CueName;
     /** Custom channel names (Console keeps these on the computer too); missing = the default name. */
     names: Record<string, string>;
+    /** Custom tray icons (names from src/lib/channel-icons.ts); missing = the channel's default. */
+    icons: Record<string, string>;
     /** True once this computer's mix has been applied to the Volt; until then no crosspoint is sent. */
     isMixOwned: boolean;
     preamp: { gain: [number, number]; phantom: [boolean, boolean] };
@@ -114,6 +116,7 @@ export const defaultState = (): IMixerState => {
         cues: { cue1: { isMix: true, isMirroredToLine34: false }, cue2: { isMix: true, isMirroredToLine34: false } },
         headphoneSource: "cue1",
         names: {},
+        icons: {},
         isMixOwned: false,
         preamp: { gain: [0, 0], phantom: [false, false] },
         tone: [0, 0, 0, 0],

@@ -13,7 +13,7 @@ import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { initDialogs } from "./dialogs.ts";
 import { resetMeters, showMeterLevels } from "./meters-view.ts";
 import { refreshSettings, settingsActions, wireSettingsDialog } from "./settings-dialog.ts";
-import { publish, publishMeters, wireRemote, type ITraySnapshot } from "./remote.ts";
+import { publish, wireRemote, type ITraySnapshot } from "./remote.ts";
 import { loadMix, loadPendingMix, loadTheme, loadTrayHidden, saveMix, savePendingMix } from "./store.ts";
 import { initSliders } from "./slider.ts";
 import { refreshStrips, renderStrips } from "./strips.ts";
@@ -41,7 +41,7 @@ const meterNames = (): Set<string> => new Set(Object.keys(newestSpec().reports.m
 
 /** What a tray window shows: the rows the viewer chose, and whether it can change anything. */
 const traySnapshot = (): ITraySnapshot => ({
-    rows: trayRows(app.state, app.view, meterNames(), loadTrayHidden()),
+    rows: trayRows(app.state, app.view, loadTrayHidden()),
     maxDb: (volt.connectedSpec() ?? newestSpec()).faderMaxDb,
     isLive: isLive(),
     isMixOwned: app.state.isMixOwned,
@@ -110,11 +110,6 @@ const onLaterState = (data: Uint8Array): void => {
     commit();
 };
 
-const showMeters = (levels: Record<string, number>): void => {
-    showMeterLevels(levels);
-    publishMeters(levels);
-};
-
 let stateTimer = 0;
 const requestStateSoon = (): void => {
     clearTimeout(stateTimer);
@@ -124,7 +119,7 @@ const requestStateSoon = (): void => {
 const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): void => {
     const spec = volt.connectedSpec();
     if (!spec) return;
-    if (reportId === spec.reports.meters.id) return showMeters(parseMeters(spec, data));
+    if (reportId === spec.reports.meters.id) return showMeterLevels(parseMeters(spec, data));
     if (reportId !== spec.reports.command.id) return;
     const report = parseCommandReport(spec, data);
     if (report.type === "state") return app.isHardwareKnown ? onLaterState(data) : onFirstState(data);

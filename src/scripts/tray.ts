@@ -1,7 +1,6 @@
 import type { Intent } from "../lib/intents.ts";
 import type { ITrayRow } from "../lib/tray-rows.ts";
 import { desktopApp } from "./desktop.ts";
-import { showMeterLevels } from "./meters-view.ts";
 import { loadTheme } from "./store.ts";
 import { applyTheme } from "./theme.ts";
 import { openChannel, type ITraySnapshot, type RemoteMessage } from "./remote.ts";
@@ -28,17 +27,19 @@ const showNote = (text: string): void => {
     note().hidden = !text;
 };
 
+const template = (id: string): DocumentFragment => document.querySelector<HTMLTemplateElement>(`#${id}`)!.content;
+
+/** The row's icon says what it is; its name is there for screen readers only. */
 const buildRow = (row: ITrayRow): HTMLElement => {
-    const template = document.querySelector<HTMLTemplateElement>("#tray-row-template")!;
-    const item = (template.content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
-    item.dataset["key"] = row.key + row.ids.join(",");
+    const item = template("tray-row-template").firstElementChild!.cloneNode(true) as HTMLElement;
+    item.dataset["key"] = row.key;
+    const icon = template("tray-icons").querySelector(`[data-icon-name="${row.icon}"]`)?.firstElementChild;
+    if (icon) item.querySelector("[data-row-icon]")!.replaceChildren(icon.cloneNode(true));
     item.querySelector("[data-row-name]")!.textContent = row.name;
     item.querySelector("[data-row-action='mute']")!.setAttribute("aria-label", `Mute ${row.name}`);
     const slider = item.querySelector<HTMLElement>("[data-slider]")!;
     slider.dataset["kind"] = row.kind === "channel" ? "fader" : "level";
     slider.setAttribute("aria-label", `${row.name} level`);
-    const meters = item.querySelectorAll<HTMLElement>("[data-meter]");
-    row.meters.forEach((name, i) => meters[i] && (meters[i].dataset["meter"] = name));
     return item;
 };
 
@@ -56,7 +57,7 @@ const updateRow = (item: HTMLElement, row: ITrayRow, snapshot: ITraySnapshot): v
 
 const render = (snapshot: ITraySnapshot): void => {
     document.querySelector("[data-tray-status]")!.textContent = snapshot.status;
-    const key = snapshot.rows.map((row) => row.key + row.ids.join(",")).join("|");
+    const key = snapshot.rows.map((row) => `${row.key}:${row.icon}:${row.name}`).join("|");
     if (key !== layoutKey) {
         list().replaceChildren(...snapshot.rows.map(buildRow));
         initSliders(list());
@@ -65,8 +66,7 @@ const render = (snapshot: ITraySnapshot): void => {
     rows = snapshot.rows;
     const items = list().querySelectorAll<HTMLElement>("[data-tray-row]");
     snapshot.rows.forEach((row, i) => items[i] && updateRow(items[i], row, snapshot));
-    if (snapshot.rows.length === 0) showNote("Nothing to show. Choose what the tray shows in Settings › Tray mixer.");
-    else if (!note().textContent?.startsWith("Set up")) showNote("");
+    if (!note().textContent?.startsWith("Set up")) showNote("");
 };
 
 const rowOf = (element: Element): ITrayRow | undefined => {
@@ -85,7 +85,7 @@ const muteIntent = (row: ITrayRow): Intent =>
 const onSlider = (event: Event): void => {
     const row = rowOf(event.target as Element);
     if (!row) return;
-    recentInputs.set(row.key + row.ids.join(","), performance.now());
+    recentInputs.set(row.key, performance.now());
     post({ kind: "intent", intent: levelIntent(row, (event as CustomEvent<{ value: number }>).detail.value) });
 };
 
@@ -98,17 +98,19 @@ const onClick = (event: Event): void => {
 const onMessage = ({ data }: MessageEvent): void => {
     const message = data as Partial<RemoteMessage> | null;
     if (message?.kind === "snapshot" && message.snapshot) render(message.snapshot);
-    if (message?.kind === "meters" && message.levels) showMeterLevels(message.levels);
     if (message?.kind === "result" && message.result === "needsMix")
         showNote("Set up your mix in the main window first: the faders work once this computer has it.");
 };
 
-/** Hello while shown (the main window then sends rows and meters), bye while hidden. */
+/** Hello while shown (the main window then sends rows), bye while hidden. */
 const greet = (): void => post({ kind: document.visibilityState === "visible" ? "hello" : "bye" });
 
-const wireOpenButton = (): void => {
-    // In a browser there's no app, and the button is a plain link to the page.
+/** In a browser there's no app: Open is a plain link to the page, and there's nothing to close. */
+const wireButtons = (): void => {
     const desktop = desktopApp();
+    const close = document.querySelector<HTMLButtonElement>("[data-tray-close]")!;
+    close.hidden = !desktop;
+    close.addEventListener("click", () => desktop?.hideTray());
     document.querySelector("[data-tray-open]")!.addEventListener("click", (event) => {
         if (!desktop) return;
         event.preventDefault();
@@ -122,7 +124,7 @@ export const startTray = (): void => {
     channel?.addEventListener("message", onMessage);
     document.addEventListener("visibilitychange", greet);
     window.addEventListener("pagehide", () => post({ kind: "bye" }));
-    wireOpenButton();
+    wireButtons();
     // The theme is chosen in the main window's Settings; follow it live.
     window.addEventListener("storage", (event) => event.key === "volt-mixer.theme" && applyTheme(loadTheme()));
     greet();
