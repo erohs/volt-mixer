@@ -6,7 +6,8 @@
 export interface IDesktopSettings {
     startAtLogin: boolean;
     loginStart: "tray" | "window";
-    trayOn: "minimise" | "close";
+    minimiseToTray: boolean;
+    closeToTray: boolean;
     hasSeenTrayHint: boolean;
 }
 

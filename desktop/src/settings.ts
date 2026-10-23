@@ -11,8 +11,10 @@ export interface IDesktopSettings {
     startAtLogin: boolean;
     /** Started at login: stay in the tray, or open the window. */
     loginStart: "tray" | "window";
-    /** Which window button sends it to the tray; the other behaves as usual. */
-    trayOn: "minimise" | "close";
+    /** Minimise hides the window to the tray; off, it minimises to the taskbar as usual. */
+    minimiseToTray: boolean;
+    /** Close hides the window to the tray; off, closing it quits. */
+    closeToTray: boolean;
     /** The one-time hint on keeping the tray icon visible (Windows hides new ones). */
     hasSeenTrayHint: boolean;
 }
@@ -20,23 +22,26 @@ export interface IDesktopSettings {
 const defaults: IDesktopSettings = {
     startAtLogin: false,
     loginStart: "tray",
-    trayOn: "minimise",
+    minimiseToTray: true,
+    closeToTray: true,
     hasSeenTrayHint: false,
 };
 
 const file = (): string => path.join(app.getPath("userData"), "settings.json");
 let current: IDesktopSettings | null = null;
 
+type Flag = "startAtLogin" | "minimiseToTray" | "closeToTray" | "hasSeenTrayHint";
+
 /** Keeps only known keys with valid values: the file can be edited, and the page is a renderer. */
 const clean = (value: unknown, base: IDesktopSettings): IDesktopSettings => {
     const input = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
-    const flag = (key: "startAtLogin" | "hasSeenTrayHint"): boolean =>
-        typeof input[key] === "boolean" ? input[key] : base[key];
+    const flag = (key: Flag): boolean => (typeof input[key] === "boolean" ? input[key] : base[key]);
+    const loginStart = input["loginStart"];
     return {
         startAtLogin: flag("startAtLogin"),
-        loginStart:
-            input["loginStart"] === "window" || input["loginStart"] === "tray" ? input["loginStart"] : base.loginStart,
-        trayOn: input["trayOn"] === "close" || input["trayOn"] === "minimise" ? input["trayOn"] : base.trayOn,
+        loginStart: loginStart === "window" || loginStart === "tray" ? loginStart : base.loginStart,
+        minimiseToTray: flag("minimiseToTray"),
+        closeToTray: flag("closeToTray"),
         hasSeenTrayHint: flag("hasSeenTrayHint"),
     };
 };

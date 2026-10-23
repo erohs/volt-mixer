@@ -58,7 +58,7 @@ export const createMainWindow = (isShown: boolean): BrowserWindow => {
     lockNavigation(mainWindow);
     mainWindow.once("ready-to-show", () => isShown && mainWindow?.show());
     mainWindow.on("close", (event) => {
-        if (isQuitting || loadSettings().trayOn !== "close") return;
+        if (isQuitting || !loadSettings().closeToTray) return;
         event.preventDefault();
         mainWindow?.hide();
     });
@@ -70,7 +70,7 @@ export const createMainWindow = (isShown: boolean): BrowserWindow => {
         app.quit();
     });
     // Minimise can't be cancelled, so the window minimises and then hides.
-    mainWindow.on("minimize", () => loadSettings().trayOn === "minimise" && mainWindow?.hide());
+    mainWindow.on("minimize", () => loadSettings().minimiseToTray && mainWindow?.hide());
     void mainWindow.loadURL(`${appOrigin}/`);
     return mainWindow;
 };

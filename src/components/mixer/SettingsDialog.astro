@@ -107,31 +107,55 @@ import Slider from "../ui/Slider.astro";
     </SettingGroup>
 
     <SettingGroup id="desktop" title="Desktop app">
-        <SettingRow id="start-at-login" name="Start at login" for="start-at-login-input">
-            <input id="start-at-login-input" type="checkbox" role="switch" data-desktop="startAtLogin" />
+        <SettingRow id="start-at-login" name="Auto start" description="When you sign in." for="start-at-login-input">
+            <input
+                id="start-at-login-input"
+                type="checkbox"
+                role="switch"
+                aria-describedby="start-at-login-description"
+                data-desktop="startAtLogin"
+            />
         </SettingRow>
         <p class="note" data-desktop-login-status hidden></p>
-        <SettingRow id="login-start" name="At login" description="Where it starts." for="login-start-input">
-            <select id="login-start-input" aria-describedby="login-start-description" data-desktop="loginStart">
-                <option value="tray">Stay in the tray</option>
-                <option value="window">Open the window</option>
-            </select>
-        </SettingRow>
+        <fieldset class="choices" data-desktop-login-start hidden>
+            <legend class="visually-hidden">When it starts at sign-in</legend>
+            <label>
+                <input type="radio" name="login-start" value="tray" data-desktop="loginStart" />
+                Minimise to tray
+            </label>
+            <label>
+                <input type="radio" name="login-start" value="window" data-desktop="loginStart" />
+                Open to desktop
+            </label>
+        </fieldset>
         <SettingRow
-            id="tray-on"
-            name="Send to the tray"
-            description="The other button works as usual."
-            for="tray-on-input">
-            <select id="tray-on-input" aria-describedby="tray-on-description" data-desktop="trayOn">
-                <option value="minimise">When I minimise</option>
-                <option value="close">When I close</option>
-            </select>
+            id="minimise-to-tray"
+            name="Minimise to tray"
+            description="Off: it minimises to the taskbar."
+            for="minimise-to-tray-input">
+            <input
+                id="minimise-to-tray-input"
+                type="checkbox"
+                role="switch"
+                aria-describedby="minimise-to-tray-description"
+                data-desktop="minimiseToTray"
+            />
+        </SettingRow>
+        <SettingRow id="close-to-tray" name="Close to tray" description="Off: closing quits." for="close-to-tray-input">
+            <input
+                id="close-to-tray-input"
+                type="checkbox"
+                role="switch"
+                aria-describedby="close-to-tray-description"
+                data-desktop="closeToTray"
+            />
         </SettingRow>
         <SettingRow id="updates" name="Updates" description="Version">
             <button class="button" type="button" aria-describedby="updates-description" data-action="check-update">
                 Check
             </button>
         </SettingRow>
+        <p class="note" role="status" data-update-status></p>
     </SettingGroup>
 
     <SettingGroup id="your-mix" title="Your mix">
@@ -164,5 +188,25 @@ import Slider from "../ui/Slider.astro";
     .note {
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
+    }
+
+    /* The two ways to start at sign-in, under Auto start. */
+    .choices:not([hidden]) {
+        display: grid;
+        gap: var(--space-between-lines);
+        margin: 0;
+        padding: 0 0 0 var(--space-between-content);
+        border: 0;
+
+        & label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-between-text);
+            min-block-size: var(--size-action-minimum);
+        }
+    }
+
+    .note:empty {
+        display: none;
     }
 </style>

@@ -15,11 +15,12 @@ const trayHints: Record<string, string> = {
 const render = (): void => {
     const element = group();
     if (!element || !state) return;
-    for (const input of element.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-desktop]")) {
+    for (const input of element.querySelectorAll<HTMLInputElement>("[data-desktop]")) {
         const value = state.settings[input.dataset["desktop"] as keyof IDesktopSettings];
-        if (input instanceof HTMLInputElement) input.checked = value === true;
-        else input.value = String(value);
+        input.checked = input.type === "radio" ? input.value === value : value === true;
     }
+    // How it starts at sign-in only matters while Auto start is on.
+    element.querySelector<HTMLElement>("[data-desktop-login-start]")!.hidden = !state.settings.startAtLogin;
     element.querySelector("#updates-description")!.textContent = `Version ${state.version}`;
     const login = element.querySelector<HTMLElement>("[data-desktop-login-status]")!;
     login.textContent = state.loginStatus;
@@ -27,19 +28,37 @@ const render = (): void => {
 };
 
 const onChange = async (event: Event): Promise<void> => {
-    const input = (event.target as Element).closest<HTMLInputElement | HTMLSelectElement>("[data-desktop]");
+    const input = (event.target as Element).closest<HTMLInputElement>("[data-desktop]");
     const key = input?.dataset["desktop"];
     if (!input || !key) return;
-    const value = input instanceof HTMLInputElement && input.type === "checkbox" ? input.checked : input.value;
+    const value = input.type === "radio" ? input.value : input.checked;
     state = (await desktopApp()?.setSettings({ [key]: value })) ?? state;
     render();
 };
 
-const checkForUpdate = async (): Promise<void> => {
+/** The check's outcome, under the Check button; a newer version links to its release. */
+const showUpdate = (text: string, link?: string): void => {
+    const status = group()!.querySelector<HTMLElement>("[data-update-status]")!;
+    status.textContent = text;
+    if (!link) return;
+    // A new window, which the app hands to the browser (it never navigates away itself).
+    const download = Object.assign(document.createElement("a"), {
+        href: link,
+        target: "_blank",
+        rel: "noopener",
+        textContent: "Download it",
+    });
+    status.append(" ", download, ".");
+};
+
+const checkForUpdate = async (button: HTMLButtonElement): Promise<void> => {
+    button.disabled = true;
+    showUpdate("Checking…");
     const update = await desktopApp()?.checkForUpdate();
-    if (!update) return notice("Couldn't reach GitHub to check for updates. Try again later.");
-    if (!update.isNewer) return notice(`You have the latest version (${state?.version ?? update.version}).`);
-    notice(`Volt Mixer ${update.version} is available.`, { label: "Download", run: () => window.open(update.url) });
+    button.disabled = false;
+    if (!update) return showUpdate("Couldn't reach GitHub. Try again later.");
+    if (!update.isNewer) return showUpdate(`Up to date: ${state?.version ?? update.version} is the latest.`);
+    showUpdate(`Volt Mixer ${update.version} is available.`, update.url);
 };
 
 /** Once, on the first run: where the app went when its window closes. */
@@ -55,7 +74,8 @@ export const wireDesktopSettings = async (): Promise<void> => {
     if (element) element.hidden = !app;
     if (!element || !app) return;
     element.addEventListener("change", (event) => void onChange(event));
-    element.querySelector("[data-action='check-update']")?.addEventListener("click", () => void checkForUpdate());
+    const check = element.querySelector<HTMLButtonElement>("[data-action='check-update']")!;
+    check.addEventListener("click", () => void checkForUpdate(check));
     state = await app.getState();
     render();
     showTrayHint();
