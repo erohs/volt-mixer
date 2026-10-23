@@ -19,11 +19,12 @@ const contentTypes: Record<string, string> = {
     ".xml": "application/xml",
 };
 
-/* Inline style attributes carry slider ticks and meter zones; scripts are files only. */
+/* Style attributes carry slider ticks and meter zones; stylesheets and scripts are files only. */
 export const csp = [
     "default-src 'self'",
     "script-src 'self'",
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self'",
+    "style-src-attr 'unsafe-inline'",
     "img-src 'self' data:",
     "object-src 'none'",
     "base-uri 'none'",

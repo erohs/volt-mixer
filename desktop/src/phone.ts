@@ -164,12 +164,21 @@ const openStream = (req: http.IncomingMessage, res: http.ServerResponse): void =
     });
 };
 
-const isWithinRate = (client: string): boolean => {
+/** Counted per address: the client name is the phone's own choice. */
+const isWithinRate = (address: string): boolean => {
     const second = Math.floor(Date.now() / 1000);
-    const rate = rates.get(client);
+    const rate = rates.get(address);
     const count = rate?.second === second ? rate.count + 1 : 1;
-    rates.set(client, { second, count });
+    if (rates.size > 64) rates.clear();
+    rates.set(address, { second, count });
     return count <= intentsPerSecond;
+};
+
+/** Keeps each phone page's last sequence number; past 64, the one heard from longest ago goes. */
+const rememberSeq = (client: string, seq: number): void => {
+    lastSeq.delete(client);
+    if (lastSeq.size >= 64) lastSeq.delete(lastSeq.keys().next().value ?? "");
+    lastSeq.set(client, seq);
 };
 
 /** One intent from a phone. Its seq only grows, so a late or repeated one is dropped, not applied. */
@@ -179,10 +188,9 @@ const takeIntent = async (req: http.IncomingMessage, res: http.ServerResponse): 
     const { client, seq } = body ?? {};
     if (typeof client !== "string" || client.length > 40 || typeof seq !== "number")
         return send(res, 400, securityHeaders);
-    if (!isWithinRate(client)) return send(res, 429, securityHeaders);
+    if (!isWithinRate(remoteIp(req))) return send(res, 429, securityHeaders);
     if (seq <= (lastSeq.get(client) ?? -1)) return send(res, 200, securityHeaders, { result: "stale" });
-    if (lastSeq.size > 64) lastSeq.clear();
-    lastSeq.set(client, seq);
+    rememberSeq(client, seq);
     const result = await askPage("phone-intent", body?.intent);
     send(res, 200, securityHeaders, { result: result ?? "ignored" });
 };

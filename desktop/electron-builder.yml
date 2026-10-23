@@ -25,6 +25,8 @@ electronFuses:
   enableNodeCliInspectArguments: false
   enableEmbeddedAsarIntegrityValidation: true
   onlyLoadAppFromAsar: true
+  # Nothing loads from file://, so it gets no more than any other scheme.
+  grantFileProtocolExtraPrivileges: false
 win:
   target: nsis
   icon: build/icon.png

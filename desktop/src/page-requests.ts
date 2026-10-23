@@ -11,8 +11,9 @@ import { getMainWindow } from "./windows";
 let nextId = 0;
 const waiting = new Map<number, (reply: unknown) => void>();
 
+/* Only the main window was asked, so only it may answer (the tray window is an app page too). */
 ipcMain.on("page:reply", (event, id: unknown, reply: unknown) => {
-    if (!isFromApp(event) || typeof id !== "number") return;
+    if (!isFromApp(event) || event.sender !== getMainWindow()?.webContents || typeof id !== "number") return;
     waiting.get(id)?.(reply);
     waiting.delete(id);
 });
