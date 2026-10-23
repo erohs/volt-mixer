@@ -73,9 +73,18 @@ has no WebHID on macOS or Linux, so the USB part would have to be rewritten nati
 
 Nothing is hosted, so nothing needs an account and the work laptop reaches nothing new
 (`docs/remote-sync.md`). A mix travels as a short `#m=` link or QR code: a compact binary form
-that rounds levels down, so a link can never make anything louder. On one computer the desktop
-app answers the website on `127.0.0.1` only, and the most recent change wins. The phone remote is
-the tray page served by the app on the home network, behind a token from a QR code. Phones send
+that rounds levels down, so a link can never make anything louder. The phone remote is the tray
+page served by the app on the home network, behind a token from a QR code. Phones send
 switches as target states (`to`) and every change with a rising sequence number, so a message
 that arrives twice or late can't undo a newer one. It's plain HTTP on the home network, which the
 setting says plainly.
+
+## No mix sync between the app and the website
+
+Version 0.2.0 kept the website's mix in step with the desktop app on the same computer, over
+`127.0.0.1`. It was dropped in 0.2.1. Both drive the same Volt, so taking the other side's mix
+meant re-sending it, which could land after a newer change and briefly play an older, louder
+level; a new connection pushed its own mix before it heard from the other; and Forget didn't
+stick. It only helped on a computer that has the app, where the website isn't needed. The Volt's
+own settings (levels, mutes, 48V, gain, tone, links) need no sync: every page re-reads them from
+the Volt.

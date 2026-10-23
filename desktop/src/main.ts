@@ -3,7 +3,6 @@ import { allowVolt } from "./hid";
 import { answerPages, applyPhoneRemote } from "./ipc";
 import { stopPhoneRemote } from "./phone";
 import { applyLoginItem, isStartedInTray } from "./login";
-import { shareMixWithWebsite } from "./mix-share";
 import { registerAppScheme, serveSite } from "./protocol";
 import { loadSettings } from "./settings";
 import { createTray } from "./tray";
@@ -33,7 +32,6 @@ if (!app.requestSingleInstanceLock()) {
         applyLoginItem(settings.startAtLogin);
         createTray();
         createMainWindow(!isStartedInTray(settings));
-        shareMixWithWebsite(settings.shareMix);
         applyPhoneRemote(settings);
         prepareTrayWindow();
     });

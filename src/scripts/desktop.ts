@@ -8,7 +8,6 @@ export interface IDesktopSettings {
     loginStart: "tray" | "window";
     minimiseToTray: boolean;
     closeToTray: boolean;
-    shareMix: boolean;
     phoneRemote: boolean;
     phoneAddress: string;
     hasSeenTrayHint: boolean;
@@ -47,8 +46,6 @@ export interface IVoltDesktop {
     openMainWindow: () => void;
     /** Hides the tray window (its Close button). */
     hideTray: () => void;
-    /** Main passes on the website's requests for this app's mix; the answer goes back to it. */
-    onMixRequest: (answer: (request: unknown) => unknown) => void;
     /** The phone remote (desktop/src/phone.ts). */
     phoneInfo: () => Promise<IPhoneInfo | null>;
     rotatePhone: () => Promise<IPhoneInfo | null>;

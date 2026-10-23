@@ -64,9 +64,8 @@ Only Windows has been tried with a Volt so far; reports from macOS and Linux are
 - **Another computer:** Settings › Your mix › click the **Mix link** to copy it, or **Show QR
   code**. The link is short (about 140 characters) and the QR code can be scanned with a phone
   or, on a Windows laptop, with the Camera app. Opening it there applies the mix.
-- **The app and the website on one computer:** turn on Settings › Your mix › **Sync with the
-  desktop app** on the website (the app shares by default). The browser asks once before the site
-  may talk to an app on this computer. The most recent change wins.
+- **The app and the website on one computer:** use one or the other. Each keeps its own mix, so
+  while the app is open the website leaves the mix to it and says so.
 - **Your phone:** turn on Settings › Desktop app › **Phone remote** and scan its QR code. The
   phone shows the tray mixer and works on the same Wi-Fi while the app is running. Windows asks
   whether to let Volt Mixer through the firewall: allow it on private networks.

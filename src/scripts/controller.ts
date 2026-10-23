@@ -9,7 +9,6 @@ import { stripGroups } from "../lib/strip-groups.ts";
 import { trayRows } from "../lib/tray-rows.ts";
 import { refreshOutputs, runIntent, wireMixerControls } from "./actions.ts";
 import { app, hooks, notice, setStatus } from "./app-state.ts";
-import { mixChanged, pullAppMix } from "./app-sync.ts";
 import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { initDialogs } from "./dialogs.ts";
 import { noteInputLevels, watchInputs } from "./input-activity.ts";
@@ -17,8 +16,15 @@ import { resetMeters, showMeterLevels } from "./meters-view.ts";
 import { refreshSettings, settingsActions, wireSettingsDialog } from "./settings-dialog.ts";
 import { publish, wireRemote, type ITraySnapshot } from "./remote.ts";
 import { toast } from "./toast.ts";
-import { answerWebsite } from "./website-share.ts";
-import { loadMix, loadPendingMix, loadTheme, loadTrayHidden, saveMix, savePendingMix } from "./store.ts";
+import {
+    clearRetiredSettings,
+    loadMix,
+    loadPendingMix,
+    loadTheme,
+    loadTrayHidden,
+    saveMix,
+    savePendingMix,
+} from "./store.ts";
 import { initSliders } from "./slider.ts";
 import { refreshStrips, renderStrips } from "./strips.ts";
 import { applyTheme } from "./theme.ts";
@@ -63,10 +69,7 @@ const flush = (): void => {
     isFlushPending = false;
     const spec = volt.connectedSpec();
     if (spec && isLive()) volt.send(app.sync.diff(app.state, spec));
-    const isEdit = app.hasEdit;
-    app.hasEdit = false;
-    const isSaved = app.state.isMixOwned && app.serial && saveMix(app.serial, toSavedMix(app.state), isEdit);
-    if (isSaved && isEdit) mixChanged();
+    if (app.state.isMixOwned && app.serial) saveMix(app.serial, toSavedMix(app.state));
     refresh();
 };
 
@@ -87,11 +90,10 @@ const pushMix = (): void => {
     if (spec && isLive()) volt.send(app.sync.diff(app.state, spec, { isFull: true, filter: isMixKey }));
 };
 
-/** `isEdit`: the user chose this mix (a link, Console's defaults), so it counts as their change. */
-const takeOwnership = (savedMix: unknown, isEdit = false): void => {
+const takeOwnership = (savedMix: unknown): void => {
     const spec = volt.connectedSpec() ?? newestSpec();
     adoptSavedMix(app.state, savedMix, spec.faderMaxDb);
-    if (app.serial && saveMix(app.serial, toSavedMix(app.state), isEdit) && isEdit) mixChanged();
+    if (app.serial) saveMix(app.serial, toSavedMix(app.state));
     pushMix();
     relayout();
 };
@@ -106,9 +108,8 @@ const onFirstState = (data: Uint8Array): void => {
     const savedMix = pendingMix ?? loadMix(app.serial);
     savePendingMix(null);
     if (pendingMix) toast("Mix applied from the link.");
-    if (savedMix) takeOwnership(savedMix, pendingMix !== null);
+    if (savedMix) takeOwnership(savedMix);
     else relayout();
-    void pullAppMix();
 };
 
 /** A later state dump (after a link change or a failed send): adopt it, re-send the mix legs. */
@@ -211,7 +212,7 @@ const receiveMixLink = (link: string): boolean => {
     const mix = mixFromHash(new URL(link, location.href).hash);
     if (!mix) return (toast("That isn't a Volt Mixer mix link."), false);
     if (volt.connectedSpec() && app.isHardwareKnown) {
-        takeOwnership(mix, true);
+        takeOwnership(mix);
         toast("Mix applied from the link.");
     } else {
         savePendingMix(mix);
@@ -254,7 +255,7 @@ const pageActions: Record<string, () => void> = {
     },
     "mix-defaults": () =>
         confirmThen("Set every channel to 0 dB, like a new UAD Console session?", () =>
-            takeOwnership(toSavedMix(defaultState()), true),
+            takeOwnership(toSavedMix(defaultState())),
         ),
     "push-mix": () => confirmThen("Apply this computer's mix to the Volt?", pushMix),
     "forget-mix": () =>
@@ -294,12 +295,8 @@ const wireConnection = (): void => {
     window.setInterval(rereadVolt, rereadMs);
 };
 
-/**
- * The desktop app's tray window sends intents here (only a page that can drive the Volt applies
- * them), and the website on the same computer asks for the mix.
- */
+/** The desktop app's tray window sends intents here; only a page that can drive the Volt applies them. */
 const answerOthers = (): void => {
-    answerWebsite();
     wireRemote({
         isActive: () => app.hasControl,
         snapshot: traySnapshot,
@@ -319,7 +316,8 @@ const holdControlLock = (): void => {
 };
 
 export const start = (): void => {
-    Object.assign(hooks, { commit, layout: relayout, refresh, autoGain: startAutoGain, adoptMix: takeOwnership });
+    Object.assign(hooks, { commit, layout: relayout, refresh, autoGain: startAutoGain });
+    clearRetiredSettings();
     applyTheme(loadTheme());
     initSliders(document);
     initDialogs();

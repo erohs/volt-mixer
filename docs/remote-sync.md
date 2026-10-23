@@ -3,10 +3,10 @@
 Whether a live link between computers (and a phone) is needed, and what it would take.
 
 **Built (October 2026), with no online service:** short `#m=` mix links and QR codes
-(`src/lib/mix-code.ts`, `src/lib/qr-svg.ts`); the desktop app and the website keeping the mix in
-step on one computer over `127.0.0.1` (`desktop/src/mix-share.ts`, `src/scripts/app-sync.ts`);
-and option 1 below, the phone remote (`desktop/src/phone.ts`, `src/scripts/tray-link.ts`). No
-hosted relay: the user wanted nothing to sign up for, and the work network likely forbids it.
+(`src/lib/mix-code.ts`, `src/lib/qr-svg.ts`), and option 1 below, the phone remote
+(`desktop/src/phone.ts`, `src/scripts/tray-link.ts`). No hosted relay: the user wanted nothing to
+sign up for, and the work network likely forbids it. Keeping the app's and the website's mixes in
+step on one computer was built in 0.2.0 and dropped in 0.2.1 (`docs/decisions.md`).
 
 ## What already stays in step
 

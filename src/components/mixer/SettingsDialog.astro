@@ -153,19 +153,6 @@ import Slider from "../ui/Slider.astro";
             />
         </SettingRow>
         <SettingRow
-            id="share-mix"
-            name="Share mix with the website"
-            description="On this computer, so the two stay in step."
-            for="share-mix-input">
-            <input
-                id="share-mix-input"
-                type="checkbox"
-                role="switch"
-                aria-describedby="share-mix-description"
-                data-desktop="shareMix"
-            />
-        </SettingRow>
-        <SettingRow
             id="phone-remote"
             name="Phone remote"
             description="The tray mixer on your phone, on the same Wi-Fi."
@@ -255,17 +242,6 @@ import Slider from "../ui/Slider.astro";
                     </p>
                 </div>
             </details>
-        </div>
-        <!-- Website only (app-sync.ts hides it in the desktop app, which is the other end). -->
-        <div data-app-sync>
-            <SettingRow
-                id="app-sync"
-                name="Sync with the desktop app"
-                description="On this computer; the browser asks once."
-                for="app-sync-input">
-                <input id="app-sync-input" type="checkbox" role="switch" aria-describedby="app-sync-description" />
-            </SettingRow>
-            <p class="note" role="status" data-app-sync-status></p>
         </div>
         <SettingRow id="push-mix" name="Apply mix" description="Send it to the Volt now.">
             <button class="button" type="button" aria-describedby="push-mix-description" data-action="push-mix">

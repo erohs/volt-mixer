@@ -5,7 +5,6 @@ import { app, commit, hooks, layout } from "./app-state.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 import { loadTheme, saveTheme, saveView } from "./store.ts";
 import { applyTheme, isTheme } from "./theme.ts";
-import { wireAppSync } from "./app-sync.ts";
 import { refreshMixLink, wireMixLink } from "./mix-link.ts";
 import { wireDesktopSettings } from "./desktop-settings.ts";
 
@@ -93,7 +92,6 @@ export const settingsActions: Record<string, () => void> = {
 export const wireSettingsDialog = (): void => {
     initSliders(dialog());
     wireMixLink();
-    wireAppSync();
     void wireDesktopSettings();
     dialog().addEventListener("change", (event) => {
         const input = (event.target as Element).closest<HTMLInputElement | HTMLSelectElement>("[data-setting]");

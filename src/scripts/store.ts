@@ -13,7 +13,8 @@ const pendingKey = `${prefix}.pending-mix`;
 const viewKey = `${prefix}.view`;
 const themeKey = `${prefix}.theme`;
 const trayKey = `${prefix}.tray`;
-const appSyncKey = `${prefix}.app-sync`;
+/** Settings older versions kept that nothing reads any more. */
+const retiredKeys = [`${prefix}.app-sync`];
 
 const read = (key: string): unknown => {
     try {
@@ -33,39 +34,17 @@ const write = (key: string, value: unknown): void => {
     }
 };
 
-/** A saved mix and when it last changed (ms since 1970), to tell which copy is newer. */
-export interface IMixEntry {
-    mix: unknown;
-    changedAt: number;
-}
-
-/** Older saves are the mix alone; they count as changed long ago, so any dated copy wins. */
-export const loadMixEntry = (serial: string): IMixEntry | null => {
-    const saved = read(mixKey(serial)) as Record<string, unknown> | null;
-    if (saved === null) return null;
-    const isDated = typeof saved === "object" && "mix" in saved && typeof saved["changedAt"] === "number";
-    return isDated ? { mix: saved["mix"], changedAt: saved["changedAt"] as number } : { mix: saved, changedAt: 0 };
+/** The saved mix. Version 0.2.0 saved it dated (`{ mix, changedAt }`) for syncing with the website. */
+export const loadMix = (serial: string): unknown => {
+    const saved = read(mixKey(serial));
+    const isDated = typeof saved === "object" && saved !== null && "mix" in saved && "changedAt" in saved;
+    return isDated ? (saved as { mix: unknown }).mix : saved;
 };
 
-export const loadMix = (serial: string): unknown => loadMixEntry(serial)?.mix ?? null;
-
-/**
- * Saves the mix if it differs from what's saved; true when it did. Only an edit (`isEdit`: a
- * change the user made) is dated now: the page tidying its copy (on connect, or after the Volt
- * reports something) keeps the old date, so it can't win over a real change made elsewhere.
- * null forgets the mix.
- */
-export const saveMix = (serial: string, mix: ISavedMix | null, isEdit = false): boolean => {
-    if (mix === null) return (write(mixKey(serial), null), true);
-    const saved = loadMixEntry(serial);
-    if (JSON.stringify(saved?.mix) === JSON.stringify(mix)) return false;
-    write(mixKey(serial), { mix, changedAt: isEdit ? Date.now() : (saved?.changedAt ?? 0) });
-    return true;
+/** Saves the mix if it differs from what's saved; null forgets it. */
+export const saveMix = (serial: string, mix: ISavedMix | null): void => {
+    if (mix === null || JSON.stringify(loadMix(serial)) !== JSON.stringify(mix)) write(mixKey(serial), mix);
 };
-
-/** Saves a mix that came from elsewhere with its own date, so the two copies agree on it. */
-export const saveMixAt = (serial: string, mix: ISavedMix, changedAt: number): void =>
-    write(mixKey(serial), { mix, changedAt });
 
 /** A mix opened from a link before the Volt connected; applied once it does. */
 export const loadPendingMix = (): unknown => read(pendingKey);
@@ -97,6 +76,4 @@ export const loadTrayHidden = (): string[] => {
 
 export const saveTrayHidden = (hidden: string[]): void => write(trayKey, hidden.length > 0 ? hidden : null);
 
-/** Website only: whether to keep the mix in step with the desktop app on this computer. */
-export const loadAppSync = (): boolean => read(appSyncKey) === true;
-export const saveAppSync = (isOn: boolean): void => write(appSyncKey, isOn ? true : null);
+export const clearRetiredSettings = (): void => retiredKeys.forEach((key) => write(key, null));

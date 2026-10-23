@@ -15,8 +15,6 @@ export const app = {
     isSendAllowed: false,
     /** This tab holds the control lock (only one tab drives the Volt). */
     hasControl: true,
-    /** The user changed something since the last flush (so a changed mix is dated now). */
-    hasEdit: false,
     /** When the user last changed something (performance.now()), so re-reading the Volt waits. */
     lastEditAt: -Infinity,
 };
@@ -28,13 +26,10 @@ export const hooks = {
     refresh: (): void => {},
     /** Starts the Volt's Auto-Gain; false when the Volt can't be changed right now. */
     autoGain: (_mask: number, _seconds: number): boolean => false,
-    /** Takes a mix from elsewhere as this page's own: validated, saved and sent to the Volt. */
-    adoptMix: (_mix: unknown): void => {},
 };
 
 /** For the user's own changes, from the controls; the controller's housekeeping commits directly. */
 export const commit = (): void => {
-    app.hasEdit = true;
     app.lastEditAt = performance.now();
     hooks.commit();
 };

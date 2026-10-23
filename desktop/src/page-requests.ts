@@ -3,9 +3,9 @@ import { isFromApp } from "./protocol";
 import { getMainWindow } from "./windows";
 
 /*
- * Questions main passes to the main window, which holds the mix and drives the Volt: the website's
- * mix requests (mix-share.ts) and the phone's intents (phone.ts). The page answers through
- * preload.ts; no answer within 2 s (or no window) is null.
+ * Questions main passes to the main window, which holds the mix and drives the Volt: the phone's
+ * intents (phone.ts). The page answers through preload.ts; no answer within 2 s (or no window) is
+ * null.
  */
 
 let nextId = 0;
@@ -17,7 +17,7 @@ ipcMain.on("page:reply", (event, id: unknown, reply: unknown) => {
     waiting.delete(id);
 });
 
-export const askPage = (channel: "mix-share" | "phone-intent", request: unknown): Promise<unknown> =>
+export const askPage = (channel: "phone-intent", request: unknown): Promise<unknown> =>
     new Promise((resolve) => {
         const window = getMainWindow();
         if (!window) return resolve(null);

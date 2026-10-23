@@ -19,8 +19,6 @@ contextBridge.exposeInMainWorld("voltDesktop", {
     setTheme: (theme: string): void => ipcRenderer.send("desktop:theme", theme),
     openMainWindow: (): void => ipcRenderer.send("desktop:open-main"),
     hideTray: (): void => ipcRenderer.send("desktop:hide-tray"),
-    /** The website on this computer asking for, or offering, a mix (desktop/src/mix-share.ts). */
-    onMixRequest: (answer: (request: unknown) => unknown): void => answerMain("mix-share", answer),
     /** A phone's intent (desktop/src/phone.ts); the answer is the intent's result. */
     onPhoneIntent: (answer: (request: unknown) => unknown): void => answerMain("phone-intent", answer),
     fitTray: (height: number): void => ipcRenderer.send("desktop:fit-tray", height),

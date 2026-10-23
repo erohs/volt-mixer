@@ -1,6 +1,5 @@
 import { app, ipcMain, nativeTheme } from "electron";
 import { applyLoginItem, loginItemStatus } from "./login";
-import { shareMixWithWebsite } from "./mix-share";
 import { phoneInfo, rotatePhoneToken, startPhoneRemote, stopPhoneRemote } from "./phone";
 import { isFromApp } from "./protocol";
 import { loadSettings, saveSettings, type IDesktopSettings } from "./settings";
@@ -21,7 +20,6 @@ const setSettings = (change: unknown) => {
     const wasAtLogin = loadSettings().startAtLogin;
     const settings = saveSettings(change);
     if (settings.startAtLogin !== wasAtLogin) applyLoginItem(settings.startAtLogin);
-    shareMixWithWebsite(settings.shareMix);
     applyPhoneRemote(settings);
     refreshTrayMenu();
     return desktopState();

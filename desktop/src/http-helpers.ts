@@ -1,6 +1,6 @@
 import type http from "http";
 
-/* Small helpers for the app's two local servers (mix-share.ts, phone.ts). */
+/* Small helpers for the app's local server (phone.ts). */
 
 export type Headers = Record<string, string>;
 
