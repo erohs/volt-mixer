@@ -1,5 +1,6 @@
-// Renders the link-preview card and the PNG icons into public/ with the installed Edge or Chrome
-// (headless), so no image tooling is needed. Re-run after changing og-card.html or icon.svg.
+// Renders the link-preview card and the PNG icons into public/, and the desktop app's icons into
+// desktop/build/, with the installed Edge or Chrome (headless), so no image tooling is needed.
+// Re-run after changing og-card.html or icon.svg.
 //   node make-images.mjs            CHROME_PATH=<browser> to pick the browser
 import { execFileSync } from "child_process";
 import fs from "fs";
@@ -26,10 +27,11 @@ if (!browser) {
     process.exit(1);
 }
 
-const shoot = (file, width, height, query = "") => {
-    const out = path.join(publicDir, file);
+const shoot = (file, width, height, query = "", dir = publicDir) => {
+    const out = path.join(dir, file);
     execFileSync(browser, [
         "--headless",
+        "--default-background-color=00000000",
         "--disable-gpu",
         "--hide-scrollbars",
         "--force-device-scale-factor=1",
@@ -49,3 +51,11 @@ for (const [file, size] of [
 ]) {
     shoot(file, size, size, `?icon=${size}`);
 }
+
+// The desktop app: installer icon, the tray icon (Windows, Linux) and the macOS menu bar glyph.
+const desktopBuild = path.join(here, "..", "desktop", "build");
+fs.mkdirSync(desktopBuild, { recursive: true });
+shoot("icon.png", 512, 512, "?icon=512", desktopBuild);
+shoot("tray.png", 32, 32, "?icon=32", desktopBuild);
+shoot("trayTemplate.png", 16, 16, "?glyph=16", desktopBuild);
+shoot("trayTemplate@2x.png", 32, 32, "?glyph=32", desktopBuild);

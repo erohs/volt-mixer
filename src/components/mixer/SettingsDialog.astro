@@ -106,6 +106,34 @@ import Slider from "../ui/Slider.astro";
         </SettingRow>
     </SettingGroup>
 
+    <SettingGroup id="desktop" title="Desktop app">
+        <SettingRow id="start-at-login" name="Start at login" for="start-at-login-input">
+            <input id="start-at-login-input" type="checkbox" role="switch" data-desktop="startAtLogin" />
+        </SettingRow>
+        <p class="note" data-desktop-login-status hidden></p>
+        <SettingRow id="login-start" name="At login" description="Where it starts." for="login-start-input">
+            <select id="login-start-input" aria-describedby="login-start-description" data-desktop="loginStart">
+                <option value="tray">Stay in the tray</option>
+                <option value="window">Open the window</option>
+            </select>
+        </SettingRow>
+        <SettingRow
+            id="tray-on"
+            name="Send to the tray"
+            description="The other button works as usual."
+            for="tray-on-input">
+            <select id="tray-on-input" aria-describedby="tray-on-description" data-desktop="trayOn">
+                <option value="minimise">When I minimise</option>
+                <option value="close">When I close</option>
+            </select>
+        </SettingRow>
+        <SettingRow id="updates" name="Updates" description="Version">
+            <button class="button" type="button" aria-describedby="updates-description" data-action="check-update">
+                Check
+            </button>
+        </SettingRow>
+    </SettingGroup>
+
     <SettingGroup id="tray" title="Tray mixer">
         <p class="note">What the tray window shows. Hidden rows still play.</p>
         <ul class="choices" data-tray-choices></ul>

@@ -1,0 +1,26 @@
+{
+    "name": "volt-mixer-desktop",
+    "productName": "Volt Mixer",
+    "version": "0.1.0",
+    "description": "Volt Mixer as a desktop app: the Volt 4 Gen 2's mixer in a window and the system tray.",
+    "license": "MIT",
+    "author": "Naomi",
+    "homepage": "https://github.com/erohs/volt-mixer",
+    "private": true,
+    "main": "out/main.js",
+    "packageManager": "pnpm@12.8.1",
+    "scripts": {
+        "postinstall": "node node_modules/electron/install.js",
+        "build:site": "node scripts/build-site.mjs",
+        "build": "pnpm build:site && tsc -p tsconfig.json",
+        "start": "pnpm build && electron .",
+        "dist": "pnpm build && electron-builder --publish never",
+        "release": "pnpm build && electron-builder --publish always"
+    },
+    "devDependencies": {
+        "@types/node": "24.19.1",
+        "electron": "44.9.3",
+        "electron-builder": "26.15.3",
+        "typescript": "6.0.3"
+    }
+}

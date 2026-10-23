@@ -1,0 +1,6 @@
+# Its own pnpm root (the site at the repository root is a separate project).
+
+# pnpm refuses to run a dependency's install scripts unless it is listed here. electron-winstaller
+# picks its 7-Zip; Electron's own binary is fetched by this package's postinstall.
+allowBuilds:
+  electron-winstaller: true

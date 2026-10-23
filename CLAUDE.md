@@ -11,8 +11,9 @@ is the update loop for new UA firmware or software.
 Conventions follow `../naovixen` (its `CLAUDE.md` and `.claude/rules/`), with the exceptions in
 `docs/decisions.md`. In short:
 
-- **As lean as possible.** Astro, TypeScript, Vitest and Prettier only; no UI or test frameworks
-  beyond that, no jQuery. Ask before adding a dependency.
+- **As lean as possible.** Astro, TypeScript, Vitest and Prettier only (plus Electron and
+  electron-builder in `desktop/`); no UI or test frameworks beyond that, no jQuery. Ask before
+  adding a dependency.
 - **Readability over cleverness.** Functions 25 lines, files 400. Comments only where the code
   cannot speak for itself.
 - **WCAG 2.2 AA is the floor**, including reflow at 320 CSS px. Browser checks are done by hand
@@ -33,11 +34,12 @@ src/
                      mixer model, sync, saved mix, tapers, meters
   scripts/           browser code: WebHID connection, controller, sliders, strips, dialogs
   components/        ui/ (Slider, Meter, Dialog, Icon), mixer/ (strips, outputs, dialogs), site/
-  layouts/ pages/    BaseLayout and the one page
+  layouts/ pages/    BaseLayout, the mixer page and the desktop app's tray page
   styles/            tokens (light-dark pairs), reset, base, button, in layers
   icons/             SVG icons, with their licences
 public/              icon and web app manifest
 tools/               home-PC capture kit (Node 24; imports src/lib directly). Not deployed.
+desktop/             Electron app: the site in a window plus a tray mixer (own package.json)
 reference/decoded/   decoded captures the tests check against (serials redacted)
 docs/                protocol, maintenance guide, decisions
 ```

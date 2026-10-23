@@ -4,6 +4,9 @@ node_modules/
 
 # Build output
 dist/
+desktop/out/
+desktop/site/
+desktop/release/
 .astro/
 *.tsbuildinfo
 

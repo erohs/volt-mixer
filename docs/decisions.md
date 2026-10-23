@@ -49,3 +49,22 @@ A dialog (or any panel with a title bar) is a column: the header stays put and o
 scrolls, so the scrollbar starts below the header line rather than running beside it.
 `src/components/ui/Dialog.astro` does this for every dialog; new panels follow the same pattern
 instead of a sticky header inside a scrolling box.
+
+## The desktop app is Electron, and the page drives the Volt there too
+
+`desktop/` wraps the same site in Electron for home computers that want it without a browser,
+with a tray mixer. Electron ships Chromium, so WebHID works the same on Windows, macOS and Linux
+and the page's own connection code (`src/scripts/volt-connection.ts`) runs unchanged; main only
+grants the permission Chrome would ask for. A smaller shell (Tauri) uses the system web view, which
+has no WebHID on macOS or Linux, so the USB part would have to be rewritten natively.
+
+- The site is served from `app://volt/`, a secure origin where its root-absolute URLs resolve, with
+  a strict CSP (`script-src 'self'`; `public/theme.js` is a file for that reason).
+- The main window keeps the only connection to the Volt, so it's hidden rather than closed while
+  the app is in the tray (`backgroundThrottling: false`, and `commit()` doesn't rely on animation
+  frames). The tray window (`src/pages/tray`) only draws rows and sends intents
+  (`src/lib/intents.ts`) over a `BroadcastChannel`; the main window checks and applies them.
+- Builds are unsigned (GitHub Releases): no paid certificates. macOS builds are signed ad hoc so
+  Apple silicon opens them. Updates are a check and a link, not an automatic install.
+- Electron, electron-builder and the main process's TypeScript live in `desktop/` with their own
+  `package.json`, so the site's toolchain stays Astro, TypeScript, Vitest and Prettier.

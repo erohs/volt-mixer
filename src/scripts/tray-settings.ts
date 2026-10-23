@@ -1,11 +1,12 @@
 import { trayChoices } from "../lib/tray-rows.ts";
 import { app, hooks } from "./app-state.ts";
+import { desktopApp } from "./desktop.ts";
 import { loadTrayHidden, saveTrayHidden } from "./store.ts";
 
 /* Settings › Tray mixer: one switch per row the desktop app's tray window can show. */
 
-/** The desktop app's preload adds window.voltDesktop; the website has no tray. */
-export const isDesktopApp = (): boolean => "voltDesktop" in window;
+/** The website has no tray. */
+export const isDesktopApp = (): boolean => desktopApp() !== null;
 
 const group = (): HTMLElement | null => document.querySelector<HTMLElement>('[data-group="tray"]');
 const list = (): HTMLElement | null => document.querySelector<HTMLElement>("[data-tray-choices]");

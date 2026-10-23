@@ -1,6 +1,9 @@
 import type { Intent } from "../lib/intents.ts";
 import type { ITrayRow } from "../lib/tray-rows.ts";
+import { desktopApp } from "./desktop.ts";
 import { showMeterLevels } from "./meters-view.ts";
+import { loadTheme } from "./store.ts";
+import { applyTheme } from "./theme.ts";
 import { openChannel, type ITraySnapshot, type RemoteMessage } from "./remote.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 
@@ -8,11 +11,6 @@ import { initSliders, setSliderValue } from "./slider.ts";
  * The desktop app's tray mixer (src/pages/tray). It never touches the Volt: it draws the rows the
  * main window sends and asks for changes as intents, which the main window checks and applies.
  */
-
-/** The desktop app's preload adds this; in a browser it's missing and the button is a plain link. */
-interface IVoltDesktop {
-    openMainWindow: () => void;
-}
 
 const channel = openChannel();
 const list = (): HTMLElement => document.querySelector<HTMLElement>("[data-tray-rows]")!;
@@ -109,7 +107,8 @@ const onMessage = ({ data }: MessageEvent): void => {
 const greet = (): void => post({ kind: document.visibilityState === "visible" ? "hello" : "bye" });
 
 const wireOpenButton = (): void => {
-    const desktop = (window as { voltDesktop?: IVoltDesktop }).voltDesktop;
+    // In a browser there's no app, and the button is a plain link to the page.
+    const desktop = desktopApp();
     document.querySelector("[data-tray-open]")!.addEventListener("click", (event) => {
         if (!desktop) return;
         event.preventDefault();
@@ -124,6 +123,8 @@ export const startTray = (): void => {
     document.addEventListener("visibilitychange", greet);
     window.addEventListener("pagehide", () => post({ kind: "bye" }));
     wireOpenButton();
+    // The theme is chosen in the main window's Settings; follow it live.
+    window.addEventListener("storage", (event) => event.key === "volt-mixer.theme" && applyTheme(loadTheme()));
     greet();
     window.setTimeout(() => {
         if (layoutKey === "" && rows.length === 0) showNote("Open Volt Mixer to connect to the Volt.");
