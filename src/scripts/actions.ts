@@ -2,6 +2,7 @@ import { applyIntent, type Intent, type IntentResult } from "../lib/intents.ts";
 import { newestSpec } from "../lib/spec.ts";
 import { app, commit, layout, notice } from "./app-state.ts";
 import { openChannelDialog } from "./channel-dialog.ts";
+import { togglePhantom } from "./phantom.ts";
 import { setSliderValue } from "./slider.ts";
 import { stripIds } from "./strips.ts";
 
@@ -22,6 +23,8 @@ export const runIntent = (intent: Intent): IntentResult => {
 
 const stripIntents: Record<string, (ids: string[]) => Intent> = {
     mute: (ids) => ({ type: "mute", ids }),
+    // An analog input's mute is the Volt's DIRECT flag, shown as Direct monitoring.
+    direct: (ids) => ({ type: "mute", ids }),
     solo: (ids) => ({ type: "solo", ids }),
     link: (ids) => ({ type: "link", id: ids[0] ?? "" }),
 };
@@ -30,6 +33,7 @@ const onStripAction = (button: HTMLElement): void => {
     const ids = stripIds(button);
     const action = button.dataset["stripAction"] ?? "";
     if (action === "settings") return openChannelDialog(ids);
+    if (action === "phantom") return togglePhantom(ids);
     const intent = stripIntents[action]?.(ids);
     if (intent && runIntent(intent) === "needsMix") explainNeedsMix();
 };

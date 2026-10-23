@@ -1,8 +1,8 @@
 import { channelById } from "./mixer.ts";
 
 /*
- * The icons a channel can show in the tray mixer, chosen in its settings like its name. Each is a
- * Lucide icon in src/icons; the label is what a screen reader says and what the picker lists.
+ * The icons a channel can show (on its strip and in the tray mixer), chosen in its settings like
+ * its name. Each is a Lucide icon in src/icons; the label is what the picker says for it.
  */
 
 export const channelIcons = {
@@ -59,4 +59,10 @@ export const defaultIcon = (id: string): ChannelIcon => {
     if (info?.kind === "loopback") return "laptop";
     if (info?.kind === "digital") return "cable";
     return info?.preampIndex === undefined ? "audio-lines" : "mic";
+};
+
+/** A channel's chosen icon (a pair uses its first channel's, like its name), or its default. */
+export const iconOf = (icons: Record<string, string>, id: string): ChannelIcon => {
+    const icon = icons[id];
+    return isChannelIcon(icon) ? icon : defaultIcon(id);
 };

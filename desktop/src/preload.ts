@@ -12,4 +12,5 @@ contextBridge.exposeInMainWorld("voltDesktop", {
     setTheme: (theme: string): void => ipcRenderer.send("desktop:theme", theme),
     openMainWindow: (): void => ipcRenderer.send("desktop:open-main"),
     hideTray: (): void => ipcRenderer.send("desktop:hide-tray"),
+    fitTray: (height: number): void => ipcRenderer.send("desktop:fit-tray", height),
 });

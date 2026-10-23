@@ -9,11 +9,17 @@ import { loadSettings } from "./settings";
  */
 
 const isLinux = process.platform === "linux";
-const trayWindowSize = { width: 380, height: 460 };
+/* The tray's width; its height follows its rows (fitTrayWindow). */
+const trayWindowSize = { width: 340, height: 300 };
 let mainWindow: BrowserWindow | null = null;
 let trayWindow: BrowserWindow | null = null;
 let isQuitting = false;
 let trayHiddenAt = 0;
+let trayIcon: Rectangle | undefined;
+/* Tray window events, printed when running from source (pnpm start) to follow show/hide timing. */
+const debug = (...parts: unknown[]): void => {
+    if (!app.isPackaged) console.log(`[tray ${Date.now() % 100000}]`, ...parts);
+};
 
 /** Lets close and quit through: set when the user chose Quit, or the system is shutting down. */
 export const markQuitting = (): void => {
@@ -98,7 +104,11 @@ const createTrayWindow = (): BrowserWindow => {
     lockNavigation(window);
     if (process.platform === "darwin") window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     // Like the Windows volume flyout: clicking anywhere else puts it away.
+    window.on("show", () => debug("show event"));
+    window.on("hide", () => debug("hide event"));
+    window.on("focus", () => debug("focus event"));
     window.on("blur", () => {
+        debug("blur event, visible:", window.isVisible());
         if (isLinux) return;
         trayHiddenAt = Date.now();
         window.hide();
@@ -110,7 +120,7 @@ const createTrayWindow = (): BrowserWindow => {
 /** Above (or below) the tray icon, kept inside the screen's work area. */
 const placeNear = (window: BrowserWindow, icon: Rectangle): void => {
     const { workArea } = screen.getDisplayNearestPoint({ x: icon.x, y: icon.y });
-    const { width, height } = trayWindowSize;
+    const [width, height] = window.getSize() as [number, number];
     const x = Math.round(
         Math.min(Math.max(icon.x + icon.width / 2 - width / 2, workArea.x), workArea.x + workArea.width - width),
     );
@@ -119,15 +129,36 @@ const placeNear = (window: BrowserWindow, icon: Rectangle): void => {
     window.setPosition(x, Math.round(y));
 };
 
+/** Sizes the tray window to its content (in CSS px, from the page), within the screen. */
+export const fitTrayWindow = (height: number): void => {
+    if (!trayWindow || !Number.isFinite(height)) return;
+    const { workArea } = screen.getDisplayMatching(trayWindow.getBounds());
+    const fitted = Math.round(Math.min(Math.max(height, 120), workArea.height - 16));
+    const [width, current] = trayWindow.getContentSize() as [number, number];
+    if (fitted === current) return;
+    trayWindow.setContentSize(width, fitted);
+    if (trayIcon) placeNear(trayWindow, trayIcon);
+};
+
+/** Made when the app starts and kept hidden, so it opens at once and already the right size. */
+export const prepareTrayWindow = (): void => {
+    trayWindow ??= createTrayWindow();
+};
+
 /** The tray window's own close button. */
-export const hideTrayWindow = (): void => trayWindow?.hide();
+export const hideTrayWindow = (): void => {
+    debug("close button, visible:", trayWindow?.isVisible());
+    trayWindow?.hide();
+};
 
 /** Opens or closes the tray window. `icon` is where the tray icon is (none on Linux). */
 export const toggleTrayWindow = (icon?: Rectangle): void => {
     trayWindow ??= createTrayWindow();
+    debug("icon click, visible:", trayWindow.isVisible(), "since hide:", Date.now() - trayHiddenAt);
     // The click that blurred it shouldn't reopen it straight away.
     if (trayWindow.isVisible() || Date.now() - trayHiddenAt < 250) return trayWindow.hide();
-    if (icon && icon.width > 0) placeNear(trayWindow, icon);
+    if (icon && icon.width > 0) trayIcon = icon;
+    if (trayIcon) placeNear(trayWindow, trayIcon);
     trayWindow.show();
     trayWindow.focus();
 };

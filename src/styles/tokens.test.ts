@@ -43,6 +43,8 @@ const pairs: [string, string, number][] = [
     ["text-on-danger", "background-danger", 4.5],
     ["text-on-solo", "background-solo", 4.5],
     ["text-success", "background-surface", 4.5],
+    ["text-mic", "background-surface", 4.5],
+    ["text-line", "background-surface", 4.5],
     ["text-warning", "background-surface", 4.5],
     ["background-danger", "background-surface", 4.5],
     ["text-primary", "background-warning", 4.5],

@@ -69,3 +69,15 @@ describe("Using trayRows, when a channel has a chosen icon", () => {
         expect(trayRows(state, view, []).find((row) => row.key === "in3")?.icon).toBe("gamepad-2");
     });
 });
+
+describe("Using trayRows, when a row is an analog input", () => {
+    test("then its button should be Direct monitoring", () => {
+        expect(trayRows(defaultState(), view, []).find((row) => row.key === "in1")?.isDirect).toBe(true);
+    });
+});
+
+describe("Using trayRows, when a row is the loopback", () => {
+    test("then its button should be a plain mute", () => {
+        expect(trayRows(defaultState(), view, []).find((row) => row.name === "Loopback")?.isDirect).toBe(false);
+    });
+});

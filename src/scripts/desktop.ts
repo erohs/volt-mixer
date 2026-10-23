@@ -31,6 +31,8 @@ export interface IVoltDesktop {
     setTheme: (theme: string) => void;
     openMainWindow: () => void;
     hideTray: () => void;
+    /** The tray window's content height in CSS px; the app sizes the window to it. */
+    fitTray: (height: number) => void;
 }
 
 export const desktopApp = (): IVoltDesktop | null => (window as { voltDesktop?: IVoltDesktop }).voltDesktop ?? null;

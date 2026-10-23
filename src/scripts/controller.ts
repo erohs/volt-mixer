@@ -46,6 +46,7 @@ const traySnapshot = (): ITraySnapshot => ({
     isLive: isLive(),
     isMixOwned: app.state.isMixOwned,
     status: element("[data-status]").textContent?.trim() ?? "",
+    statusKind: element("[data-status]").dataset["status"] ?? "off",
 });
 
 const relayout = (): void => {

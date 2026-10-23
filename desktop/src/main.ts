@@ -6,7 +6,7 @@ import { applyLoginItem, isStartedInTray } from "./login";
 import { registerAppScheme, serveSite } from "./protocol";
 import { loadSettings } from "./settings";
 import { createTray } from "./tray";
-import { createMainWindow, markQuitting, showMainWindow } from "./windows";
+import { createMainWindow, markQuitting, prepareTrayWindow, showMainWindow } from "./windows";
 
 /*
  * Volt Mixer's desktop app: the website (built into ./site) in a window, with WebHID allowed for
@@ -33,5 +33,6 @@ if (!app.requestSingleInstanceLock()) {
         applyLoginItem(settings.startAtLogin);
         createTray();
         createMainWindow(!isStartedInTray(settings));
+        prepareTrayWindow();
     });
 }

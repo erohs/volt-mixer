@@ -13,12 +13,17 @@ import Slider from "../ui/Slider.astro";
     <li class="strip" data-strip>
         <div class="head">
             <h3 class="name">
-                <span class="phantom" data-strip-phantom hidden>
-                    48V
-                </span>
+                <span class="strip-icon" data-strip-icon></span>
                 <span data-strip-name></span>
                 <span class="visually-hidden" data-strip-tone-name></span>
             </h3>
+            <!-- Analog inputs only: what the input is, and its 48V (which works like the 48V button). -->
+            <div class="tags" data-strip-tags hidden>
+                <span class="tag" data-strip-input></span>
+                <button class="tag tag--phantom" type="button" aria-pressed="false" data-strip-action="phantom">
+                    48V
+                </button>
+            </div>
             <button class="button button--icon gear" type="button" aria-haspopup="dialog" data-strip-action="settings">
                 <Icon name="settings" />
                 <span class="visually-hidden" data-strip-settings-label>
@@ -36,6 +41,15 @@ import Slider from "../ui/Slider.astro";
         <div class="actions">
             <button class="button button--mute" type="button" aria-pressed="false" data-strip-action="mute">
                 M
+            </button>
+            <!-- Analog inputs: the Volt's DIRECT monitoring, lit while on like the Volt's light. -->
+            <button
+                class="button button--icon button--direct"
+                type="button"
+                aria-pressed="false"
+                data-strip-action="direct"
+                hidden>
+                <Icon name="ear" />
             </button>
             <button class="button button--solo" type="button" aria-pressed="false" data-strip-action="solo">
                 S
@@ -92,16 +106,64 @@ import Slider from "../ui/Slider.astro";
         --slider-colour: var(--color-fader-shine);
     }
 
-    /* Lit red like the Volt's 48V label when phantom power is on. */
-    .phantom:not([hidden]) {
-        display: inline-block;
-        padding: 0 var(--space-between-lines);
-        border-radius: 999px;
-        background-color: var(--color-background-danger);
-        color: var(--color-text-on-danger);
+    /* The channel's icon, quiet beside its name. */
+    .strip-icon {
+        display: inline-grid;
+        color: var(--color-text-secondary);
+
+        & :global(.icon) {
+            inline-size: 1.125rem;
+            block-size: 1.125rem;
+        }
+    }
+
+    /* Small and quiet, so they never compete with the fader. */
+    .tags:not([hidden]) {
+        display: flex;
+        gap: var(--space-between-lines);
+        margin-block-start: var(--space-between-lines);
+    }
+
+    .tag {
+        min-inline-size: 2.25rem;
+        padding: 0 0.25rem;
+        border: var(--border-width-default) solid var(--color-border-subtle);
+        border-radius: 4px;
+        background-color: transparent;
         font-size: var(--font-size-meta);
         font-weight: var(--font-weight-semi-bold);
-        line-height: 1.25rem;
+        line-height: 1.125rem;
+        text-align: center;
+        text-transform: uppercase;
+
+        &[data-input="mic"] {
+            color: var(--color-text-mic);
+        }
+
+        &[data-input="line"] {
+            color: var(--color-text-line);
+        }
+    }
+
+    /* 48V: dim while off, lit red like the Volt's 48V label while on; line inputs have none. */
+    .tag--phantom {
+        color: var(--color-text-secondary);
+        cursor: pointer;
+
+        &[aria-pressed="true"] {
+            border-color: var(--color-background-danger);
+            background-color: var(--color-background-danger);
+            color: var(--color-text-on-danger);
+        }
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.5;
+        }
+
+        &:focus-visible {
+            outline-offset: 1px;
+        }
     }
 
     /* A quiet gear in the corner, partly in the padding, so the name keeps the width. */

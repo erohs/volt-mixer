@@ -32,18 +32,20 @@ const cues = [
         <Icon name="pencil" class="pencil" />
     </div>
 
-    <!-- Desktop app only (channel-tray.ts shows it): the tray mixer shows each channel as its icon. -->
-    <div data-channel-tray hidden>
-        <SettingGroup id="tray-mixer" title="Tray" isCollapsible>
-            <SettingRow id="show-in-tray" name="Show in tray" for="show-in-tray-input">
-                <input id="show-in-tray-input" type="checkbox" role="switch" data-channel-tray-field="show" />
-            </SettingRow>
+    <!-- The channel's icon, on its strip and in the tray (channel-icon.ts). -->
+    <div data-channel-icon>
+        <SettingGroup id="channel-icon" title="Icon" isCollapsible>
+            <div data-channel-tray-show hidden>
+                <SettingRow id="show-in-tray" name="Show in tray" for="show-in-tray-input">
+                    <input id="show-in-tray-input" type="checkbox" role="switch" data-channel-icon-field="show" />
+                </SettingRow>
+            </div>
             <fieldset class="icons">
-                <legend class="icons-legend">Icon</legend>
+                <legend class="visually-hidden">Icon</legend>
                 <div class="icon-choices">
                     {Object.entries(channelIcons).map(([icon, label]) => (
                         <label class="icon-choice" title={label}>
-                            <input type="radio" name="channel-icon" value={icon} data-channel-tray-field="icon" />
+                            <input type="radio" name="channel-icon" value={icon} data-channel-icon-field="icon" />
                             <Icon name={icon} />
                             <span class="visually-hidden">{label}</span>
                         </label>
@@ -289,12 +291,6 @@ const cues = [
         margin: 0;
         padding: 0;
         border: 0;
-    }
-
-    .icons-legend {
-        margin-block-end: var(--space-between-text);
-        padding: 0;
-        font-weight: var(--font-weight-semi-bold);
     }
 
     .icon-choices {

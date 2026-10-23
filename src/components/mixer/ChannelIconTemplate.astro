@@ -1,0 +1,16 @@
+---
+import { channelIcons } from "../../lib/channel-icons.ts";
+import Icon from "../ui/Icon.astro";
+
+/* Every icon a strip or tray row can show: the channel icons and the outputs' own. */
+const names = [...new Set([...Object.keys(channelIcons), "speaker", "headphones"])];
+---
+
+<!-- Cloned by src/scripts/icons.ts, so a chosen icon can be shown without a rebuild. -->
+<template id="channel-icons">
+    {names.map((name) => (
+        <span data-icon-name={name}>
+            <Icon name={name} />
+        </span>
+    ))}
+</template>

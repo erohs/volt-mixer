@@ -4,7 +4,8 @@ import { minDb } from "../lib/gain.ts";
 import { maxNameLength } from "../lib/saved-mix.ts";
 import { formatDb } from "../lib/taper.ts";
 import { app, commit, hooks, layout } from "./app-state.ts";
-import { refreshChannelTray, wireChannelTray } from "./channel-tray.ts";
+import { refreshChannelIcon, wireChannelIcon } from "./channel-icon.ts";
+import { togglePhantom } from "./phantom.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 
 /* The channel settings dialog (ChannelDialog.astro), for whichever strip opened it. */
@@ -90,7 +91,7 @@ const refreshPreamp = (isLive: boolean): void => {
 /** Updates the open dialog's values from state. */
 export const refreshChannelDialog = (isLive: boolean): void => {
     if (openIds.length === 0) return;
-    refreshChannelTray(openIds);
+    refreshChannelIcon(openIds);
     refreshPreamp(isLive);
     refreshMix(isLive);
     const controls = dialog().querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>(
@@ -126,16 +127,6 @@ const sliderChanges: Record<string, (value: number) => void> = {
             ],
         ]),
     ),
-};
-
-/** 48V goes on only after a confirmation, like Console's warning. */
-const togglePhantom = (): void => {
-    const indexes = preampIndexes();
-    const isOn = indexes.every((index) => app.state.preamp.phantom[index]);
-    const question = "Turn on 48V phantom power? Only for condenser mics; it can damage ribbon mics.";
-    if (!isOn && !window.confirm(question)) return;
-    for (const index of indexes) app.state.preamp.phantom[index] = !isOn;
-    commit();
 };
 
 let autoGainTimer = 0;
@@ -181,7 +172,7 @@ const onRename = (input: HTMLInputElement): void => {
 
 export const wireChannelDialog = (): void => {
     initSliders(dialog());
-    wireChannelTray(() => openIds);
+    wireChannelIcon(() => openIds);
     dialog().addEventListener("slider-input", (event) => {
         const { name, value } = (event as CustomEvent<{ name: string; value: number }>).detail;
         sliderChanges[name]?.(value);
@@ -191,7 +182,7 @@ export const wireChannelDialog = (): void => {
             "channelAction"
         ];
         if (action === "auto-gain") startAutoGain();
-        if (action === "phantom") togglePhantom();
+        if (action === "phantom") togglePhantom(openIds);
     });
     dialog().addEventListener("change", (event) => {
         const input = (event.target as Element).closest<HTMLInputElement | HTMLSelectElement>("[data-channel-field]");

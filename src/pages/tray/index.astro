@@ -2,10 +2,7 @@
 import Icon from "../../components/ui/Icon.astro";
 import Slider from "../../components/ui/Slider.astro";
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { channelIcons } from "../../lib/channel-icons.ts";
-
-/* Every icon a row can show: the channel icons, plus the Monitor output's speaker. */
-const rowIcons = [...new Set([...Object.keys(channelIcons), "speaker", "headphones"])];
+import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astro";
 ---
 
 <BaseLayout title="Volt Mixer tray" description="The desktop app's tray mixer for Volt Mixer." isIndexed={false}>
@@ -17,8 +14,10 @@ const rowIcons = [...new Set([...Object.keys(channelIcons), "speaker", "headphon
             </span>
         </div>
         <div class="body">
-            <ul class="rows" data-tray-rows></ul>
-            <p class="note" data-tray-note hidden></p>
+            <div data-tray-content>
+                <ul class="rows" data-tray-rows></ul>
+                <p class="note" data-tray-note hidden></p>
+            </div>
         </div>
         <div class="foot">
             <a class="button" href={import.meta.env.BASE_URL} data-tray-open>
@@ -40,17 +39,20 @@ const rowIcons = [...new Set([...Object.keys(channelIcons), "speaker", "headphon
                 <Icon name="volume-2" class="unmuted" />
                 <Icon name="volume-x" class="muted" />
             </button>
+            <!-- Analog inputs: the Volt's DIRECT monitoring, lit while on (as on the page's strips). -->
+            <button
+                class="button button--icon direct"
+                type="button"
+                aria-pressed="false"
+                data-row-action="direct"
+                hidden>
+                <Icon name="ear" />
+            </button>
             <Slider kind="fader" name="row" class="row-slider" />
         </li>
     </template>
 
-    <template id="tray-icons">
-        {rowIcons.map((name) => (
-            <span data-icon-name={name}>
-                <Icon name={name} />
-            </span>
-        ))}
-    </template>
+    <ChannelIconTemplate />
 </BaseLayout>
 
 <script>
@@ -82,9 +84,18 @@ const rowIcons = [...new Set([...Object.keys(channelIcons), "speaker", "headphon
         font-size: var(--font-size-heading);
     }
 
+    /* The same colours as the main window's status. */
     .status {
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
+
+        &[data-status="on"] {
+            color: var(--color-text-success);
+        }
+
+        &[data-status="away"] {
+            color: var(--color-text-warning);
+        }
     }
 
     /* Room above the first row for its value bubble. */
@@ -155,9 +166,10 @@ const rowIcons = [...new Set([...Object.keys(channelIcons), "speaker", "headphon
         inset-block-end: calc(100% + var(--space-between-lines));
         inset-inline-start: calc(var(--slider-position) * var(--slider-travel) + var(--size-slider-thumb) / 2);
         padding: 0.125rem var(--space-between-text);
+        border: var(--border-width-default) solid var(--color-border-subtle);
         border-radius: var(--radius-small);
-        background-color: var(--color-text-primary);
-        color: var(--color-background-surface);
+        background-color: var(--color-background-raised);
+        color: var(--color-text-primary);
         white-space: nowrap;
         translate: -50% 0;
         visibility: hidden;

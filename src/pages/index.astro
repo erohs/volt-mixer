@@ -1,5 +1,6 @@
 ---
 import ChannelDialog from "../components/mixer/ChannelDialog.astro";
+import ChannelIconTemplate from "../components/mixer/ChannelIconTemplate.astro";
 import MixSetup from "../components/mixer/MixSetup.astro";
 import OutputPanel from "../components/mixer/OutputPanel.astro";
 import SettingsDialog from "../components/mixer/SettingsDialog.astro";
@@ -32,6 +33,7 @@ import { site } from "../lib/site.ts";
     </div>
     <Footer slot="footer" />
     <StripTemplate />
+    <ChannelIconTemplate />
     <ChannelDialog />
     <SettingsDialog />
 </BaseLayout>

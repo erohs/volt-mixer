@@ -1,6 +1,8 @@
 import { channelById, isLinked } from "../lib/mixer.ts";
 import type { IMixerState } from "../lib/mixer.ts";
+import { iconOf } from "../lib/channel-icons.ts";
 import { toneOf, type IStripGroup } from "../lib/strip-groups.ts";
+import { cloneIcon } from "./icons.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 
 /*
@@ -36,6 +38,25 @@ const label = (strip: HTMLElement, selector: string, text: string): void => {
     strip.querySelector(selector)?.setAttribute("aria-label", text);
 };
 
+const isAnalog = (id: string): boolean => channelById[id]?.kind === "analog";
+const hasPreamp = (ids: string[]): boolean => ids.some((id) => channelById[id]?.preampIndex !== undefined);
+
+/**
+ * Analog inputs show what they are (MIC or LINE) and their 48V, and their M is the Volt's DIRECT
+ * monitoring (an ear, lit while on). Digital and loopback channels keep a plain mute.
+ */
+const buildInputControls = (strip: HTMLElement, group: IStripGroup): void => {
+    const isInput = isAnalog(group.ids[0] ?? "");
+    strip.querySelector<HTMLElement>("[data-strip-tags]")!.hidden = !isInput;
+    strip.querySelector<HTMLElement>('[data-strip-action="mute"]')!.hidden = isInput;
+    strip.querySelector<HTMLElement>('[data-strip-action="direct"]')!.hidden = !isInput;
+    label(strip, '[data-strip-action="direct"]', `Direct monitoring, ${group.name}`);
+    const input = strip.querySelector<HTMLElement>("[data-strip-input]")!;
+    input.dataset["input"] = hasPreamp(group.ids) ? "mic" : "line";
+    input.textContent = hasPreamp(group.ids) ? "Mic" : "Line";
+    label(strip, '[data-strip-action="phantom"]', `48V phantom power, ${group.name}`);
+};
+
 const buildStrip = (group: IStripGroup, meterNames: Set<string>): HTMLElement => {
     const strip = (template().content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
     strip.dataset["ids"] = group.ids.join(",");
@@ -44,6 +65,7 @@ const buildStrip = (group: IStripGroup, meterNames: Set<string>): HTMLElement =>
     label(strip, "[data-slider]", `${group.name} level`);
     label(strip, '[data-strip-action="mute"]', `Mute ${group.name}`);
     label(strip, '[data-strip-action="solo"]', `Solo ${group.name}`);
+    buildInputControls(strip, group);
     const meters = [...strip.querySelectorAll<HTMLElement>("[data-meter]")];
     group.ids.forEach((id, i) => meters[i] && meterNames.has(id) && (meters[i].dataset["meter"] = id));
     const link = strip.querySelector<HTMLElement>('[data-strip-action="link"]')!;
@@ -67,11 +89,21 @@ const press = (strip: Element, action: string, isPressed: boolean): void => {
         button.setAttribute("aria-pressed", String(isPressed));
 };
 
-/** The 48V pill before the name and the TONE-coloured fader: what the Volt lights for these channels. */
+/** The channel's icon, swapped only when it changes. */
+const refreshIcon = (strip: HTMLElement, state: IMixerState, ids: string[]): void => {
+    const slot = strip.querySelector<HTMLElement>("[data-strip-icon]")!;
+    const name = iconOf(state.icons, ids[0] ?? "");
+    if (slot.dataset["icon"] === name) return;
+    slot.dataset["icon"] = name;
+    slot.replaceChildren(...[cloneIcon(name)].filter((icon) => icon !== null));
+};
+
+/** 48V and the TONE-coloured fader: what the Volt lights for these channels. */
 const refreshIndicators = (strip: HTMLElement, state: IMixerState, ids: string[]): void => {
     const infos = ids.map((id) => channelById[id]);
     const isPhantomOn = infos.some((info) => info?.preampIndex !== undefined && state.preamp.phantom[info.preampIndex]);
-    strip.querySelector<HTMLElement>("[data-strip-phantom]")!.hidden = !isPhantomOn;
+    press(strip, "phantom", isPhantomOn);
+    refreshIcon(strip, state, ids);
     const tone = toneOf(state, ids);
     strip.dataset["tone"] = tone;
     const toneName = tone.charAt(0).toUpperCase() + tone.slice(1);
@@ -88,11 +120,14 @@ export const refreshStrips = (state: IMixerState, isLive: boolean): void => {
         setSliderValue(fader, channel.fader);
         fader.setAttribute("aria-disabled", String(!isLive || !state.isMixOwned));
         press(strip, "mute", channel.isMuted);
+        press(strip, "direct", !channel.isMuted);
         press(strip, "solo", channel.isSoloed);
         press(strip, "link", isLinked(state, ids[0] ?? ""));
         refreshIndicators(strip, state, ids);
         for (const button of strip.querySelectorAll<HTMLButtonElement>("button:not([data-strip-action='settings'])")) {
             button.disabled = !isLive;
         }
+        // Line inputs have no 48V.
+        if (!hasPreamp(ids)) strip.querySelector<HTMLButtonElement>('[data-strip-action="phantom"]')!.disabled = true;
     }
 };

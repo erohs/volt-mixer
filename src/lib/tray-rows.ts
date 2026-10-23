@@ -1,5 +1,5 @@
-import { defaultIcon, isChannelIcon } from "./channel-icons.ts";
-import type { IMixerState } from "./mixer.ts";
+import { iconOf } from "./channel-icons.ts";
+import { channelById, type IMixerState } from "./mixer.ts";
 import { stripGroups, toneOf, type IStripView, type ToneName } from "./strip-groups.ts";
 
 /*
@@ -19,14 +19,10 @@ export interface ITrayRow {
     /** Fader dB for a channel, 0–100 for an output. */
     level: number;
     isMuted: boolean;
+    /** An analog input: its mute is the Volt's DIRECT monitoring, shown as Direct (on = unmuted). */
+    isDirect: boolean;
     tone: ToneName;
 }
-
-/** The channel's chosen icon (a pair uses its first channel's, like its name), or its default. */
-const iconOf = (state: IMixerState, id: string): string => {
-    const icon = state.icons[id];
-    return isChannelIcon(icon) ? icon : defaultIcon(id);
-};
 
 /* The outputs are always in the tray; only channels can be left out. */
 const outputRows = (state: IMixerState): ITrayRow[] => [
@@ -38,6 +34,7 @@ const outputRows = (state: IMixerState): ITrayRow[] => [
         ids: [],
         level: state.headphone.level,
         isMuted: state.headphone.isMuted,
+        isDirect: false,
         tone: "off",
     },
     {
@@ -48,6 +45,7 @@ const outputRows = (state: IMixerState): ITrayRow[] => [
         ids: [],
         level: state.monitor.level,
         isMuted: state.monitor.isMuted,
+        isDirect: false,
         tone: "off",
     },
 ];
@@ -66,10 +64,11 @@ export const trayRows = (state: IMixerState, view: IStripView, hidden: string[])
                 key: group.ids.join(","),
                 kind: "channel",
                 name: group.name,
-                icon: iconOf(state, group.ids[0] ?? ""),
+                icon: iconOf(state.icons, group.ids[0] ?? ""),
                 ids: group.ids,
                 level: first?.fader ?? 0,
                 isMuted: first?.isMuted ?? false,
+                isDirect: channelById[group.ids[0] ?? ""]?.kind === "analog",
                 tone: toneOf(state, group.ids),
             };
         }),

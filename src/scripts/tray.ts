@@ -1,6 +1,7 @@
 import type { Intent } from "../lib/intents.ts";
 import type { ITrayRow } from "../lib/tray-rows.ts";
 import { desktopApp } from "./desktop.ts";
+import { cloneIcon } from "./icons.ts";
 import { loadTheme } from "./store.ts";
 import { applyTheme } from "./theme.ts";
 import { openChannel, type ITraySnapshot, type RemoteMessage } from "./remote.ts";
@@ -27,16 +28,27 @@ const showNote = (text: string): void => {
     note().hidden = !text;
 };
 
-const template = (id: string): DocumentFragment => document.querySelector<HTMLTemplateElement>(`#${id}`)!.content;
+const rowTemplate = (): Element =>
+    document.querySelector<HTMLTemplateElement>("#tray-row-template")!.content.firstElementChild!;
+
+/** An analog input's button is Direct monitoring (an ear); anything else has a speaker mute. */
+const buildButton = (item: HTMLElement, row: ITrayRow): void => {
+    const mute = item.querySelector<HTMLElement>("[data-row-action='mute']")!;
+    const direct = item.querySelector<HTMLElement>("[data-row-action='direct']")!;
+    mute.hidden = row.isDirect;
+    direct.hidden = !row.isDirect;
+    mute.setAttribute("aria-label", `Mute ${row.name}`);
+    direct.setAttribute("aria-label", `Direct monitoring, ${row.name}`);
+};
 
 /** The row's icon says what it is; its name is there for screen readers only. */
 const buildRow = (row: ITrayRow): HTMLElement => {
-    const item = template("tray-row-template").firstElementChild!.cloneNode(true) as HTMLElement;
+    const item = rowTemplate().cloneNode(true) as HTMLElement;
     item.dataset["key"] = row.key;
-    const icon = template("tray-icons").querySelector(`[data-icon-name="${row.icon}"]`)?.firstElementChild;
-    if (icon) item.querySelector("[data-row-icon]")!.replaceChildren(icon.cloneNode(true));
+    const icon = cloneIcon(row.icon);
+    if (icon) item.querySelector("[data-row-icon]")!.replaceChildren(icon);
     item.querySelector("[data-row-name]")!.textContent = row.name;
-    item.querySelector("[data-row-action='mute']")!.setAttribute("aria-label", `Mute ${row.name}`);
+    buildButton(item, row);
     const slider = item.querySelector<HTMLElement>("[data-slider]")!;
     slider.dataset["kind"] = row.kind === "channel" ? "fader" : "level";
     slider.setAttribute("aria-label", `${row.name} level`);
@@ -51,12 +63,16 @@ const updateRow = (item: HTMLElement, row: ITrayRow, snapshot: ITraySnapshot): v
     const isFaderLocked = row.kind === "channel" && !snapshot.isMixOwned;
     slider.setAttribute("aria-disabled", String(!snapshot.isLive || isFaderLocked));
     const mute = item.querySelector<HTMLButtonElement>("[data-row-action='mute']")!;
+    const direct = item.querySelector<HTMLButtonElement>("[data-row-action='direct']")!;
     mute.setAttribute("aria-pressed", String(row.isMuted));
-    mute.disabled = !snapshot.isLive;
+    direct.setAttribute("aria-pressed", String(!row.isMuted));
+    mute.disabled = direct.disabled = !snapshot.isLive;
 };
 
 const render = (snapshot: ITraySnapshot): void => {
-    document.querySelector("[data-tray-status]")!.textContent = snapshot.status;
+    const status = document.querySelector<HTMLElement>("[data-tray-status]")!;
+    status.textContent = snapshot.status;
+    status.dataset["status"] = snapshot.statusKind;
     const key = snapshot.rows.map((row) => `${row.key}:${row.icon}:${row.name}`).join("|");
     if (key !== layoutKey) {
         list().replaceChildren(...snapshot.rows.map(buildRow));
@@ -90,7 +106,7 @@ const onSlider = (event: Event): void => {
 };
 
 const onClick = (event: Event): void => {
-    const button = (event.target as Element).closest("[data-row-action='mute']");
+    const button = (event.target as Element).closest("[data-row-action]");
     const row = button && rowOf(button);
     if (row) post({ kind: "intent", intent: muteIntent(row) });
 };
@@ -102,8 +118,18 @@ const onMessage = ({ data }: MessageEvent): void => {
         showNote("Set up your mix in the main window first: the faders work once this computer has it.");
 };
 
-/** Hello while shown (the main window then sends rows), bye while hidden. */
-const greet = (): void => post({ kind: document.visibilityState === "visible" ? "hello" : "bye" });
+/**
+ * The window's height for its content: the app sizes the tray to fit, up to the screen. The rows'
+ * value bubbles live in the body's top padding, so that's counted too.
+ */
+const neededHeight = (): number => {
+    const part = (selector: string): number => document.querySelector<HTMLElement>(selector)?.offsetHeight ?? 0;
+    const body = getComputedStyle(document.querySelector(".body")!);
+    const padding = parseFloat(body.paddingBlockStart) + parseFloat(body.paddingBlockEnd);
+    return part(".head") + part("[data-tray-content]") + padding + part(".foot");
+};
+
+const fitWindow = (): void => desktopApp()?.fitTray(Math.ceil(neededHeight()));
 
 /** In a browser there's no app: Open is a plain link to the page, and there's nothing to close. */
 const wireButtons = (): void => {
@@ -122,12 +148,13 @@ export const startTray = (): void => {
     list().addEventListener("slider-input", onSlider);
     list().addEventListener("click", onClick);
     channel?.addEventListener("message", onMessage);
-    document.addEventListener("visibilitychange", greet);
     window.addEventListener("pagehide", () => post({ kind: "bye" }));
     wireButtons();
+    new ResizeObserver(fitWindow).observe(document.querySelector("[data-tray-content]")!);
     // The theme is chosen in the main window's Settings; follow it live.
     window.addEventListener("storage", (event) => event.key === "volt-mixer.theme" && applyTheme(loadTheme()));
-    greet();
+    // The app keeps this window ready while hidden, so it opens at the right size straight away.
+    post({ kind: "hello" });
     window.setTimeout(() => {
         if (layoutKey === "" && rows.length === 0) showNote("Open Volt Mixer to connect to the Volt.");
     }, 1500);

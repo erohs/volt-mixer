@@ -13,6 +13,8 @@ export interface ITraySnapshot {
     isLive: boolean;
     isMixOwned: boolean;
     status: string;
+    /** "on", "off" or "away", as the main window's status is coloured. */
+    statusKind: string;
 }
 
 export type RemoteMessage =
