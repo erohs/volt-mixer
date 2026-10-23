@@ -31,11 +31,16 @@ const { id, title } = Astro.props;
         inline-size: var(--size-dialog);
     }
 
-    .head {
-        position: sticky;
-        inset-block-start: 0;
-        z-index: 1;
+    /* Only the body scrolls, so the scrollbar starts below the header instead of beside it. */
+    .dialog[open] {
         display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .head {
+        display: flex;
+        flex: none;
         align-items: center;
         justify-content: space-between;
         gap: var(--space-between-content);
@@ -48,6 +53,9 @@ const { id, title } = Astro.props;
     .body {
         display: grid;
         gap: var(--space-between-blocks);
+        min-block-size: 0;
         padding: var(--space-padding-container);
+        overflow-y: auto;
+        overscroll-behavior: contain;
     }
 </style>

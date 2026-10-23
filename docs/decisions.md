@@ -41,3 +41,10 @@ and 400-line file limits are followed by hand.
 `tools/` is the home-PC capture kit (USBPcap, node-hid, UA's local API). It isn't deployed, runs
 against real hardware, and changes slowly, so it stays plain Node scripts. It imports `src/lib`
 directly (Node 24 runs TypeScript), so there's one protocol implementation.
+
+## Panels scroll their body, never their header
+
+A dialog (or any panel with a title bar) is a column: the header stays put and only the body
+scrolls, so the scrollbar starts below the header line rather than running beside it.
+`src/components/ui/Dialog.astro` does this for every dialog; new panels follow the same pattern
+instead of a sticky header inside a scrolling box.
