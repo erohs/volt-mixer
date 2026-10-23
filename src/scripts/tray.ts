@@ -39,7 +39,10 @@ const buildRow = (row: ITrayRow): HTMLElement => {
     item.dataset["key"] = row.key;
     const icon = cloneIcon(row.icon);
     if (icon) item.querySelector("[data-row-icon]")!.replaceChildren(icon);
-    item.querySelector("[data-row-action='mute']")!.setAttribute("aria-label", `Mute ${row.name}`);
+    const mute = item.querySelector<HTMLElement>("[data-row-action='mute']")!;
+    mute.setAttribute("aria-label", `Mute ${row.name}`);
+    // The icon says what it is; hovering says which channel.
+    mute.title = row.name;
     const slider = item.querySelector<HTMLElement>("[data-slider]")!;
     slider.dataset["kind"] = row.kind === "channel" ? "fader" : "level";
     slider.setAttribute("aria-label", `${row.name} level`);
@@ -60,7 +63,8 @@ const updateRow = (item: HTMLElement, row: ITrayRow, snapshot: ITraySnapshot): v
 
 const render = (snapshot: ITraySnapshot): void => {
     const status = document.querySelector<HTMLElement>("[data-tray-status]")!;
-    status.textContent = snapshot.status;
+    // Just the connection: "Connected · firmware 1.0.3" is more than the tray needs.
+    status.textContent = snapshot.status.split(" · ")[0] ?? "";
     status.dataset["status"] = snapshot.statusKind;
     const key = snapshot.rows.map((row) => `${row.key}:${row.icon}:${row.name}`).join("|");
     if (key !== layoutKey) {
@@ -128,14 +132,14 @@ const phoneStatus: Record<LinkStatus, string> = {
     unpaired: "This phone isn't paired any more: scan the QR code in Volt Mixer › Settings › Phone remote.",
 };
 
-/** In a browser there's no app: Open is a plain link to the page, and there's nothing to quit. */
+/** In a browser there's no app: Open is a plain link to the page, and there's nothing to close. */
 const wireButtons = (): void => {
     const desktop = desktopApp();
-    const quit = document.querySelector<HTMLButtonElement>("[data-tray-quit]")!;
-    quit.hidden = !desktop;
+    const close = document.querySelector<HTMLButtonElement>("[data-tray-close]")!;
+    close.hidden = !desktop;
     // On a phone the computer's page can't be opened, so the footer goes.
     document.querySelector<HTMLElement>(".foot")!.hidden = link.isPhone;
-    quit.addEventListener("click", () => desktop?.quit());
+    close.addEventListener("click", () => desktop?.hideTray());
     document.querySelector("[data-tray-open]")!.addEventListener("click", (event) => {
         if (!desktop) return;
         event.preventDefault();

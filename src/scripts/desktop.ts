@@ -45,8 +45,8 @@ export interface IVoltDesktop {
     checkForUpdate: () => Promise<IUpdate | null>;
     setTheme: (theme: string) => void;
     openMainWindow: () => void;
-    /** Quits the app, like the tray menu's Quit. */
-    quit: () => void;
+    /** Hides the tray window (its Close button). */
+    hideTray: () => void;
     /** Main passes on the website's requests for this app's mix; the answer goes back to it. */
     onMixRequest: (answer: (request: unknown) => unknown) => void;
     /** The phone remote (desktop/src/phone.ts). */

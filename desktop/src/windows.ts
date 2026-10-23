@@ -37,8 +37,11 @@ const lockNavigation = (window: BrowserWindow): void => {
         if (url.startsWith("https://")) void shell.openExternal(url);
         return { action: "deny" };
     });
+    // A plain link to the web (GitHub, the privacy statement's links) opens in the browser too.
     window.webContents.on("will-navigate", (event, url) => {
-        if (new URL(url).origin !== appOrigin) event.preventDefault();
+        if (new URL(url).origin === appOrigin) return;
+        event.preventDefault();
+        if (url.startsWith("https://")) void shell.openExternal(url);
     });
 };
 
@@ -141,6 +144,12 @@ export const fitTrayWindow = (height: number): void => {
 export const prepareTrayWindow = (): void => {
     trayWindow ??= createTrayWindow();
 };
+
+/**
+ * The tray window's own Close button. A hidden window's later blur is ignored (the blur handler
+ * checks it's visible), so the next click on the tray icon opens it again first time.
+ */
+export const hideTrayWindow = (): void => trayWindow?.hide();
 
 /** Opens or closes the tray window. `icon` is where the tray icon is (none on Linux). */
 export const toggleTrayWindow = (icon?: Rectangle): void => {

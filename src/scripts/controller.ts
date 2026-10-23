@@ -12,6 +12,7 @@ import { app, hooks, notice, setStatus } from "./app-state.ts";
 import { mixChanged, pullAppMix } from "./app-sync.ts";
 import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { initDialogs } from "./dialogs.ts";
+import { noteInputLevels, watchInputs } from "./input-activity.ts";
 import { resetMeters, showMeterLevels } from "./meters-view.ts";
 import { refreshSettings, settingsActions, wireSettingsDialog } from "./settings-dialog.ts";
 import { publish, wireRemote, type ITraySnapshot } from "./remote.ts";
@@ -115,6 +116,11 @@ const onLaterState = (data: Uint8Array): void => {
     commit();
 };
 
+const showMeters = (levels: Record<string, number>): void => {
+    showMeterLevels(levels);
+    noteInputLevels(levels);
+};
+
 let stateTimer = 0;
 const requestStateSoon = (): void => {
     clearTimeout(stateTimer);
@@ -124,7 +130,7 @@ const requestStateSoon = (): void => {
 const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): void => {
     const spec = volt.connectedSpec();
     if (!spec) return;
-    if (reportId === spec.reports.meters.id) return showMeterLevels(parseMeters(spec, data));
+    if (reportId === spec.reports.meters.id) return showMeters(parseMeters(spec, data));
     if (reportId !== spec.reports.command.id) return;
     const report = parseCommandReport(spec, data);
     if (report.type === "state") return app.isHardwareKnown ? onLaterState(data) : onFirstState(data);
@@ -293,6 +299,7 @@ export const start = (): void => {
     applyTheme(loadTheme());
     initSliders(document);
     initDialogs();
+    watchInputs();
     wireMixerControls();
     wireChannelDialog();
     wireSettingsDialog();

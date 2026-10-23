@@ -143,6 +143,11 @@ import Slider from "../ui/Slider.astro";
         &[data-input="line"] {
             color: var(--color-text-line);
         }
+
+        /* Nothing coming in on this input (input-activity.ts): greyed out. */
+        &[data-input][data-idle="true"] {
+            color: var(--color-text-secondary);
+        }
     }
 
     /* 48V: dim while off, lit red like the Volt's 48V label while on; line inputs have none. */

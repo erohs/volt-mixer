@@ -20,11 +20,13 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
             </div>
         </div>
         <div class="foot">
-            <a class="button" href={import.meta.env.BASE_URL} data-tray-open>
+            <a class="open" href={import.meta.env.BASE_URL} data-tray-open>
+                <Icon name="app-window" />
                 Open Volt Mixer
             </a>
-            <button class="button" type="button" data-tray-quit hidden>
-                Quit
+            <button class="button button--icon close" type="button" data-tray-close hidden>
+                <Icon name="close" />
+                <span class="visually-hidden">Close</span>
             </button>
         </div>
     </div>
@@ -62,10 +64,12 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
         background-color: var(--color-background-surface);
     }
 
+    /* The title on the left, the connection on the right. */
     .head {
         display: flex;
         flex-wrap: wrap;
         align-items: baseline;
+        justify-content: space-between;
         gap: 0 var(--space-between-content);
         padding: var(--space-padding-compact) var(--space-padding-container);
         border-block-end: var(--border-width-default) solid var(--color-border-subtle);
@@ -187,6 +191,36 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
         margin-block-start: var(--space-between-content);
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
+    }
+
+    /* Open as a link with its icon; Close a borderless icon like the rows' buttons. */
+    .open {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-between-text);
+        color: var(--color-text-accent);
+        font-size: var(--font-size-small);
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+            text-underline-offset: 0.2em;
+        }
+
+        & :global(.icon) {
+            inline-size: var(--size-icon);
+            block-size: var(--size-icon);
+        }
+    }
+
+    .close {
+        border-color: transparent;
+        background-color: transparent;
+        color: var(--color-text-secondary);
+
+        &:hover {
+            color: var(--color-text-primary);
+        }
     }
 
     .foot:not([hidden]) {
