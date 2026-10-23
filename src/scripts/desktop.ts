@@ -8,6 +8,7 @@ export interface IDesktopSettings {
     loginStart: "tray" | "window";
     minimiseToTray: boolean;
     closeToTray: boolean;
+    shareMix: boolean;
     hasSeenTrayHint: boolean;
 }
 
@@ -33,6 +34,8 @@ export interface IVoltDesktop {
     openMainWindow: () => void;
     /** Quits the app, like the tray menu's Quit. */
     quit: () => void;
+    /** Main passes on the website's requests for this app's mix; the answer goes back to it. */
+    onMixRequest: (answer: (request: unknown) => unknown) => void;
     /** The tray window's content height in CSS px; the app sizes the window to it. */
     fitTray: (height: number) => void;
 }

@@ -15,6 +15,8 @@ export interface IDesktopSettings {
     minimiseToTray: boolean;
     /** Close hides the window to the tray; off, closing it quits. */
     closeToTray: boolean;
+    /** Share the mix with the website on this computer (desktop/src/mix-share.ts). */
+    shareMix: boolean;
     /** The one-time hint on keeping the tray icon visible (Windows hides new ones). */
     hasSeenTrayHint: boolean;
 }
@@ -24,13 +26,14 @@ const defaults: IDesktopSettings = {
     loginStart: "tray",
     minimiseToTray: true,
     closeToTray: true,
+    shareMix: true,
     hasSeenTrayHint: false,
 };
 
 const file = (): string => path.join(app.getPath("userData"), "settings.json");
 let current: IDesktopSettings | null = null;
 
-type Flag = "startAtLogin" | "minimiseToTray" | "closeToTray" | "hasSeenTrayHint";
+type Flag = "startAtLogin" | "minimiseToTray" | "closeToTray" | "shareMix" | "hasSeenTrayHint";
 
 /** Keeps only known keys with valid values: the file can be edited, and the page is a renderer. */
 const clean = (value: unknown, base: IDesktopSettings): IDesktopSettings => {
@@ -42,6 +45,7 @@ const clean = (value: unknown, base: IDesktopSettings): IDesktopSettings => {
         loginStart: loginStart === "window" || loginStart === "tray" ? loginStart : base.loginStart,
         minimiseToTray: flag("minimiseToTray"),
         closeToTray: flag("closeToTray"),
+        shareMix: flag("shareMix"),
         hasSeenTrayHint: flag("hasSeenTrayHint"),
     };
 };

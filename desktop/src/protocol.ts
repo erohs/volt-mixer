@@ -1,4 +1,4 @@
-import { protocol } from "electron";
+import { protocol, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
 import fs from "fs/promises";
 import path from "path";
 
@@ -8,6 +8,10 @@ import path from "path";
  */
 
 export const appOrigin = "app://volt";
+
+/** IPC is answered only for the app's own pages. */
+export const isFromApp = (event: IpcMainEvent | IpcMainInvokeEvent): boolean =>
+    event.senderFrame?.url.startsWith(`${appOrigin}/`) === true;
 
 const contentTypes: Record<string, string> = {
     ".html": "text/html; charset=utf-8",

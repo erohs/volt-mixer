@@ -24,6 +24,8 @@ export const hooks = {
     refresh: (): void => {},
     /** Starts the Volt's Auto-Gain; false when the Volt can't be changed right now. */
     autoGain: (_mask: number, _seconds: number): boolean => false,
+    /** Takes a mix from elsewhere as this page's own: validated, saved and sent to the Volt. */
+    adoptMix: (_mix: unknown): void => {},
 };
 
 export const commit = (): void => hooks.commit();

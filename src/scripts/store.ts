@@ -13,6 +13,7 @@ const pendingKey = `${prefix}.pending-mix`;
 const viewKey = `${prefix}.view`;
 const themeKey = `${prefix}.theme`;
 const trayKey = `${prefix}.tray`;
+const appSyncKey = `${prefix}.app-sync`;
 
 const read = (key: string): unknown => {
     try {
@@ -32,8 +33,33 @@ const write = (key: string, value: unknown): void => {
     }
 };
 
-export const loadMix = (serial: string): unknown => read(mixKey(serial));
-export const saveMix = (serial: string, mix: ISavedMix | null): void => write(mixKey(serial), mix);
+/** A saved mix and when it last changed (ms since 1970), to tell which copy is newer. */
+export interface IMixEntry {
+    mix: unknown;
+    changedAt: number;
+}
+
+/** Older saves are the mix alone; they count as changed long ago, so any dated copy wins. */
+export const loadMixEntry = (serial: string): IMixEntry | null => {
+    const saved = read(mixKey(serial)) as Record<string, unknown> | null;
+    if (saved === null) return null;
+    const isDated = typeof saved === "object" && "mix" in saved && typeof saved["changedAt"] === "number";
+    return isDated ? { mix: saved["mix"], changedAt: saved["changedAt"] as number } : { mix: saved, changedAt: 0 };
+};
+
+export const loadMix = (serial: string): unknown => loadMixEntry(serial)?.mix ?? null;
+
+/** Saves the mix, dated now if it differs from what's saved; true when it did. null forgets it. */
+export const saveMix = (serial: string, mix: ISavedMix | null): boolean => {
+    if (mix === null) return (write(mixKey(serial), null), true);
+    if (JSON.stringify(loadMix(serial)) === JSON.stringify(mix)) return false;
+    write(mixKey(serial), { mix, changedAt: Date.now() });
+    return true;
+};
+
+/** Saves a mix that came from elsewhere with its own date, so the two copies agree on it. */
+export const saveMixAt = (serial: string, mix: ISavedMix, changedAt: number): void =>
+    write(mixKey(serial), { mix, changedAt });
 
 /** A mix opened from a link before the Volt connected; applied once it does. */
 export const loadPendingMix = (): unknown => read(pendingKey);
@@ -64,3 +90,7 @@ export const loadTrayHidden = (): string[] => {
 };
 
 export const saveTrayHidden = (hidden: string[]): void => write(trayKey, hidden.length > 0 ? hidden : null);
+
+/** Website only: whether to keep the mix in step with the desktop app on this computer. */
+export const loadAppSync = (): boolean => read(appSyncKey) === true;
+export const saveAppSync = (isOn: boolean): void => write(appSyncKey, isOn ? true : null);

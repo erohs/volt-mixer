@@ -9,11 +9,13 @@ import { stripGroups } from "../lib/strip-groups.ts";
 import { trayRows } from "../lib/tray-rows.ts";
 import { refreshOutputs, runIntent, wireMixerControls } from "./actions.ts";
 import { app, hooks, notice, setStatus } from "./app-state.ts";
+import { mixChanged, pullAppMix } from "./app-sync.ts";
 import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { initDialogs } from "./dialogs.ts";
 import { resetMeters, showMeterLevels } from "./meters-view.ts";
 import { refreshSettings, settingsActions, wireSettingsDialog } from "./settings-dialog.ts";
 import { publish, wireRemote, type ITraySnapshot } from "./remote.ts";
+import { answerWebsite } from "./website-share.ts";
 import { loadMix, loadPendingMix, loadTheme, loadTrayHidden, saveMix, savePendingMix } from "./store.ts";
 import { initSliders } from "./slider.ts";
 import { refreshStrips, renderStrips } from "./strips.ts";
@@ -59,7 +61,7 @@ const flush = (): void => {
     isFlushPending = false;
     const spec = volt.connectedSpec();
     if (spec && isLive()) volt.send(app.sync.diff(app.state, spec));
-    if (app.state.isMixOwned && app.serial) saveMix(app.serial, toSavedMix(app.state));
+    if (app.state.isMixOwned && app.serial && saveMix(app.serial, toSavedMix(app.state))) mixChanged();
     refresh();
 };
 
@@ -100,6 +102,7 @@ const onFirstState = (data: Uint8Array): void => {
     if (pendingMix) notice("Mix applied from the link.");
     if (savedMix) takeOwnership(savedMix);
     else relayout();
+    void pullAppMix();
 };
 
 /** A later state dump (after a link change or a failed send): adopt it, re-send the mix legs. */
@@ -260,13 +263,18 @@ const wireConnection = (): void => {
     });
 };
 
-/** The desktop app's tray window sends intents here; only a page that can drive the Volt applies them. */
-const answerTrays = (): void =>
+/**
+ * The desktop app's tray window sends intents here (only a page that can drive the Volt applies
+ * them), and the website on the same computer asks for the mix.
+ */
+const answerOthers = (): void => {
+    answerWebsite();
     wireRemote({
         isActive: () => app.hasControl,
         snapshot: traySnapshot,
         run: (intent) => (isLive() ? runIntent(intent) : "ignored"),
     });
+};
 
 /** Only one tab drives the Volt; any other stays read-only. */
 const holdControlLock = (): void => {
@@ -280,7 +288,7 @@ const holdControlLock = (): void => {
 };
 
 export const start = (): void => {
-    Object.assign(hooks, { commit, layout: relayout, refresh, autoGain: startAutoGain });
+    Object.assign(hooks, { commit, layout: relayout, refresh, autoGain: startAutoGain, adoptMix: takeOwnership });
     applyTheme(loadTheme());
     initSliders(document);
     initDialogs();
@@ -298,7 +306,7 @@ export const start = (): void => {
     }
     readMixFromAddress();
     holdControlLock();
-    answerTrays();
+    answerOthers();
     wireConnection();
     volt.watchDevices();
     void volt.reconnect().then((isConnected) => isConnected || setStatus("Not connected", "off"));

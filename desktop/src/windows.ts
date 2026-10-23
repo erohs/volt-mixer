@@ -75,6 +75,9 @@ export const createMainWindow = (isShown: boolean): BrowserWindow => {
     return mainWindow;
 };
 
+/** The window that drives the Volt (and holds the mix), if it exists. */
+export const getMainWindow = (): BrowserWindow | null => mainWindow;
+
 export const showMainWindow = (): void => {
     if (!mainWindow) return;
     if (mainWindow.isMinimized()) mainWindow.restore();
