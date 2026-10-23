@@ -4,6 +4,7 @@ import { encodeMixCode } from "../lib/mix-code.ts";
 import { toSavedMix } from "../lib/saved-mix.ts";
 import { newestSpec } from "../lib/spec.ts";
 import { app, commit, hooks, layout, notice } from "./app-state.ts";
+import { showQr } from "./qr-dialog.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 import { loadTheme, saveTheme, saveView } from "./store.ts";
 import { applyTheme, isTheme } from "./theme.ts";
@@ -105,6 +106,7 @@ const copyMixLink = async (): Promise<void> => {
 export const settingsActions: Record<string, () => void> = {
     "open-settings": () => (dialog().showModal(), hooks.refresh()),
     "copy-mix-link": () => void copyMixLink(),
+    "show-mix-qr": () => showQr(mixLink()),
 };
 
 export const wireSettingsDialog = (): void => {
