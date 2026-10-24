@@ -43,7 +43,7 @@ const buildRow = (row: ITrayRow): HTMLElement => {
     const mute = item.querySelector<HTMLElement>("[data-row-action='mute']")!;
     mute.setAttribute("aria-label", `Mute ${row.name}`);
     // The icon says what it is; hovering says which channel.
-    mute.title = row.name;
+    setText(item.querySelector("[data-row-tip]")!, row.name);
     const slider = item.querySelector<HTMLElement>("[data-slider]")!;
     slider.dataset["kind"] = row.kind === "channel" ? "fader" : "level";
     slider.setAttribute("aria-label", `${row.name} level`);
@@ -108,6 +108,19 @@ const onClick = (event: Event): void => {
     if (row) post({ kind: "intent", intent: muteIntent(row) });
 };
 
+/** Escape hides the name tip under the pointer or focus; leaving the icon brings it back. */
+const dismissTips = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape") return;
+    list()
+        .querySelectorAll<HTMLElement>(".mute:is(:hover, :focus-visible)")
+        .forEach((mute) => (mute.dataset["tipDismissed"] = ""));
+};
+
+const restoreTip = (event: PointerEvent | FocusEvent): void => {
+    const mute = (event.target as Element).closest(".mute");
+    if (mute && !mute.contains(event.relatedTarget as Node | null)) mute.removeAttribute("data-tip-dismissed");
+};
+
 const onMessage = (message: Partial<RemoteMessage> | null): void => {
     if (message?.kind === "snapshot" && message.snapshot) render(message.snapshot);
     if (message?.kind === "result" && message.result === "needsMix")
@@ -153,6 +166,9 @@ const wireButtons = (): void => {
 export const startTray = (): void => {
     list().addEventListener("slider-input", onSlider);
     list().addEventListener("click", onClick);
+    document.addEventListener("keydown", dismissTips);
+    list().addEventListener("pointerout", restoreTip);
+    list().addEventListener("focusout", restoreTip);
     link.listen(onMessage, (status) => showNote(phoneStatus[status]));
     window.addEventListener("pagehide", () => post({ kind: "bye" }));
     wireButtons();

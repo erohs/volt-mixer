@@ -33,13 +33,15 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
 
     <!--
         A row: its icon is its mute button (named for screen readers by the row's name), and turns
-        into a struck-through speaker while muted; then its level.
+        into a struck-through speaker while muted; then its level. The tip shows the name on hover
+        or focus, in the same bubble as the level.
     -->
     <template id="tray-row-template">
         <li class="row" data-tray-row>
             <button class="button button--icon mute" type="button" aria-pressed="false" data-row-action="mute">
                 <span class="what" data-row-icon></span>
                 <Icon name="volume-x" class="muted" />
+                <span class="tip" aria-hidden="true" data-row-tip></span>
             </button>
             <Slider kind="fader" name="row" class="row-slider" />
         </li>
@@ -116,6 +118,7 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
 
     /* The row's icon is its mute: muted, it shows a red struck-through speaker instead. */
     .mute {
+        position: relative;
         border-color: transparent;
         background-color: transparent;
         color: var(--color-text-secondary);
@@ -147,6 +150,42 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
         display: inline-grid;
     }
 
+    /* The level's bubble and the icon's tip: one look, above what they're about. */
+    .row :global(.value),
+    .tip {
+        position: absolute;
+        inset-block-end: calc(100% + var(--space-between-lines));
+        padding: 0.125rem var(--space-between-text);
+        border: var(--border-width-default) solid var(--color-border-subtle);
+        border-radius: var(--radius-small);
+        background-color: var(--color-background-raised);
+        color: var(--color-text-primary);
+        font-size: var(--font-size-small);
+        font-weight: var(--font-weight-semi-bold);
+        white-space: nowrap;
+        visibility: hidden;
+    }
+
+    /* Starts at the icon, so a long name runs into the row rather than off the window. */
+    .tip {
+        inset-inline-start: 0;
+    }
+
+    .mute:focus-visible .tip {
+        visibility: visible;
+    }
+
+    @media (hover: hover) {
+        .mute:hover .tip {
+            visibility: visible;
+        }
+    }
+
+    /* Escape puts it away until the pointer or focus leaves (WCAG 1.4.13). */
+    .mute[data-tip-dismissed] .tip {
+        visibility: hidden;
+    }
+
     /*
      * No value beside the slider: it shows in a bubble above the handle while the handle is held
      * or moved with the keyboard. The slider's own readout becomes the bubble.
@@ -156,18 +195,13 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
         grid-template: "control" var(--size-slider-thumb) / 1fr;
     }
 
+    /*
+     * Over the handle, sliding from its left edge to its right edge as the handle travels, so at
+     * either end it stays inside the row instead of overflowing the window.
+     */
     .row :global(.value) {
-        position: absolute;
-        inset-block-end: calc(100% + var(--space-between-lines));
         inset-inline-start: calc(var(--slider-position) * var(--slider-travel) + var(--size-slider-thumb) / 2);
-        padding: 0.125rem var(--space-between-text);
-        border: var(--border-width-default) solid var(--color-border-subtle);
-        border-radius: var(--radius-small);
-        background-color: var(--color-background-raised);
-        color: var(--color-text-primary);
-        white-space: nowrap;
-        translate: -50% 0;
-        visibility: hidden;
+        translate: calc(var(--slider-position) * -100%) 0;
     }
 
     .row :global(.slider:has(.control:focus-visible, .control[data-dragging])) :global(.value) {
