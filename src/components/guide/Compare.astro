@@ -1,0 +1,22 @@
+---
+/* Two (or more) lists side by side, each under its own title: "this, versus that". */
+
+interface Props {
+    columns: { title: string; items: string[] }[];
+}
+
+const { columns } = Astro.props;
+---
+
+<div class="compare">
+    {columns.map((column) => (
+        <div class="compare-column">
+            <p class="compare-title">{column.title}</p>
+            <ul>
+                {column.items.map((item) => (
+                    <li>{item}</li>
+                ))}
+            </ul>
+        </div>
+    ))}
+</div>

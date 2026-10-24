@@ -1,0 +1,88 @@
+---
+import Icon from "../ui/Icon.astro";
+import InlineMessage from "../ui/InlineMessage.astro";
+import QrCode from "../ui/QrCode.astro";
+---
+
+<!--
+    Shown in a browser that can't reach a Volt (a phone, Firefox, Safari). With a mix link it has
+    been given, it carries the mix to a computer that can: a QR code to scan there. Without one,
+    it says what a phone can do. src/scripts/carry-mix.ts.
+-->
+<section class="carry" aria-labelledby="carry-heading" data-carry hidden>
+    <div class="part" data-carry-mix hidden>
+        <h2 id="carry-heading">Your mix is on this device</h2>
+        <p>
+            Take it to the computer with your Volt: scan this code with that computer's camera, or send yourself the
+            link and open it there.
+        </p>
+        <QrCode name="carry" label="QR code of your mix link">
+            <p class="hint">It stays here, so you can open Volt Mixer on this device and show it again.</p>
+        </QrCode>
+        <div class="actions">
+            <button class="button button--primary" type="button" data-carry-share hidden>
+                Send the link
+            </button>
+            <button class="button button--feedback" type="button" data-carry-copy>
+                <span class="face">Copy the link</span>
+                <Icon name="check" class="feedback feedback--success" />
+                <Icon name="close" class="feedback feedback--error" />
+            </button>
+            <button class="button" type="button" data-carry-forget>
+                Forget it
+            </button>
+        </div>
+        <InlineMessage name="carry" />
+    </div>
+    <div class="part" data-carry-none hidden>
+        <h2 id="carry-none-heading">Volt Mixer can't reach a Volt from here</h2>
+        <p>
+            To control your Volt, open Volt Mixer in Microsoft Edge or Google Chrome on the computer it's plugged into.
+            Firefox, Safari and phones can't talk to USB devices. On a phone, you can still:
+        </p>
+        <ul>
+            <li>
+                <strong>Carry a mix to another computer.</strong> On a computer with Volt Mixer, open Settings › Your
+                mix › QR code, and scan it with this phone.
+            </li>
+            <li>
+                <strong>Change levels from here.</strong> In the desktop app, turn on Settings › Desktop app › Phone
+                remote, and scan its QR code.
+            </li>
+        </ul>
+    </div>
+</section>
+
+<style>
+    .carry:not([hidden]) {
+        display: grid;
+        margin: var(--space-between-blocks) var(--space-page-inline) 0;
+        padding: var(--space-padding-container);
+        border: var(--border-width-default) solid var(--color-border-subtle);
+        border-inline-start: var(--border-width-highlight) solid var(--color-background-accent);
+        border-radius: 0 var(--radius-large) var(--radius-large) 0;
+        background-color: var(--color-background-surface);
+    }
+
+    .part:not([hidden]) {
+        display: grid;
+        gap: var(--space-between-content);
+    }
+
+    ul {
+        display: grid;
+        gap: var(--space-between-text);
+        padding-inline-start: 1.25rem;
+    }
+
+    .hint {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+    }
+
+    .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-between-text);
+    }
+</style>

@@ -44,7 +44,7 @@ linked sides differ is evened out the same way. So a link can only turn things d
 
 ## Lean toolchain
 
-Astro, TypeScript, Vitest and Prettier. No ESLint, Stylelint, Playwright or axe packages: browser
+Astro (with `@astrojs/mdx` for the guide), TypeScript, Vitest and Prettier. No ESLint, Stylelint, Playwright or axe packages: browser
 and accessibility checks are done by hand with the Claude in Chrome extension. The 25-line function
 and 400-line file limits are followed by hand.
 
@@ -127,3 +127,30 @@ node-hid (`desktop/src/display-fade.ts`), synchronously, before it answers: abou
 hands main the report for its firmware, so the protocol stays in `src/data`. Off is raw 1, which
 nothing else sets, so whichever page connects next, on either computer, fades it back up. A
 Windows service or a shutdown script would also get time, but each needs installing per computer.
+
+## The guide is MDX, with no docs framework
+
+The user guide is a content collection of MDX pages (`src/content/guide`) with its own layout,
+not Starlight, and its search is a small index built with the site (`search.json.ts`,
+`src/lib/guide-search.ts`), not Pagefind. A dozen pages don't need either. `@astrojs/mdx` was
+added (with the user's agreement, 2026-10-24) so pages can use real components: screenshots that
+size themselves, tips drawn with the mixer's own notice style (`.message-box`), and comparisons.
+The guide's stylesheets are imported with `?url`, because `cssCodeSplit: false` would otherwise
+put them in the mixer's one stylesheet, and the desktop app drops the guide from its copy of the
+site, since it opens other pages of the site in the browser anyway. The sidebar is a popover on
+narrow screens, so it opens without script; only search needs script. Screenshots are taken from
+the real page, staged in headless Edge (`tools/guide-images.mjs`), so they can be retaken whenever
+the mixer changes, and the guide is updated with every change a user can see.
+
+## A phone carries a mix; nothing pushes one
+
+With no server, nothing can put a mix into a browser on another computer: something has to be
+opened or scanned there. So a browser that can't reach a Volt (a phone) keeps a mix link it's
+given and shows it as a QR code and a link (`src/scripts/carry-mix.ts`), to scan with the other
+computer's camera or send on. It works with just the website, so it reaches the work laptop.
+
+So the phone has two jobs, each with one QR code in one place: carrying a mix (Settings › Your
+mix › QR code, any browser) and the phone remote (Settings › Desktop app › Phone remote, the app
+only, because only the app can listen for a phone). Each points to the other, and neither QR code
+is shown in a second place. The phone remote also offers "Keep this mix on my phone", which opens
+the mix link on the website (the remote's own origin can't keep it), so app users need one scan.

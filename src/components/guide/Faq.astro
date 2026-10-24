@@ -1,0 +1,21 @@
+---
+import Icon from "../ui/Icon.astro";
+
+/* One question that opens to its answer (a native <details>, so it works without script). */
+
+interface Props {
+    question: string;
+}
+
+const { question } = Astro.props;
+---
+
+<details class="faq">
+    <summary>
+        <span>{question}</span>
+        <Icon name="chevron-down" class="faq-chevron" />
+    </summary>
+    <div class="faq-answer">
+        <slot />
+    </div>
+</details>

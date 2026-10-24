@@ -141,10 +141,10 @@ export const decodeMix = (code: string): unknown => {
     }
 };
 
-/** The mix in a link's address: `#m=` (short) or `#mix=` (older links); null when there's none. */
 /** Whether an address carries a mix: `#m=` (short) or `#mix=` (older links). */
 export const isMixHash = (hash: string): boolean => /^#(m|mix)=/.test(hash);
 
+/** The mix in a link's address: `#m=` (short) or `#mix=` (older links); null when there's none. */
 export const mixFromHash = (hash: string): unknown => {
     const short = hash.match(/^#m=([\w-]+)$/)?.[1];
     if (short) return decodeMixCode(short);

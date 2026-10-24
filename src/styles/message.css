@@ -44,3 +44,40 @@
     overflow: hidden;
     clip-path: inset(50%);
 }
+
+/*
+ * A message in a box: the mixer's notice bar (Notice.astro) and the guide's tips and notes
+ * (src/components/guide/Callout.astro) look the same. The kind's colour runs down the leading
+ * edge, squared off; a warning also tints the box.
+ */
+.message-box {
+    --message-colour: var(--color-text-accent);
+    --message-background: var(--color-background-surface);
+
+    display: flex;
+    align-items: center;
+    gap: var(--space-between-content);
+    padding: var(--space-between-text) var(--space-between-text) var(--space-between-text)
+        var(--space-padding-container);
+    border: var(--border-width-default) solid var(--color-border-subtle);
+    border-inline-start: var(--border-width-highlight) solid var(--message-colour);
+    border-radius: 0 var(--radius-medium) var(--radius-medium) 0;
+    background-color: var(--message-background);
+
+    &[data-kind="success"] {
+        --message-colour: var(--color-text-success);
+    }
+
+    &[data-kind="warning"] {
+        --message-colour: var(--color-text-warning);
+        --message-background: var(--color-background-warning);
+    }
+
+    &[data-kind="error"] {
+        --message-colour: var(--color-background-danger);
+    }
+
+    &:empty {
+        display: none;
+    }
+}

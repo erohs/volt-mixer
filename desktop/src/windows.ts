@@ -40,7 +40,7 @@ const lockNavigation = (window: BrowserWindow): void => {
         return { action: "deny" };
     });
     // The windows stay on their page (the mixer drives the Volt). A link to the web opens in the
-    // browser, and so does any other page of the site (Privacy), from the website itself.
+    // browser, and so does any other page of the site (the guide, Privacy), from the website itself.
     window.webContents.on("will-navigate", (event, url) => {
         event.preventDefault();
         if (url.startsWith("https://")) return void shell.openExternal(url);

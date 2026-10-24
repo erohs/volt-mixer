@@ -1,0 +1,77 @@
+---
+title: Outputs and cues
+description: Speaker and headphone levels, Mono, the mix meter, and how cues feed the headphones and Line Out 3/4 in Volt Mixer.
+lead: The outputs panel sets how loud your speakers and headphones are. Cues decide what the headphones and the rear Line Out 3/4 play.
+---
+
+import Callout from "../../components/guide/Callout.astro";
+import Parts from "../../components/guide/Parts.astro";
+import Shot from "../../components/guide/Shot.astro";
+
+## The outputs panel
+
+<Shot
+    name="outputs"
+    alt="The Outputs panel, with numbered parts: the Mix meter, Monitor's Mute and Mono buttons, the Monitor level and Headphones' Mute button."
+/>
+
+<Parts>
+
+1. **Mix meter**
+   The monitor mix, left and right, before the Monitor level.
+2. **Mute (Monitor)**
+   Silences your speakers.
+3. **Mono**
+   Folds the monitor mix to mono.
+4. **Monitor level**
+   Your speakers, from 0 to 100, the same scale as UAD Console.
+5. **Mute (Headphones)**
+   Silences the headphones. Their level is the slider below it, also 0 to 100.
+
+</Parts>
+
+<Callout kind="tip" title="Check your mix in mono">
+    Press **Mono** for a moment while you listen. If something gets quieter or thinner, it may disappear on a phone
+    speaker or in a mono stream.
+</Callout>
+
+## Where the sound goes
+
+<div
+    class="flow"
+    role="img"
+    aria-label="Channel faders and pans make the monitor mix, which goes to the monitors. Each cue plays the monitor mix or its own sends, and feeds the headphones or Line Out 3/4.">
+    <p>
+        <span>Channel faders and pans</span>
+        <b>→</b>
+        <span>Monitor mix</span>
+        <b>→</b>
+        <span>Monitors</span>
+    </p>
+    <p>
+        <span>Mix or own sends</span>
+        <b>→</b>
+        <span>Cue 1, Cue 2</span>
+        <b>→</b>
+        <span>Headphones, Line Out 3/4</span>
+    </p>
+</div>
+
+| Output       | Plays                                                   | Set in                         |
+| ------------ | ------------------------------------------------------- | ------------------------------ |
+| Monitors     | The monitor mix: channel faders, pans, mutes and solo   | The strips                     |
+| Headphones   | Cue 1 or Cue 2                                          | Settings › Cues and headphones |
+| Line Out 3/4 | Your computer's playback, or the same as Cue 1 or Cue 2 | Settings › Cues and headphones |
+
+## Cues
+
+A cue is a mix for headphones. Each of the two can play:
+
+- **Monitor mix**: the same as your speakers. The simple choice when it's just you.
+- **Own mix**: its own level for each channel, from the [cue sends](../channel-settings/#cue-sends) in each channel's settings. For a performer who wants more of themselves, or less of the click.
+
+The headphones play one cue, and Line Out 3/4 can play the other, so two people can each have their own mix. [A separate headphone mix](../use-cases/#a-separate-headphone-mix) walks through it.
+
+<Callout kind="note">
+    What the cues play is part of [your mix](../your-mix/), so each computer keeps its own, like the faders.
+</Callout>

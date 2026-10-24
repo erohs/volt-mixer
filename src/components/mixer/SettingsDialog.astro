@@ -2,6 +2,7 @@
 import Dialog from "../ui/Dialog.astro";
 import Icon from "../ui/Icon.astro";
 import InlineMessage from "../ui/InlineMessage.astro";
+import LinkField from "../ui/LinkField.astro";
 import PhoneRemote from "./PhoneRemote.astro";
 import QrCode from "../ui/QrCode.astro";
 import Reveal from "../ui/Reveal.astro";
@@ -171,7 +172,7 @@ import Slider from "../ui/Slider.astro";
         <SettingRow
             id="phone-remote"
             name="Phone remote"
-            description="The tray mixer on your phone, on the same Wi-Fi."
+            description="Change levels from your phone, on the same Wi-Fi. To carry your mix instead, use Your mix › QR code."
             for="phone-remote-input">
             <input
                 id="phone-remote-input"
@@ -201,14 +202,12 @@ import Slider from "../ui/Slider.astro";
                     Open it on another computer to use this mix there.
                 </p>
             </div>
-            <div class="link-field">
-                <input
-                    id="mix-link-input"
-                    type="text"
-                    readonly
-                    aria-describedby="mix-link-description message-mix-link"
-                    data-mix-link
-                />
+            <LinkField
+                id="mix-link-input"
+                type="text"
+                readonly
+                aria-describedby="mix-link-description message-mix-link"
+                data-mix-link>
                 <button class="button button--icon button--feedback" type="button" data-mix-copy>
                     <span class="face">
                         <Icon name="copy" />
@@ -217,11 +216,11 @@ import Slider from "../ui/Slider.astro";
                     <Icon name="check" class="feedback feedback--success" />
                     <Icon name="close" class="feedback feedback--error" />
                 </button>
-            </div>
+            </LinkField>
             <Reveal summary="QR code" data-mix-qr>
                 <QrCode name="mix" label="QR code of this mix link">
                     <p class="description">
-                        Scan it with your phone, or on the work laptop with the Windows Camera app.
+                        Scan it with your phone to carry the mix, or with another computer's camera to use it there.
                     </p>
                 </QrCode>
             </Reveal>
@@ -237,20 +236,18 @@ import Slider from "../ui/Slider.astro";
                     From another computer. It replaces this one's mix.
                 </p>
             </div>
-            <div class="link-field">
-                <input
-                    id="mix-paste-input"
-                    type="url"
-                    required
-                    aria-describedby="mix-paste-description message-mix-paste"
-                    data-mix-link-input
-                />
+            <LinkField
+                id="mix-paste-input"
+                type="url"
+                required
+                aria-describedby="mix-paste-description message-mix-paste"
+                data-mix-link-input>
                 <button class="button button--feedback" type="submit">
                     <span class="face">Use</span>
                     <Icon name="check" class="feedback feedback--success" />
                     <Icon name="close" class="feedback feedback--error" />
                 </button>
-            </div>
+            </LinkField>
             <InlineMessage name="mix-paste" />
         </form>
         <SettingRow id="push-mix" name="Apply mix" description="Send it to the Volt now.">
@@ -317,37 +314,5 @@ import Slider from "../ui/Slider.astro";
     .description {
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
-    }
-
-    /* One field: the box and its button share a border, squared off where they meet. */
-    .link-field {
-        display: flex;
-
-        & input {
-            flex: 1;
-            min-inline-size: 0;
-            border-start-end-radius: 0;
-            border-end-end-radius: 0;
-            font-size: var(--font-size-small);
-            text-overflow: ellipsis;
-        }
-
-        /* The link to copy reads as quieter than one being typed. */
-        & input[readonly] {
-            color: var(--color-text-secondary);
-            cursor: copy;
-        }
-
-        & .button {
-            border-inline-start: 0;
-            border-start-start-radius: 0;
-            border-end-start-radius: 0;
-        }
-
-        /* The focused one sits on top, so its outline isn't hidden under its neighbour. */
-        & :focus-visible {
-            position: relative;
-            z-index: 1;
-        }
     }
 </style>

@@ -27,8 +27,9 @@ import Icon from "../ui/Icon.astro";
         flex-wrap: wrap;
         align-items: center;
         gap: var(--space-between-text) var(--space-between-content);
-        /* One value on every side, so the corner buttons sit equally inset. */
-        padding: var(--space-padding-page);
+        /* As tall as the guide's bar, and lined up with the page's edges below. */
+        min-block-size: var(--size-bar);
+        padding: var(--space-between-text) var(--space-page-inline);
         border-block-end: var(--border-width-default) solid var(--color-border-subtle);
         background-color: var(--color-background-surface);
     }

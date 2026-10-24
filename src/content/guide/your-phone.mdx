@@ -1,0 +1,91 @@
+---
+title: Your phone
+description: Use your phone with Volt Mixer, to carry your mix to another computer or, with the desktop app, as a remote for levels and mutes.
+lead: Your phone can't connect to a Volt itself, but it can do two jobs. Each has its own QR code, in its own place.
+---
+
+import Callout from "../../components/guide/Callout.astro";
+import Shot from "../../components/guide/Shot.astro";
+
+## Two jobs, two QR codes
+
+|                      | Carry your mix                               | Phone remote                              |
+| -------------------- | -------------------------------------------- | ----------------------------------------- |
+| What it does         | Takes a copy of your mix to another computer | Changes levels and mutes while you listen |
+| Where its QR code is | **Settings › Your mix › QR code**            | **Settings › Desktop app › Phone remote** |
+| What it needs        | Nothing: works with the website, anywhere    | The desktop app, open, and the same Wi-Fi |
+
+Why the difference: for the remote, your phone has to reach the computer the whole time you use it, and only the desktop app can listen for that. Carrying a mix is just a link, so it works everywhere.
+
+## Carry your mix
+
+Take your latest mix from one computer to another, with no app and no account.
+
+1. On the computer with the mix you want, open **Settings › Your mix** and choose **QR code**.
+2. Scan it with your phone's camera. Volt Mixer opens on the phone and keeps the mix.
+3. At the other computer, open Volt Mixer on the phone again. It shows the mix as a QR code.
+4. Scan that with the computer's camera (on Windows, the Camera app reads QR codes), or choose **Send the link** and open it on the computer.
+
+<Shot
+    name="carry"
+    alt="Volt Mixer on a phone: “Your mix is on this device”, a QR code, and Send the link, Copy the link and Forget it buttons."
+/>
+
+The phone keeps the mix until you choose **Forget it**, so you can carry the same mix to any computer. Opened with nothing to carry, Volt Mixer on the phone explains both jobs and where their QR codes are:
+
+<Shot
+    name="phone-none"
+    alt="Volt Mixer on a phone with nothing to carry: “Volt Mixer can't reach a Volt from here”, and the two things a phone can do, carry a mix or change levels."
+/>
+
+## Phone remote
+
+The tray mixer on your phone, for changing levels from across the room. It needs the [desktop app](../desktop-app/), open and connected to the Volt, and your phone on the same Wi-Fi.
+
+### Set it up
+
+1. In the desktop app, open **Settings › Desktop app** and turn on **Phone remote**.
+2. With your phone on the same Wi-Fi as the computer, scan its QR code with the phone's camera.
+3. The mixer opens in your phone's browser. Add it to your home screen to open it again quickly.
+
+<Shot
+    name="remote"
+    alt="The phone remote: rows for Headphones, Monitor and three channels, each an icon and a slider, and Keep this mix on my phone underneath."
+/>
+
+### What you can do from the phone
+
+- Set the **Headphones** and **Monitor** levels, and mute them: tap a row's icon.
+- Set each channel's level, and mute it, for the channels [shown in the tray](../desktop-app/#the-tray-mixer).
+- **Keep this mix on my phone** takes the computer's mix with you, ready to [carry](#carry-your-mix). No second QR code needed.
+
+Everything else, like 48V, gain and headphone routing, stays on the computer, so nothing risky can be changed from the sofa.
+
+### The status
+
+Above the remote's QR code, the app shows how it's doing.
+
+| It says             | It means                                   |
+| ------------------- | ------------------------------------------ |
+| Starting…           | The remote is starting up.                 |
+| Waiting for a phone | Ready. Scan the code.                      |
+| 1 phone connected   | Shown in green while phones are in.        |
+| Anything in amber   | Something is wrong. The message says what. |
+
+If the computer is on more than one network, an **Address** list appears: choose the one your phone can reach, usually your home Wi-Fi.
+
+### Unpair phones
+
+**New code** makes a new QR code and unpairs every phone. Each one has to scan again. Use it if you've shared the code by mistake, or a phone has gone missing.
+
+### If the phone can't connect
+
+1. Check the phone is on the **same Wi-Fi** as the computer, not mobile data.
+2. Turn off any **VPN**, on the phone and on the computer.
+3. On Windows, set your home network to **Private** in **Settings › Network & internet**.
+4. Allow Volt Mixer through **Windows Firewall** on private networks.
+
+<Callout kind="caution" title="Home networks only">
+    The remote's connection isn't encrypted, like most home gadgets. Someone who can watch your home network could use
+    it, so turn Phone remote off on a network you don't trust.
+</Callout>

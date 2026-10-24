@@ -1,0 +1,352 @@
+/*
+ * The guide's frame: top bar, sidebar, page and contents rail, and search. Loaded only by the
+ * guide (src/layouts/GuideLayout.astro), so the mixer's stylesheet stays as it was; the pages'
+ * own content is styled in guide-prose.css. Quiet in the Scandinavian way, like the mixer: warm
+ * neutrals, hairlines, one accent, and room to breathe.
+ */
+
+body[data-layout="guide"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "bar"
+        "main"
+        "footer";
+    min-block-size: 100dvh;
+
+    /* The sidebar and page sit together in the middle of a very wide screen, under a full-width bar. */
+    @media (width >= 60rem) {
+        grid-template-columns:
+            minmax(0, 1fr) var(--size-guide-nav) minmax(0, var(--size-guide-main))
+            minmax(0, 1fr);
+        grid-template-rows: auto 1fr auto;
+        grid-template-areas:
+            "bar bar bar bar"
+            ". nav main ."
+            ". nav footer .";
+    }
+
+    & > main {
+        grid-area: main;
+    }
+
+    & > footer {
+        grid-area: footer;
+    }
+}
+
+/* Top bar */
+
+.guide-bar {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 3;
+    grid-area: bar;
+    display: flex;
+    align-items: center;
+    gap: var(--space-between-content);
+    min-block-size: var(--size-bar);
+    /* Lined up with the sidebar and page below, however wide the screen. */
+    padding-inline: max(var(--space-padding-page), (100% - var(--size-guide-nav) - var(--size-guide-main)) / 2);
+    border-block-end: var(--border-width-default) solid var(--color-border-subtle);
+    background-color: var(--color-background-surface);
+}
+
+.guide-brand {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-between-text);
+    margin-inline-end: auto;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-title);
+    font-weight: var(--font-weight-semi-bold);
+    text-decoration: none;
+}
+
+.guide-brand-tag {
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-regular);
+}
+
+.guide-menu-button {
+    @media (width >= 60rem) {
+        display: none;
+    }
+}
+
+.guide-open {
+    text-decoration: none;
+
+    @media (width < 40rem) {
+        display: none;
+    }
+}
+
+/* A wide, quiet field that opens the search; an icon only on a phone. */
+.guide-search-button:not([hidden]) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-between-text);
+    min-block-size: var(--size-action-minimum);
+    padding-inline: var(--space-padding-compact) var(--space-between-text);
+    border: var(--border-width-default) solid var(--color-border-subtle);
+    border-radius: var(--radius-medium);
+    background-color: var(--color-background-page);
+    color: var(--color-text-secondary);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+        border-color: var(--color-border);
+        color: var(--color-text-primary);
+    }
+
+    @media (width >= 40rem) {
+        min-inline-size: 15rem;
+
+        & kbd {
+            margin-inline-start: auto;
+        }
+    }
+
+    @media (width < 40rem) {
+        padding-inline: var(--space-between-text);
+
+        & .guide-search-label {
+            position: absolute;
+            inline-size: 1px;
+            block-size: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
+        & kbd {
+            display: none;
+        }
+    }
+}
+
+/* Sidebar: always there on a wide screen; a popover from the menu button on a narrow one. */
+
+/* No display of its own: closed, the browser hides a popover, and only open or wide is it shown. */
+.guide-nav {
+    align-content: start;
+    gap: var(--space-between-blocks);
+    padding: var(--space-between-blocks) var(--space-padding-container);
+    border: 0;
+    color: var(--color-text-primary);
+
+    &:popover-open {
+        display: grid;
+        inset: 0 auto 0 0;
+        inline-size: min(20rem, 85vw);
+        block-size: 100dvh;
+        max-block-size: none;
+        margin: 0;
+        overflow-y: auto;
+        border-inline-end: var(--border-width-default) solid var(--color-border-subtle);
+        background-color: var(--color-background-page);
+    }
+
+    &::backdrop {
+        background-color: rgb(0 0 0 / 0.35);
+    }
+
+    /* Undoes the browser's popover box: in place, its own size, only the top held. */
+    @media (width >= 60rem) {
+        position: sticky;
+        inset: var(--size-bar) auto auto;
+        inline-size: auto;
+        block-size: auto;
+        margin: 0;
+        grid-area: nav;
+        display: grid;
+        align-self: start;
+        max-block-size: calc(100dvh - var(--size-bar));
+        overflow-y: auto;
+        border-inline-end: var(--border-width-default) solid var(--color-border-subtle);
+        background-color: transparent;
+    }
+
+    & ul {
+        display: grid;
+        gap: 0.125rem;
+        padding: 0;
+        list-style: none;
+    }
+
+    & a {
+        display: block;
+        padding: var(--space-between-lines) var(--space-padding-compact);
+        border-radius: var(--radius-small);
+        color: var(--color-text-primary);
+        text-decoration: none;
+
+        &:hover {
+            background-color: var(--color-background-raised);
+        }
+
+        &[aria-current="page"] {
+            background-color: var(--color-background-raised);
+            color: var(--color-text-accent);
+            font-weight: var(--font-weight-semi-bold);
+        }
+    }
+}
+
+.guide-nav-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: var(--font-weight-semi-bold);
+
+    @media (width >= 60rem) {
+        display: none;
+    }
+}
+
+.guide-nav-group {
+    display: grid;
+    gap: var(--space-between-text);
+}
+
+.guide-nav-title {
+    padding-inline: var(--space-padding-compact);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-semi-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.guide-nav .guide-nav-mixer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-between-text);
+    color: var(--color-text-accent);
+}
+
+/* The page: title, contents, text and pager in one column; the contents move right when there's room. */
+
+.guide-page {
+    display: grid;
+    grid-template-columns: minmax(0, var(--size-reading));
+    gap: var(--space-between-blocks);
+    justify-content: center;
+    padding: var(--space-between-blocks) var(--space-padding-page) var(--space-between-sections);
+
+    @media (width >= 80rem) {
+        grid-template-columns: minmax(0, var(--size-reading)) var(--size-guide-toc);
+        column-gap: var(--space-between-sections);
+
+        & > :not(.guide-toc) {
+            grid-column: 1;
+        }
+    }
+}
+
+.guide-title {
+    display: grid;
+    gap: var(--space-between-text);
+
+    & h1 {
+        font-size: var(--font-size-display);
+        letter-spacing: -0.01em;
+    }
+}
+
+.guide-eyebrow {
+    color: var(--color-text-accent);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-semi-bold);
+}
+
+.guide-lead {
+    max-inline-size: 38rem;
+    color: var(--color-text-secondary);
+}
+
+/* On this page: a hairline box under the title; a rail beside the text on a wide screen. */
+.guide-toc {
+    display: grid;
+    gap: var(--space-between-text);
+    padding: var(--space-padding-compact) var(--space-padding-container);
+    border: var(--border-width-default) solid var(--color-border-subtle);
+    border-radius: var(--radius-medium);
+    font-size: var(--font-size-small);
+
+    @media (width >= 80rem) {
+        position: sticky;
+        inset-block-start: calc(var(--size-bar) + var(--space-between-blocks));
+        grid-column: 2;
+        grid-row: 1 / span 4;
+        align-self: start;
+        padding: 0 0 0 var(--space-padding-container);
+        border-width: 0 0 0 var(--border-width-default);
+        border-radius: 0;
+    }
+
+    & h2 {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    & ul {
+        display: grid;
+        gap: var(--space-between-lines);
+        padding: 0;
+        list-style: none;
+    }
+
+    & a {
+        display: block;
+        padding-block: 0.125rem;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+
+        &:hover {
+            color: var(--color-text-accent);
+        }
+    }
+}
+
+/* Previous and next, as bare text on the page. */
+.guide-pager {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+    gap: var(--space-between-content);
+    margin-block-start: var(--space-between-blocks);
+}
+
+.guide-pager-link {
+    display: grid;
+    gap: var(--space-between-lines);
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semi-bold);
+    text-decoration: none;
+
+    &:hover {
+        color: var(--color-text-accent);
+    }
+}
+
+.guide-pager-next {
+    grid-column: -2;
+    text-align: end;
+
+    & .guide-pager-label {
+        justify-content: end;
+    }
+}
+
+.guide-pager-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-between-lines);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-regular);
+}

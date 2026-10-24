@@ -8,14 +8,17 @@ import { clearMessage } from "./messages.ts";
 const focusable =
     'button:not(:disabled), input:not(:disabled), select:not(:disabled), summary, a[href], [tabindex]:not([tabindex="-1"])';
 
-const visibleFocusable = (dialog: HTMLDialogElement): HTMLElement[] =>
+const visibleFocusable = (container: HTMLElement): HTMLElement[] =>
     // checkVisibility, not a size check: the contents of a closed <details> still have a size in Chrome.
-    [...dialog.querySelectorAll<HTMLElement>(focusable)].filter((element) => element.checkVisibility());
+    [...container.querySelectorAll<HTMLElement>(focusable)].filter((element) => element.checkVisibility());
 
-const onKeyDown = (event: KeyboardEvent): void => {
+/**
+ * Keeps Tab inside `container`, wrapping from its last control to its first and back, rather than
+ * letting focus leave for the browser's own UI. Also used by the guide's menu (guide-nav.ts).
+ */
+export const wrapTab = (event: KeyboardEvent, container: HTMLElement): void => {
     if (event.key !== "Tab") return;
-    const dialog = event.currentTarget as HTMLDialogElement;
-    const items = visibleFocusable(dialog);
+    const items = visibleFocusable(container);
     const first = items[0];
     const last = items.at(-1);
     if (!first || !last) return;
@@ -24,6 +27,8 @@ const onKeyDown = (event: KeyboardEvent): void => {
     event.preventDefault();
     (event.shiftKey ? last : first).focus();
 };
+
+const onKeyDown = (event: KeyboardEvent): void => wrapTab(event, event.currentTarget as HTMLDialogElement);
 
 /** A click whose point is outside the dialog's box landed on the backdrop. */
 const onClick = (event: MouseEvent): void => {

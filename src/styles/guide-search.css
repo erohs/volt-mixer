@@ -1,0 +1,66 @@
+/* The guide's search dialog (GuideSearch.astro), loaded with the guide's other stylesheets. */
+
+/* Search: a field at the top of the dialog, its results as a list of links below. */
+
+#guide-search {
+    inline-size: min(40rem, 100% - 2 * var(--space-padding-page));
+    max-block-size: min(40rem, 100dvh - 4rem);
+    margin-block-start: 8dvh;
+
+    & .body {
+        gap: var(--space-between-content);
+    }
+}
+
+.guide-search-form input {
+    inline-size: 100%;
+    font-size: var(--font-size-body);
+}
+
+.guide-search-status {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+
+    &:empty {
+        display: none;
+    }
+}
+
+.guide-results {
+    display: grid;
+    gap: var(--space-between-text);
+    padding: 0;
+    list-style: none;
+}
+
+.guide-result {
+    display: grid;
+    gap: var(--space-between-lines);
+    padding: var(--space-padding-compact);
+    border: var(--border-width-default) solid var(--color-border-subtle);
+    border-radius: var(--radius-medium);
+    color: var(--color-text-primary);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        border-color: var(--color-background-accent);
+        background-color: var(--color-background-raised);
+    }
+
+    & mark {
+        border-radius: 2px;
+        background-color: transparent;
+        color: var(--color-text-accent);
+        font-weight: var(--font-weight-semi-bold);
+    }
+}
+
+.guide-result-where {
+    font-weight: var(--font-weight-semi-bold);
+}
+
+.guide-result-snippet {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+}

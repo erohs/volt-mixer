@@ -1,3 +1,4 @@
+import mdx from "@astrojs/mdx";
 import { defineConfig } from "astro/config";
 
 /*
@@ -10,6 +11,8 @@ export default defineConfig({
     site: process.env["SITE_ORIGIN"] ?? "http://localhost:4321",
     base,
     trailingSlash: "always",
+    /* The user guide (src/pages/guide) is MDX, so its pages can use the site's components. */
+    integrations: [mdx()],
     /*
      * Stylesheets stay files: the desktop app's CSP allows inline styles in attributes only
      * (desktop/src/site-files.ts), so an inlined <style> would be blocked there.

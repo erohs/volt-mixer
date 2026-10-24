@@ -1,0 +1,47 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+/*
+ * A box and its button as one field: they share a border, squared off where they meet. The props
+ * go to the box; the button is the slot. Used for the mix link in Settings and on the welcome panel.
+ */
+type Props = HTMLAttributes<"input">;
+---
+
+<div class="link-field">
+    <input {...Astro.props} />
+    <slot />
+</div>
+
+<style>
+    .link-field {
+        display: flex;
+
+        & input {
+            flex: 1;
+            min-inline-size: 0;
+            border-start-end-radius: 0;
+            border-end-end-radius: 0;
+            font-size: var(--font-size-small);
+            text-overflow: ellipsis;
+        }
+
+        /* The link to copy reads as quieter than one being typed. */
+        & input[readonly] {
+            color: var(--color-text-secondary);
+            cursor: copy;
+        }
+
+        & :global(.button) {
+            border-inline-start: 0;
+            border-start-start-radius: 0;
+            border-end-start-radius: 0;
+        }
+
+        /* The focused one sits on top, so its outline isn't hidden under its neighbour. */
+        & :focus-visible {
+            position: relative;
+            z-index: 1;
+        }
+    }
+</style>

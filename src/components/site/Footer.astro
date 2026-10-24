@@ -1,38 +1,44 @@
 ---
 import { site } from "../../lib/site.ts";
+import Icon from "../ui/Icon.astro";
+
+const base = import.meta.env.BASE_URL;
 ---
 
+<!-- What this is, then a few links, the guide first. The licence and supported models are on GitHub. -->
 <footer class="footer">
-    <p>
-        Volt Mixer controls the built-in mixer of a Universal Audio Volt 4 Gen 2 without UAD Console. In Microsoft Edge
-        or Google Chrome it talks to the Volt over USB through WebHID, so there's nothing to install. The desktop app
-        for Windows, macOS and Linux adds a tray mixer, starting at sign-in, and a phone remote on your home Wi-Fi. Free
-        and open source.
+    <!-- Says what this is in plain words: much of the mixer page is controls, so this is what search engines read. -->
+    <p class="about">
+        Volt Mixer controls the built-in mixer of the Universal Audio Volt 4 Gen 2 from Edge or Chrome, without UAD
+        Console. Free and open source; not affiliated with Universal Audio.
     </p>
     <ul class="links">
+        <li>
+            <a class="guide" href={`${base}${site.guidePath}`}>
+                Guide
+                <Icon name="arrow-right" />
+            </a>
+        </li>
         <li>
             <a href={site.releasesUrl}>Desktop app</a>
         </li>
         <li>
-            <a href={site.repositoryUrl}>Source on GitHub</a>
+            <a href={`${base}${site.privacyPath}`}>Privacy</a>
         </li>
         <li>
-            <a href={site.supportedModelsUrl}>Supported models</a>
-        </li>
-        <li>
-            <a href={site.licenceUrl}>MIT licence</a>
-        </li>
-        <li>
-            <a href={`${import.meta.env.BASE_URL}${site.privacyPath}`}>Privacy</a>
+            <a href={site.repositoryUrl}>GitHub</a>
         </li>
     </ul>
 </footer>
 
 <style>
     .footer {
-        display: grid;
-        gap: var(--space-between-text);
-        margin-inline: var(--space-padding-page);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-between-text) var(--space-between-blocks);
+        margin-inline: var(--space-page-inline);
         padding-block: var(--space-padding-container) var(--space-padding-page);
         border-block-start: var(--border-width-default) solid var(--color-border-subtle);
         color: var(--color-text-secondary);
@@ -48,7 +54,24 @@ import { site } from "../../lib/site.ts";
     }
 
     a {
-        color: var(--color-text-accent);
+        color: var(--color-text-secondary);
         text-underline-offset: 0.2em;
+
+        &:hover {
+            color: var(--color-text-primary);
+        }
+    }
+
+    /* The guide stands out: it's where to go next. */
+    .guide {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-between-lines);
+        color: var(--color-text-accent);
+        font-weight: var(--font-weight-semi-bold);
+
+        &:hover {
+            color: var(--color-text-accent);
+        }
     }
 </style>

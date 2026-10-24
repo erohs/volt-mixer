@@ -66,6 +66,20 @@
     --size-slider-thumb: 1.25rem;
     --size-meter: 0.5rem;
     --size-dialog: 30rem;
+    /* The top bar, the same height on the mixer and in the guide. */
+    --size-bar: 4rem;
+    /* The mixer's widest: a 1920 px screen with a margin either side. */
+    --size-page-max: 112rem;
+    /* A page's side margin: the usual padding, or wider to centre the page past its widest. */
+    --space-page-inline: max(var(--space-padding-page), (100% - var(--size-page-max)) / 2 + var(--space-padding-page));
+    /* The guide (src/styles/guide*.css): a reading measure, its sidebar and its contents rail. */
+    --font-size-display: clamp(1.875rem, 1.5rem + 1.25vw, 2.5rem);
+    --line-height-reading: 1.7;
+    --space-between-sections: 3.5rem;
+    --size-guide-nav: 16.5rem;
+    --size-guide-toc: 13rem;
+    --size-guide-main: 66rem;
+    --size-reading: 44rem;
     --border-width-default: 1px;
     --border-width-standout: 2px;
     --border-width-highlight: 3px;

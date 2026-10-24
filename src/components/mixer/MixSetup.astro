@@ -1,77 +1,75 @@
 ---
 import Icon from "../ui/Icon.astro";
 import InlineMessage from "../ui/InlineMessage.astro";
+import LinkField from "../ui/LinkField.astro";
+import Reveal from "../ui/Reveal.astro";
 ---
 
 <!--
-    Shown when this computer has no saved mix for the connected Volt. The Volt can't report its
-    fader positions, so the page needs a mix of its own before it can apply one (as Console does).
+    Shown when this computer has no mix for the connected Volt: the first time, or after Forget mix.
+    The Volt can't report its fader positions, so the page needs a mix of its own before it sends
+    any level (as Console does). Starting fresh is the one big choice; bringing a mix folds away.
 -->
 <section class="setup" aria-labelledby="setup-heading" data-mix-setup hidden>
-    <h2 id="setup-heading">This computer doesn't have your mix yet</h2>
-    <p>
-        The Volt can't report its fader and pan positions, so this page keeps its own copy of the mix and applies it
-        when it connects, like UAD Console does. Until it has one, it only shows the Volt's other settings.
-    </p>
-    <form class="paste" data-mix-paste>
-        <label for="mix-link">
-            Mix link from your other computer, or from <code>tools/mix-link.mjs</code>
-        </label>
-        <div class="row">
-            <input id="mix-link" type="url" required aria-describedby="message-mix-setup-paste" data-mix-link-input />
-            <button class="button button--primary button--feedback" type="submit">
-                <span class="face">Use this mix</span>
-                <Icon name="check" class="feedback feedback--success" />
-                <Icon name="close" class="feedback feedback--error" />
-            </button>
-        </div>
-        <InlineMessage name="mix-setup-paste" />
-    </form>
-    <div class="defaults">
-        <button class="button" type="button" data-action="mix-defaults" aria-describedby="defaults-hint">
-            Start from Console's defaults
+    <h2 id="setup-heading">Welcome to Volt Mixer on this computer</h2>
+    <p>Your Volt is connected. Choose a mix to start from, and the faders unlock.</p>
+    <div class="start">
+        <button
+            class="button button--primary"
+            type="button"
+            data-action="mix-defaults"
+            aria-describedby="defaults-hint">
+            Start a new mix
         </button>
         <span id="defaults-hint" class="hint">
-            Sets every channel to 0 dB.
+            Every channel at 0 dB, like a new UAD Console session.
         </span>
     </div>
+    <Reveal summary="Bring my mix from another computer or phone">
+        <form class="paste" data-mix-paste>
+            <label for="mix-link">Paste its mix link. Opening the link on this computer works too.</label>
+            <LinkField id="mix-link" type="url" required aria-describedby="message-mix-setup-paste" data-mix-link-input>
+                <button class="button button--feedback" type="submit">
+                    <span class="face">Use</span>
+                    <Icon name="check" class="feedback feedback--success" />
+                    <Icon name="close" class="feedback feedback--error" />
+                </button>
+            </LinkField>
+            <InlineMessage name="mix-setup-paste" />
+        </form>
+    </Reveal>
+    <p class="hint">This shows on each new computer, and after Forget mix.</p>
 </section>
 
 <style>
     .setup:not([hidden]) {
         display: grid;
-        gap: var(--space-between-text);
-        margin: var(--space-between-content) var(--space-padding-page) 0;
+        gap: var(--space-between-content);
+        margin: var(--space-between-blocks) var(--space-page-inline) 0;
         padding: var(--space-padding-container);
-        border: var(--border-width-standout) solid var(--color-background-accent);
-        border-radius: var(--radius-large);
+        border: var(--border-width-default) solid var(--color-border-subtle);
+        border-inline-start: var(--border-width-highlight) solid var(--color-background-accent);
+        border-radius: 0 var(--radius-large) var(--radius-large) 0;
         background-color: var(--color-background-surface);
+    }
+
+    .start {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-between-text) var(--space-between-content);
     }
 
     .paste {
         display: grid;
         gap: var(--space-between-lines);
-    }
-
-    .defaults {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: var(--space-between-text);
+        max-inline-size: 40rem;
+        color: var(--color-text-primary);
+        font-size: var(--font-size-body);
     }
 
     .hint {
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
-    }
-
-    .row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-between-text);
-
-        & input {
-            flex: 1 1 16rem;
-        }
     }
 </style>

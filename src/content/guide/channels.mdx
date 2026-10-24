@@ -1,0 +1,87 @@
+---
+title: Channels
+description: The channel strips in Volt Mixer, the Volt 4 Gen 2's inputs, and what each part of a strip does.
+lead: Each of the Volt's inputs has a strip, with its level in the monitor mix, its meters and its buttons. A linked pair shares one stereo strip.
+---
+
+import Callout from "../../components/guide/Callout.astro";
+import Parts from "../../components/guide/Parts.astro";
+import Shot from "../../components/guide/Shot.astro";
+
+## Parts of a strip
+
+<Shot
+    name="strip"
+    alt="A channel strip named Vocal mic, with numbered parts: its name, the gear, a Warmth tone tag, a lit 48V tag, the fader, its meter, and the mute, solo and link buttons."
+/>
+
+<Parts>
+
+1. **Name and icon**
+   Change both in the [channel settings](../channel-settings/#name-and-icon).
+2. **Gear**
+   Opens the [channel settings](../channel-settings/): gain, pan, headphone mixes and more.
+3. **Tone (Inputs 1–4)**
+   Each press steps to the next: Off, Warmth, Focus, Shine. With a tone on, the tag and the fader take the colour of the Volt's TONE ring.
+4. **48V (Inputs 1 and 2)**
+   Phantom power, lit red while it's on. It asks before turning on.
+5. **Fader**
+   The channel's level in the monitor mix, from off (−∞) to +12 dB, with the exact level underneath. It catches at 0 dB on the way past.
+6. **Meters**
+   How loud the input is: one bar for mono, two for stereo.
+7. **Mute**
+   The speaker is struck through while muted.
+8. **Solo (S)**
+   Hear only the soloed channels.
+9. **Link**
+   Join this channel and its neighbour into one stereo strip.
+
+</Parts>
+
+## The strips
+
+| Strip              | What it is                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------- |
+| Input 1, Input 2   | The mic and instrument inputs on the front, with preamp gain and 48V.                          |
+| Line 3, Line 4     | The line inputs on the back, at a fixed gain. Good for a games console or a synth.             |
+| S/PDIF or ADAT 1–8 | The optical input, whichever format it's set to. Shown when you turn it on in Settings › View. |
+| Loopback           | Apps on your computer playing to the Volt's **LOOPBACK L/R** output. Always stereo.            |
+
+<Callout kind="note" title="Your computer's own sound">
+    Sound your computer plays to the Volt's usual output doesn't pass through these faders. To mix an app in, play it to
+    **LOOPBACK L/R** instead: see [Use cases](../use-cases/#bring-an-apps-sound-into-the-mix).
+</Callout>
+
+## Mute
+
+Mute takes the channel out of the monitor mix.
+
+- On **Inputs 1–4** it's the Volt's own Direct monitoring, so it works before you have a mix and the Volt remembers it. You stop hearing the input through the Volt; what your computer records isn't affected.
+- On **S/PDIF, ADAT and Loopback** it's part of your mix.
+
+## Solo
+
+While any channel is soloed, the monitor mix plays only the soloed ones. Solo more than one to hear a few together; press S again to un-solo. The headphone mixes ([cues](../outputs/#cues)) aren't affected.
+
+## Link
+
+Link joins a pair into one stereo strip: one fader, one mute, one solo. The pairs are Inputs 1 and 2, Lines 3 and 4, S/PDIF left and right, and ADAT 1/2, 3/4, 5/6 and 7/8. Holding the Volt's **INPUT** button links and unlinks too.
+
+<Callout kind="tip" title="Linking can only turn things down">
+    When a pair links, both sides take the quieter side's settings: the lower fader and headphone sends, muted if either
+    side was, and on Inputs 1 and 2 the lower gain. Each side keeps its own tone, and gets its own pan.
+</Callout>
+
+## Meters
+
+| Colour | Level                       |
+| ------ | --------------------------- |
+| Green  | Below −12 dBFS: comfortable |
+| Amber  | −12 to −3 dBFS: loud        |
+| Red    | Above −3 dBFS: too close    |
+
+The small light at the top of a meter comes on when the input reaches full scale, and stays on for two seconds so you don't miss it. If it lights often, turn the [gain](../channel-settings/#preamp) down. Not every channel has a meter: the Volt only meters some of them.
+
+## Showing and hiding strips
+
+**Settings › View** shows or hides the digital and Loopback strips. A hidden strip still plays at its level: hiding only tidies the page.

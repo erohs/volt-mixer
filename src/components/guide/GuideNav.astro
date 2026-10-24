@@ -1,0 +1,47 @@
+---
+import { guideGroups, guideHref } from "../../lib/guide-nav.ts";
+import Icon from "../ui/Icon.astro";
+
+interface Props {
+    /** The page being shown, by its slug. */
+    current: string;
+}
+
+const { current } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const groupId = (title: string): string => `guide-nav-${title.toLowerCase().replaceAll(" ", "-")}`;
+---
+
+<!--
+    The sidebar. On a wide screen it's always shown; on a narrow one it's a popover from the top
+    bar's menu button, so it works without script (src/styles/guide.css sets both out).
+-->
+<nav id="guide-nav" class="guide-nav" aria-label="Guide" popover>
+    <div class="guide-nav-head">
+        <span>Guide</span>
+        <button class="button button--icon" type="button" popovertarget="guide-nav" popovertargetaction="hide">
+            <Icon name="close" />
+            <span class="visually-hidden">Close</span>
+        </button>
+    </div>
+    {guideGroups.map((group) => (
+        <div class="guide-nav-group">
+            <p class="guide-nav-title" id={groupId(group.title)}>
+                {group.title}
+            </p>
+            <ul aria-labelledby={groupId(group.title)}>
+                {group.pages.map((page) => (
+                    <li>
+                        <a href={guideHref(page.slug, base)} aria-current={page.slug === current ? "page" : undefined}>
+                            {page.title}
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    ))}
+    <a class="guide-nav-mixer" href={base}>
+        Open the mixer
+        <Icon name="arrow-right" />
+    </a>
+</nav>

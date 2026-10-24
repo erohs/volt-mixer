@@ -62,6 +62,13 @@ const updateRow = (item: HTMLElement, row: ITrayRow, snapshot: ITraySnapshot): v
     mute.disabled = !snapshot.isLive;
 };
 
+/** On a phone, a link that takes this computer's mix with it (to the website, which keeps it). */
+const showKeepLink = (mixLink: string | null): void => {
+    const keep = document.querySelector<HTMLAnchorElement>("[data-tray-keep]")!;
+    keep.hidden = !link.isPhone || !mixLink;
+    if (mixLink && keep.href !== mixLink) keep.href = mixLink;
+};
+
 const render = (snapshot: ITraySnapshot): void => {
     const status = document.querySelector<HTMLElement>("[data-tray-status]")!;
     // Just the connection: "Connected · firmware 1.0.3" is more than the tray needs.
@@ -74,6 +81,7 @@ const render = (snapshot: ITraySnapshot): void => {
         layoutKey = key;
     }
     rows = snapshot.rows;
+    showKeepLink(snapshot.mixLink);
     const items = list().querySelectorAll<HTMLElement>("[data-tray-row]");
     snapshot.rows.forEach((row, i) => items[i] && updateRow(items[i], row, snapshot));
     if (!note().textContent?.startsWith("Set up")) showNote("");
@@ -143,7 +151,8 @@ const fitWindow = (): void => desktopApp()?.fitTray(Math.ceil(neededHeight()));
 const phoneStatus: Record<LinkStatus, string> = {
     connected: "",
     lost: "Can't reach Volt Mixer on your computer. Is it running, with Phone remote on?",
-    unpaired: "This phone isn't paired any more: scan the QR code in Volt Mixer › Settings › Phone remote.",
+    unpaired:
+        "This phone isn't paired any more: scan the QR code in Volt Mixer › Settings › Desktop app › Phone remote.",
 };
 
 /** In a browser there's no app: Open is a plain link to the page, and there's nothing to close. */

@@ -1,0 +1,58 @@
+{
+    "overview": {
+        "width": 1060,
+        "height": 527
+    },
+    "strip": {
+        "width": 346,
+        "height": 653
+    },
+    "outputs": {
+        "width": 493,
+        "height": 605
+    },
+    "setup": {
+        "width": 871,
+        "height": 253
+    },
+    "carry": {
+        "width": 382,
+        "height": 593
+    },
+    "phone-none": {
+        "width": 382,
+        "height": 415
+    },
+    "tray": {
+        "width": 340,
+        "height": 385
+    },
+    "remote": {
+        "width": 390,
+        "height": 400
+    },
+    "channel": {
+        "width": 480,
+        "height": 981
+    },
+    "cue": {
+        "width": 568,
+        "height": 384
+    },
+    "settings-device": {
+        "width": 578,
+        "height": 864
+    },
+    "settings-view": {
+        "width": 578,
+        "height": 343
+    },
+    "settings-desktop": {
+        "width": 578,
+        "height": 747
+    },
+    "settings-mix": {
+        "width": 578,
+        "height": 568
+    }
+}

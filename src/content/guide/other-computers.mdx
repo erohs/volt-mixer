@@ -1,0 +1,60 @@
+---
+title: Other computers
+description: Take your Volt Mixer mix to another computer with a link, a QR code or your phone, and what happens with two tabs or the desktop app open.
+lead: Each computer keeps its own copy of your mix. To take your latest mix to another computer, send it with a link, a QR code or your phone. There's nothing to sign up for.
+---
+
+import Callout from "../../components/guide/Callout.astro";
+
+## When the Volt moves
+
+The Volt's own settings, like 48V, gain and the output levels, go with it. The faders don't: the Volt [can't report them](../your-mix/#who-remembers-what), so each computer sends the copy it last had when it connects.
+
+- **The other computer has a mix:** it sends that one. To play your latest mix there, bring it across (below).
+- **The other computer has never had one:** it leaves the Volt as it is, and asks you to choose a starting mix.
+
+## Bring your mix across
+
+### With a link
+
+1. On the computer with the mix you want, open **Settings › Your mix** and click the **Mix link** to copy it.
+2. Get it to the other computer, for example in an email to yourself, and open it there.
+3. Volt Mixer uses it straight away, or keeps it until the Volt connects.
+
+You can also paste a link into **Settings › Your mix › Use a mix link**, or into **Bring my mix** on the [welcome panel](../getting-started/#choose-a-starting-mix), and choose **Use**.
+
+### With your phone
+
+Scan **Settings › Your mix › QR code** with your phone. The phone keeps the mix, and shows it again as a QR code for the other computer's camera. Step by step in [Your phone](../your-phone/#carry-your-mix).
+
+### With the other computer's camera
+
+If the other computer is beside you, choose **QR code** in **Settings › Your mix** and scan it with that computer's camera.
+
+<Callout kind="note" title="What's in a link">
+    The whole mix, including your channel names, after the # in the address. Browsers don't send that part to any
+    server, but anyone you give the link to can read it. Levels are rounded down very slightly, so a link can never make
+    anything louder.
+</Callout>
+
+## When a link arrives
+
+| If                                             | Then                                        |
+| ---------------------------------------------- | ------------------------------------------- |
+| This page is connected and in charge           | It's used straight away.                    |
+| The Volt isn't connected yet                   | It's kept, and used when the Volt connects. |
+| Volt Mixer is open in another tab              | It's sent to that tab, which uses it.       |
+| The desktop app or another browser has the mix | It's used once that one closes.             |
+| The browser can't reach a Volt (a phone)       | It's kept on the device, ready to carry.    |
+
+## One Volt Mixer at a time
+
+Two programs sending two different mixes would fight, so Volt Mixer takes turns on the same computer.
+
+| Open at once                       | What happens                                                                                                    |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Two tabs or windows of the website | The first is in charge. The second only shows the mix, and takes over when the first closes.                    |
+| The website and the desktop app    | The app keeps the mix. The website leaves it alone until the app closes; levels, 48V and gain still work there. |
+| Two browsers                       | Both leave the mix alone and say so, until one closes.                                                          |
+
+Each case shows a note at the top of the page, so you know which one is in charge.

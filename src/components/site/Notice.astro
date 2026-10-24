@@ -9,7 +9,7 @@ const messageIcons = ["circle-check", "info", "triangle-alert", "circle-x"];
     for warnings and errors). Every message gets a Dismiss button, cloned from the template by
     notice() in src/scripts/app-state.ts; its kind's icon comes from #message-icons.
 -->
-<div class="notice" aria-live="polite" data-notice></div>
+<div class="notice message-box" aria-live="polite" data-notice></div>
 <template id="notice-dismiss">
     <button class="button button--icon dismiss" type="button" data-notice-dismiss>
         <Icon name="close" />
@@ -25,39 +25,9 @@ const messageIcons = ["circle-check", "info", "triangle-alert", "circle-x"];
 </template>
 
 <style>
-    /* Each kind has its colour on the leading edge; a warning also tints the bar, as it always has. */
-    .notice {
-        --notice-colour: var(--color-text-warning);
-        --notice-background: var(--color-background-warning);
-    }
-
-    .notice[data-kind="success"] {
-        --notice-colour: var(--color-text-success);
-        --notice-background: var(--color-background-surface);
-    }
-
-    .notice[data-kind="info"] {
-        --notice-colour: var(--color-text-accent);
-        --notice-background: var(--color-background-surface);
-    }
-
-    .notice[data-kind="error"] {
-        --notice-colour: var(--color-background-danger);
-        --notice-background: var(--color-background-surface);
-    }
-
+    /* The box itself is shared with the guide's tips (.message-box, src/styles/message.css). */
     .notice:not(:empty) {
-        display: flex;
-        align-items: center;
-        gap: var(--space-between-content);
-        margin: var(--space-between-blocks) var(--space-padding-page) 0;
-        padding: var(--space-between-text) var(--space-between-text) var(--space-between-text)
-            var(--space-padding-container);
-        border: var(--border-width-default) solid var(--color-border-subtle);
-        /* The coloured edge runs square; only the far corners are rounded. */
-        border-inline-start: var(--border-width-highlight) solid var(--notice-colour);
-        border-radius: 0 var(--radius-medium) var(--radius-medium) 0;
-        background-color: var(--notice-background);
+        margin: var(--space-between-blocks) var(--space-page-inline) 0;
     }
 
     /* Wider than body text: a notice is one or two sentences, best read on one line. */

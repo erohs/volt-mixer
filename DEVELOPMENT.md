@@ -6,12 +6,14 @@ explains each step. You can follow it on your own, or open the repository in an 
 (such as Claude Code) and work through it together: the agent can run the commands, read the
 output and write the code, while you handle anything physical.
 
-If you only want to use Volt Mixer, the [README](README.md) is all you need.
+If you only want to use Volt Mixer, the [README](README.md) and the
+[guide](https://naovixen.github.io/volt-mixer/guide/) are all you need.
 
 - [How it works](#how-it-works)
 - [Set up your computer](#set-up-your-computer)
 - [Run it locally](#run-it-locally)
 - [Project layout](#project-layout)
+- [The user guide](#the-user-guide)
 - [Ground rules](#ground-rules)
 - [Add your audio interface](#add-your-audio-interface)
 - [Open a pull request](#open-a-pull-request)
@@ -100,20 +102,69 @@ Volt disagree with each other.
 
 ```
 src/
-  data/              the protocol as data, per firmware (volt4-gen2.json)
+  data/              the protocol as data, per firmware (volt4-gen2.json); the guide's
+                     screenshot sizes (guide-images.json, written by tools/guide-images.mjs)
+  content/guide/     the user guide, one MDX file per page
   lib/               pure TypeScript with Vitest tests beside it: protocol encode/decode,
                      mixer model, sync, saved mix, tapers, meters
   scripts/           browser code: WebHID connection, controller, sliders, strips, dialogs
-  components/        ui/ (Slider, Meter, Dialog, Icon), mixer/ (strips, outputs, dialogs), site/
-  layouts/ pages/    BaseLayout, the mixer page and the desktop app's tray page
-  styles/            tokens (light-dark pairs), reset, base, button
+  components/        ui/ (Slider, Meter, Dialog, Icon), mixer/ (strips, outputs, dialogs), site/, guide/
+  layouts/ pages/    BaseLayout and GuideLayout; the mixer page, the desktop app's tray page and
+                     the guide's pages and search index (pages/guide)
+  styles/            tokens (light-dark pairs), reset, base, button, message; guide*.css for
+                     the guide only
   icons/             SVG icons, with their licences
-public/              icon and web app manifest
-tools/               capture kit for a Windows PC with UAD Console (Node 24). Not deployed.
+public/              icon and web app manifest; guide/images, the guide's screenshots
+tools/               capture kit for a Windows PC with UAD Console (Node 24), and the guide's
+                     screenshot tool. Not deployed.
 desktop/             Electron app (own package.json)
 reference/decoded/   decoded captures the tests check against (serial numbers removed)
 docs/                protocol, maintenance guide, decisions
 ```
+
+## The user guide
+
+The guide at `/guide/` is for people using Volt Mixer. Each page is an MDX file (Markdown that
+can use components) in `src/content/guide`, shown by `src/pages/guide/[...slug].astro` with
+`src/layouts/GuideLayout.astro`.
+
+**Any change a user can see updates the guide, and its screenshots, before it's pushed.**
+
+- **Add a page:** write `src/content/guide/<slug>.mdx` with the same front matter as the others
+  (`title`, `description`, `lead`), then add it to `src/lib/guide-nav.ts`, which orders the
+  sidebar, the previous and next links, the search index and the sitemap. The build fails if the
+  two disagree.
+- **Write for scanning:** short paragraphs, numbered lists for steps, a table where one thing
+  maps to another, and side-by-side lists where two things are compared.
+- **Components** (`src/components/guide`), imported at the top of a page:
+    - `<Shot name="strip" alt="…" />`: a screenshot in light and dark, sized automatically.
+    - `<Parts>`: wraps a numbered list that keys a screenshot's numbers. Start each item with the
+      part's name in bold, then its explanation on the next line.
+    - `<Callout kind="tip" title="…">`: a tip, note or caution, drawn like the mixer's notices.
+      Without a title it is a notice, as the mixer shows one.
+    - `<Compare columns={[…]} />`: two lists side by side, each under its title.
+    - `<Faq question="…">`: a question that opens to its answer (Troubleshooting).
+- **One screenshot, one place:** show a screen once, on the page that explains it, and link to it
+  from elsewhere.
+- **Search** needs no service: `src/pages/guide/search.json.ts` renders each page's content at
+  build time and cuts it into sections, and `src/lib/guide-search.ts` ranks them in the browser.
+- **Screenshots** come from the real mixer, staged in headless Edge or Chrome, in light and dark.
+  Nothing in it can reach a Volt. After changing how the mixer looks:
+
+    ```sh
+    pnpm build
+    pnpm preview            # http://localhost:4321
+    cd tools
+    node guide-images.mjs   # rewrites public/guide/images and src/data/guide-images.json
+    cd ..
+    pnpm build              # the guide picks up the new sizes
+    ```
+
+    `tools/guide-stage.js` sets up each scene and numbers its parts; `tools/guide-images.mjs` says
+    how large each one is shown, so small parts are shown bigger and their numbers stay readable.
+
+The guide's styles and script load only on its pages, and the desktop app leaves it out
+(`desktop/scripts/build-site.mjs`), so it adds nothing to the mixer.
 
 ## Ground rules
 
@@ -124,7 +175,7 @@ These matter more than anything else in this guide. Pull requests that break the
 - **Only captured commands.** The page only sends bytes that were recorded from UAD Console and
   checked on the hardware. Never guess a command or send unknown bytes to "see what happens": it
   can put the device in a bad state or blast someone's ears.
-- **Lean.** Astro, TypeScript, Vitest and Prettier only (plus Electron in `desktop/`). Ask in an
+- **Lean.** Astro (with MDX for the guide), TypeScript, Vitest and Prettier only (plus Electron in `desktop/`). Ask in an
   issue before adding any dependency.
 - **Accessible.** WCAG 2.2 AA, including working at 320 CSS pixels wide.
 - **Readable.** Functions up to about 25 lines, files up to about 400. Naming and test wording are

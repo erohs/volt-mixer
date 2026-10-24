@@ -24,6 +24,13 @@ h3 {
     font-size: var(--font-size-heading);
 }
 
+/* Two weights only, regular and semi-bold, so bold text never brings in a third. */
+b,
+strong,
+th {
+    font-weight: var(--font-weight-semi-bold);
+}
+
 p {
     max-inline-size: 65ch;
 }

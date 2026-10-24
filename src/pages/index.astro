@@ -1,4 +1,5 @@
 ---
+import CarryMix from "../components/mixer/CarryMix.astro";
 import ChannelDialog from "../components/mixer/ChannelDialog.astro";
 import ChannelIconTemplate from "../components/mixer/ChannelIconTemplate.astro";
 import MixSetup from "../components/mixer/MixSetup.astro";
@@ -22,6 +23,7 @@ import { site } from "../lib/site.ts";
         </p>
     </noscript>
     <MixSetup />
+    <CarryMix />
     <div class="mixer">
         <OutputPanel />
         <section class="channels" aria-labelledby="channels-heading">
@@ -48,7 +50,7 @@ import { site } from "../lib/site.ts";
     .mixer {
         display: grid;
         gap: var(--space-between-blocks);
-        padding: var(--space-between-blocks) var(--space-padding-page) var(--space-padding-page);
+        padding: var(--space-between-blocks) var(--space-page-inline) var(--space-padding-page);
 
         /*
          * Outputs come first in the page, so stacked they sit above the channels. Wide, they move
@@ -96,7 +98,7 @@ import { site } from "../lib/site.ts";
     }
 
     .unsupported {
-        margin: var(--space-between-content) var(--space-padding-page) 0;
+        margin: var(--space-between-content) var(--space-page-inline) 0;
         padding: var(--space-padding-container);
         border: var(--border-width-default) solid var(--color-text-warning);
         border-radius: var(--radius-medium);

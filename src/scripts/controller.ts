@@ -5,10 +5,12 @@ import { stripGroups } from "../lib/strip-groups.ts";
 import { trayRows } from "../lib/tray-rows.ts";
 import { refreshOutputs, wireMixerControls } from "./actions.ts";
 import { app, hooks, isLive, notice, setStatus } from "./app-state.ts";
+import { showCarryPanel } from "./carry-mix.ts";
 import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { holdControlLock } from "./control-lock.ts";
 import { initDialogs } from "./dialogs.ts";
 import { resetMeters } from "./meters-view.ts";
+import { mixLink } from "./mix-link.ts";
 import {
     forgetMix,
     pushMix,
@@ -78,6 +80,7 @@ const traySnapshot = (): ITraySnapshot => ({
     isMixOwned: app.state.isMixOwned,
     status: element("[data-status]").textContent?.trim() ?? "",
     statusKind: element("[data-status]").dataset["status"] ?? "off",
+    mixLink: app.state.isMixOwned ? mixLink() : null,
 });
 
 /** Firmware this page hasn't been checked against: shown, but changed only once the user says so. */
@@ -235,10 +238,8 @@ const wireViews = (): void => {
 export const start = (): void => {
     wireViews();
     if (!volt.isWebHidSupported()) {
-        notice(
-            "This browser can't talk to USB devices. Open this page in Microsoft Edge or Google Chrome; Firefox and Safari don't support WebHID.",
-            { kind: "error" },
-        );
+        // It says why, and what a phone can do instead: carry a mix (carry-mix.ts).
+        showCarryPanel();
         element<HTMLButtonElement>("[data-action='connect']").disabled = true;
         return;
     }

@@ -1,0 +1,374 @@
+/*
+ * What the guide's pages are made of (src/content/guide): text, numbered steps, tables,
+ * screenshots, callouts, comparisons and cards. Loaded only by the guide, beside guide.css.
+ * Body text is one size everywhere, tables and callouts included; weights are regular and
+ * semi-bold only.
+ */
+
+.guide-prose {
+    line-height: var(--line-height-reading);
+
+    & > * + * {
+        margin-block-start: var(--space-between-content);
+    }
+
+    /* The page's title already gives it room. */
+    & > h2:first-child {
+        margin-block-start: 0;
+    }
+
+    & h2 {
+        margin-block-start: var(--space-between-sections);
+        font-size: var(--font-size-title);
+    }
+
+    /* Each h3 starts a new item (a problem, a step): a hairline above it, and room. */
+    & h3 {
+        font-size: var(--font-size-body);
+        margin-block-start: var(--space-between-blocks);
+        padding-block-start: var(--space-between-blocks);
+        border-block-start: var(--border-width-default) solid var(--color-border-subtle);
+    }
+
+    /* A section's first item: no hairline, but still room under the section's heading. */
+    & h2 + h3 {
+        margin-block-start: var(--space-between-content);
+        padding-block-start: 0;
+        border-block-start: 0;
+    }
+
+    & :is(h2, h3) {
+        scroll-margin-block-start: calc(var(--size-bar) + var(--space-between-content));
+
+        & + * {
+            margin-block-start: var(--space-between-text);
+        }
+    }
+
+    & a {
+        color: var(--color-text-accent);
+        text-underline-offset: 0.2em;
+    }
+
+    & ul {
+        display: grid;
+        gap: var(--space-between-text);
+        padding-inline-start: 1.25rem;
+    }
+
+    & li::marker {
+        color: var(--color-text-secondary);
+    }
+
+    & strong {
+        font-weight: var(--font-weight-semi-bold);
+    }
+}
+
+/*
+ * Numbered lists are steps, or the key to a screenshot's numbers: each number in an accent
+ * circle, the same as the badges in the screenshots, with a hairline joining them.
+ */
+.guide-prose ol {
+    display: grid;
+    gap: var(--space-between-content);
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+
+    & > li {
+        position: relative;
+        min-block-size: 1.75rem;
+        padding-inline-start: 2.75rem;
+        counter-increment: step;
+
+        &::before {
+            content: counter(step);
+            position: absolute;
+            inset-block-start: 0;
+            inset-inline-start: 0;
+            display: grid;
+            place-items: center;
+            inline-size: 1.75rem;
+            block-size: 1.75rem;
+            border-radius: 50%;
+            background-color: var(--color-background-accent);
+            color: var(--color-text-on-accent);
+            font-size: var(--font-size-small);
+            font-weight: var(--font-weight-semi-bold);
+            line-height: 1;
+        }
+
+        &:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            inset-block: 2.125rem calc(-1 * var(--space-between-content) + 0.375rem);
+            inset-inline-start: calc(0.875rem - 0.5px);
+            border-inline-start: var(--border-width-default) solid var(--color-border-subtle);
+        }
+    }
+}
+
+/* Tables: hairline rows, no boxes. A wide one sits in .table-scroll and scrolls on a phone. */
+.guide-prose table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    line-height: var(--line-height-body);
+
+    & th {
+        color: var(--color-text-secondary);
+        font-weight: var(--font-weight-semi-bold);
+        text-align: start;
+    }
+
+    & :is(th, td) {
+        padding: var(--space-padding-compact) var(--space-padding-container) var(--space-padding-compact) 0;
+        border-block-end: var(--border-width-default) solid var(--color-border-subtle);
+        vertical-align: top;
+    }
+
+    & td:first-child {
+        font-weight: var(--font-weight-semi-bold);
+    }
+}
+
+.table-scroll {
+    overflow-x: auto;
+
+    & table {
+        min-inline-size: 34rem;
+    }
+}
+
+/* Screenshots: on the page's own colour, as they were taken, in light or dark to match the page. */
+.shot {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-between-text);
+    margin-inline: 0;
+    padding: var(--space-padding-container);
+    border: var(--border-width-default) solid var(--color-border-subtle);
+    border-radius: var(--radius-large);
+    background-color: var(--color-background-page);
+
+    & img {
+        max-inline-size: 100%;
+        block-size: auto;
+        border-radius: var(--radius-medium);
+    }
+
+    & figcaption {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-small);
+        text-align: center;
+    }
+}
+
+.shot-dark {
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        & .shot-light {
+            display: none;
+        }
+
+        & .shot-dark {
+            display: block;
+        }
+    }
+}
+
+:root[data-theme="dark"] {
+    & .shot-light {
+        display: none;
+    }
+
+    & .shot-dark {
+        display: block;
+    }
+}
+
+/* Callouts (Callout.astro): the mixer's notice box (.message-box), with an optional title. */
+.callout {
+    align-items: flex-start;
+    padding: var(--space-padding-compact) var(--space-padding-container);
+    line-height: var(--line-height-body);
+}
+
+.callout-body {
+    display: grid;
+    gap: var(--space-between-lines);
+
+    & > * {
+        margin: 0;
+    }
+}
+
+.callout-title {
+    font-weight: var(--font-weight-semi-bold);
+}
+
+/* The key to a screenshot (Parts.astro): each part's name on its own line, above what it does. */
+.parts li > strong:first-child {
+    display: block;
+}
+
+/* Two lists side by side (Compare.astro), each in a quiet box under its title. */
+.compare {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+    gap: var(--space-between-content);
+}
+
+.compare-column {
+    display: grid;
+    align-content: start;
+    gap: var(--space-between-text);
+    padding: var(--space-padding-compact) var(--space-padding-container);
+    border: var(--border-width-default) solid var(--color-border-subtle);
+    border-radius: var(--radius-large);
+    background-color: var(--color-background-surface);
+    line-height: var(--line-height-body);
+
+    & ul {
+        margin: 0;
+    }
+}
+
+.compare-title {
+    font-weight: var(--font-weight-semi-bold);
+}
+
+/*
+ * Questions that open to their answers (Faq.astro): a list of rows between hairlines, so the eye
+ * runs down the questions and opens the one that fits.
+ */
+.faq {
+    border-block: var(--border-width-default) solid var(--color-border-subtle);
+
+    & summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-between-content);
+        padding-block: var(--space-padding-compact);
+        font-weight: var(--font-weight-semi-bold);
+        line-height: var(--line-height-body);
+        list-style: none;
+        cursor: pointer;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        &:hover {
+            color: var(--color-text-accent);
+        }
+    }
+
+    &[open] .faq-chevron {
+        rotate: 180deg;
+    }
+}
+
+.faq-chevron {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+    transition: rotate var(--duration-fast) var(--easing-standard);
+}
+
+.faq-answer {
+    display: grid;
+    gap: var(--space-between-text);
+    padding-block-end: var(--space-padding-container);
+
+    & > * {
+        margin: 0;
+    }
+}
+
+/* One list: rows share their hairlines, with no gap between them. */
+.guide-prose .faq + .faq {
+    margin-block-start: 0;
+    border-block-start: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .faq-chevron {
+        transition: none;
+    }
+}
+
+/* Cards: a grid of links to pages, each a title and a line. */
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+    gap: var(--space-between-content);
+}
+
+.guide-prose .card {
+    display: grid;
+    align-content: start;
+    gap: var(--space-between-lines);
+    padding: var(--space-padding-container);
+    border: var(--border-width-default) solid var(--color-border-subtle);
+    border-radius: var(--radius-large);
+    background-color: var(--color-background-surface);
+    color: var(--color-text-secondary);
+    line-height: var(--line-height-body);
+    text-decoration: none;
+
+    & strong {
+        color: var(--color-text-primary);
+    }
+
+    &:hover {
+        border-color: var(--color-background-accent);
+    }
+}
+
+/* Signal paths, a row of chips and arrows each; their words are in its label and the table after it. */
+.flow {
+    display: grid;
+    gap: var(--space-between-content);
+    padding: var(--space-padding-container);
+    border: var(--border-width-default) solid var(--color-border-subtle);
+    border-radius: var(--radius-large);
+    background-color: var(--color-background-raised);
+    line-height: var(--line-height-body);
+
+    & p {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-between-text);
+    }
+
+    & span {
+        padding: var(--space-between-lines) var(--space-padding-compact);
+        border: var(--border-width-default) solid var(--color-border-subtle);
+        border-radius: var(--radius-small);
+        background-color: var(--color-background-surface);
+        font-weight: var(--font-weight-semi-bold);
+    }
+
+    & b {
+        color: var(--color-text-secondary);
+        font-weight: var(--font-weight-regular);
+    }
+}
+
+/* Keys, in the text and in the search button. */
+kbd {
+    padding: 0 0.375rem;
+    border: var(--border-width-default) solid var(--color-border);
+    border-block-end-width: var(--border-width-standout);
+    border-radius: var(--radius-small);
+    background-color: var(--color-background-surface);
+    color: var(--color-text-primary);
+    font: inherit;
+    font-size: var(--font-size-small);
+    white-space: nowrap;
+}

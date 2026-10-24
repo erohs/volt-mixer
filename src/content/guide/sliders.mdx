@@ -1,0 +1,59 @@
+---
+title: Sliders and keys
+description: Moving Volt Mixer's faders and sliders with a mouse, touch, the keyboard and the mouse wheel.
+lead: Every fader and slider works the same way, with a mouse, a finger or the keyboard.
+---
+
+import Callout from "../../components/guide/Callout.astro";
+
+## Mouse and touch
+
+| Do this                     | And                                                          |
+| --------------------------- | ------------------------------------------------------------ |
+| Press anywhere on the track | The slider jumps there, and you can keep dragging.           |
+| Drag the handle             | It moves from where it is, as far as you drag.               |
+| Double-click                | Back to rest: see the table below.                           |
+| Turn the mouse wheel        | Small steps, once the slider has focus (click or Tab to it). |
+
+<Callout kind="caution" title="A press jumps straight there">
+    A stray press high on the monitor or headphone level is a sudden loud jump. Drag the handle when you're not sure.
+</Callout>
+
+The mouse wheel only moves a slider you've clicked or tabbed to, so scrolling down the page never changes a level.
+
+## Keyboard
+
+Tab to a slider, then:
+
+<div class="table-scroll">
+
+| Key                          | Faders and sends | Pan        | Gain    | Monitor, headphones |
+| ---------------------------- | ---------------- | ---------- | ------- | ------------------- |
+| <kbd>→</kbd> or <kbd>↑</kbd> | +0.5 dB          | 1 right    | +0.5 dB | +0.5                |
+| <kbd>←</kbd> or <kbd>↓</kbd> | −0.5 dB          | 1 left     | −0.5 dB | −0.5                |
+| <kbd>Page Up</kbd>           | +3 dB            | 10 right   | +3 dB   | +5                  |
+| <kbd>Page Down</kbd>         | −3 dB            | 10 left    | −3 dB   | −5                  |
+| <kbd>Home</kbd>              | Off (−∞)         | Full left  | 0 dB    | 0                   |
+| <kbd>End</kbd>               | 0 dB             | Full right | Nothing | Nothing             |
+| Double-click                 | 0 dB             | Centre     | 0 dB    | 0                   |
+
+</div>
+
+<Callout kind="tip" title="End never turns anything up to full">
+    On a fader, End goes to 0 dB, wherever you start. On the monitor and headphone levels it does nothing.
+</Callout>
+
+Display brightness, in Settings, moves 1% with the arrows and 10% with Page Up and Page Down. Home turns the display off.
+
+## How the faders move
+
+- The top of a fader runs evenly from −40 to +12 dB, where you do most of your mixing. Below −40 it's squeezed down to off.
+- It catches at **0 dB**: anything within about half a dB snaps to it.
+- From off, the first step up lands on −60 dB.
+
+## Getting around with a keyboard
+
+- <kbd>Tab</kbd> moves through each strip in order: the gear, tone, 48V, fader, then mute, solo and link.
+- <kbd>Space</kbd> or <kbd>Enter</kbd> presses a button.
+- <kbd>Esc</kbd> closes Settings or a channel's settings.
+- Screen readers hear each slider's name and value, such as "Vocal mic level, minus 6.0 decibels".

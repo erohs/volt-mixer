@@ -17,6 +17,10 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
             <div data-tray-content>
                 <ul class="rows" data-tray-rows></ul>
                 <p class="note" data-tray-note hidden></p>
+                <!-- On a phone only: opens the mix on the website, which keeps it to carry (carry-mix.ts). -->
+                <a class="keep" target="_blank" rel="noopener" data-tray-keep hidden>
+                    Keep this mix on my phone
+                </a>
             </div>
         </div>
         <div class="foot">
@@ -225,6 +229,15 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
         margin-block-start: var(--space-between-content);
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
+    }
+
+    /* Under the rows, quiet: something to take away rather than a control. */
+    .keep:not([hidden]) {
+        display: inline-block;
+        margin-block-start: var(--space-between-content);
+        color: var(--color-text-accent);
+        font-size: var(--font-size-small);
+        text-underline-offset: 0.2em;
     }
 
     /* Open as a link with its icon; Close a borderless icon like the rows' buttons. */

@@ -17,6 +17,8 @@ export interface ITraySnapshot {
     status: string;
     /** "on", "off" or "away", as the main window's status is coloured. */
     statusKind: string;
+    /** The mix as a link to the website, while this computer has one: a phone can keep it to carry. */
+    mixLink: string | null;
 }
 
 export type RemoteMessage =

@@ -1,0 +1,56 @@
+---
+title: Getting started
+description: Connect your Volt 4 Gen 2 to Volt Mixer in Edge or Chrome and choose your first mix.
+lead: From plugging in to a working mixer in about a minute. You only do this once on each computer.
+---
+
+import Callout from "../../components/guide/Callout.astro";
+import Shot from "../../components/guide/Shot.astro";
+
+## Connect your Volt
+
+1. Plug in your Volt, and close UAD Console if it's open on this computer.
+2. Open **[Volt Mixer](https://naovixen.github.io/volt-mixer/)** in Microsoft Edge or Google Chrome.
+3. Choose **Connect Volt**. The browser lists your USB devices: pick **Volt 4 Gen 2**, then **Connect**.
+4. Choose a starting mix (below).
+
+<Callout kind="tip" title="Only once">
+    The browser remembers your choice. From then on Volt Mixer connects by itself whenever the page is open and the Volt
+    is plugged in.
+</Callout>
+
+## Choose a starting mix
+
+The first time on each computer, Volt Mixer welcomes you and asks where your mix should start:
+
+<Shot
+    name="setup"
+    alt="A welcome panel: “Welcome to Volt Mixer on this computer”, a Start a new mix button, and Bring my mix from another computer or phone underneath."
+/>
+
+- **New to Volt Mixer?** Choose **Start a new mix**. Every channel starts at 0 dB, and the faders unlock.
+- **Already using it on another computer or your phone?** Open **Bring my mix** and paste its link. See [Other computers](../other-computers/).
+
+The same panel comes back if you choose **Forget mix** in Settings. [Your mix](../your-mix/) explains why it asks.
+
+## The status line
+
+Beside the title, a short line says how the connection is going.
+
+| It says                                     | It means                                                                             |
+| ------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Not connected                               | No Volt yet. Choose **Connect Volt**.                                                |
+| Connected · firmware 1.0.3                  | Working, with the firmware the Volt reports.                                         |
+| Disconnected                                | You chose **Disconnect**. The Volt keeps playing what it has.                        |
+| Volt not connected · on the other computer? | The Volt went away, for example a KVM switch moved it. It reconnects when it's back. |
+
+## Good to know
+
+- **One Volt Mixer at a time.** If the page is open in two tabs, the second waits and takes over when the first closes. See [Other computers](../other-computers/#one-volt-mixer-at-a-time).
+- **Close UAD Console.** It sends its own mix when it starts, over the top of yours.
+- **Nothing to install**, but there's a [desktop app](../desktop-app/) if you'd like a mixer in the taskbar.
+
+<Callout kind="caution" title="Firefox and Safari">
+    They can't talk to USB devices, so Connect Volt stays greyed out. Open Volt Mixer in Edge or Chrome instead. On a
+    phone, Volt Mixer can still [carry your mix](../your-phone/#carry-your-mix) to a computer.
+</Callout>

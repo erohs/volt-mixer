@@ -1,0 +1,150 @@
+---
+title: Troubleshooting
+description: Answers to common Volt Mixer problems, and what each of its messages means.
+lead: Find your problem, or the message you see, and open it for the answer.
+---
+
+import Callout from "../../components/guide/Callout.astro";
+import Faq from "../../components/guide/Faq.astro";
+
+## Common problems
+
+<Faq question="The Volt isn't in the browser's list">
+
+- Check it's plugged in and switched on, and that a KVM switch, if you use one, points at this computer.
+- Unplug it, plug it back in, and choose **Connect Volt** again.
+- Use Edge or Chrome: other browsers have no list at all.
+
+</Faq>
+
+<Faq question="Connect Volt is greyed out">
+
+The browser can't talk to USB devices. Use Microsoft Edge or Google Chrome, with JavaScript on.
+
+</Faq>
+
+<Faq question="The faders are greyed out">
+
+- **Not connected:** the status line says so. Connect the Volt.
+- **No mix yet:** choose one on the [welcome panel](../getting-started/#choose-a-starting-mix).
+- **Another Volt Mixer has it:** a note at the top says which. Close the other one.
+
+</Faq>
+
+<Faq question="Levels went back after switching computers">
+
+Each computer sends its own copy of the mix when it connects. Bring your latest across with a [link or your phone](../other-computers/#bring-your-mix-across).
+
+</Faq>
+
+<Faq question="The mix changed when UAD Console opened">
+
+Console sends its own mix when it starts. Close it, then choose **Settings › Your mix › Apply** to send yours again.
+
+</Faq>
+
+<Faq question="The desktop app vanished when I closed it">
+
+It's still running in the tray, with **Close to tray** on. On Windows, turn its icon on in **Settings › Personalisation › Taskbar › Other system tray icons** to keep it in view. On GNOME, install the AppIndicator extension.
+
+</Faq>
+
+<Faq question="The Volt's display stays on overnight">
+
+Turn on **Volt display off at sleep** in the [desktop app](../desktop-app/#settings). The website can't do this: it isn't running when the computer sleeps.
+
+</Faq>
+
+<Faq question="My phone can't connect to the phone remote">
+
+See [If the phone can't connect](../your-phone/#if-the-phone-cant-connect).
+
+</Faq>
+
+<Faq question="I can't find where to scan a mix's QR code">
+
+Volt Mixer doesn't scan: your phone's camera, or the other computer's, does. The mix's QR code is in **Settings › Your mix › QR code**. See [Your phone](../your-phone/#carry-your-mix).
+
+</Faq>
+
+## Messages about connecting
+
+Messages appear in a bar at the top of the mixer, like this one. Each can be dismissed with its ×.
+
+<Callout kind="note">
+    Volt Mixer is open in another tab or window. Use that one; this one takes over when it closes.
+</Callout>
+
+<Faq question="“Volt Mixer can't reach a Volt from here”">
+
+A panel shown in Firefox, Safari and on phones, which can't talk to USB devices. Open Volt Mixer in Microsoft Edge or Google Chrome on the computer the Volt is plugged into. On a phone, you can still [carry a mix or use the phone remote](../your-phone/).
+
+</Faq>
+
+<Faq question="“No Volt was chosen”">
+
+The browser's list closed without a choice. Choose **Connect Volt** again and pick **Volt 4 Gen 2**.
+
+</Faq>
+
+<Faq question="“Connected, but the Volt didn't send its settings”">
+
+Unplug the Volt and plug it back in.
+
+</Faq>
+
+<Faq question="“This Volt has firmware … which this page hasn't been checked against”">
+
+Volt Mixer shows the Volt's settings but changes nothing yet. Choose **Use anyway** to go on.
+
+</Faq>
+
+## Messages about your mix
+
+<Faq question="“That works once this computer has your mix”">
+
+The faders are locked until you choose a starting mix on the [welcome panel](../getting-started/#choose-a-starting-mix).
+
+</Faq>
+
+<Faq question="“Mix received. It will be applied when…”">
+
+Nothing to do: the link is kept until the Volt connects, or the other Volt Mixer closes.
+
+</Faq>
+
+<Faq question="“That isn't a Volt Mixer mix link”">
+
+Copy the link again, whole, from **Settings › Your mix** on the other computer.
+
+</Faq>
+
+## Messages about another Volt Mixer
+
+<Faq question="“Volt Mixer is open in another tab or window”">
+
+Use that one. This one takes over when it closes.
+
+</Faq>
+
+<Faq question="“Volt Mixer is also open in the desktop app or another browser”">
+
+The other one has the mix. Close it, and this page's mix goes back on the Volt.
+
+</Faq>
+
+<Faq question="“Volt Mixer is also open in a browser on this computer”">
+
+Shown in the desktop app. Nothing to do: the app keeps the mix, and the browser leaves it alone.
+
+</Faq>
+
+<Faq question="“The other Volt Mixer closed”">
+
+Nothing to do: this page's mix is back on the Volt.
+
+</Faq>
+
+## Still stuck?
+
+Ask on [GitHub](https://github.com/naovixen/volt-mixer/issues), and say which message you see, your browser or the app, and your computer.

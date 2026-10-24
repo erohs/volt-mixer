@@ -1,0 +1,27 @@
+---
+import { guideHref } from "../../lib/guide-nav.ts";
+import Icon from "../ui/Icon.astro";
+
+const base = import.meta.env.BASE_URL;
+---
+
+<!-- The guide's top bar. Styled in src/styles/guide.css, like everything in the guide. -->
+<header class="guide-bar">
+    <!-- Narrow screens: the pages are in a popover (GuideNav.astro), opened without script. -->
+    <button class="button button--icon guide-menu-button" type="button" popovertarget="guide-nav">
+        <Icon name="menu" />
+        <span class="visually-hidden">Guide pages</span>
+    </button>
+    <a class="guide-brand" href={guideHref("", base)}>
+        Volt Mixer <span class="guide-brand-tag">Guide</span>
+    </a>
+    <!-- Shown by src/scripts/guide-search.ts: search needs script. -->
+    <button class="guide-search-button" type="button" aria-haspopup="dialog" data-guide-search-open hidden>
+        <Icon name="search" />
+        <span class="guide-search-label">Search</span>
+        <kbd aria-hidden="true">/</kbd>
+    </button>
+    <a class="button guide-open" href={base}>
+        Open the mixer
+    </a>
+</header>

@@ -11,7 +11,7 @@ export const site = {
     releasesUrl: "https://github.com/naovixen/volt-mixer/releases",
     licenceUrl: "https://github.com/naovixen/volt-mixer/blob/main/LICENSE",
     privacyPath: "privacy/",
-    supportedModelsUrl: "https://github.com/naovixen/volt-mixer#other-interfaces",
+    guidePath: "guide/",
     /* The header's surface colour in each scheme, for the browser bar and link-preview accents. */
     themeColor: { light: "#fffefc", dark: "#201f1d" },
 };

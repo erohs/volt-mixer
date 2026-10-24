@@ -1,0 +1,92 @@
+---
+title: Use cases
+description: Step-by-step Volt Mixer setups for a podcast, a separate headphone mix, a games console, app audio through Loopback, two computers and a phone.
+lead: Everyday jobs, step by step. Each one names the controls it uses, so you can read more about any of them.
+---
+
+import Callout from "../../components/guide/Callout.astro";
+
+## Record a podcast with two mics
+
+_Uses: 48V, Auto-Gain, names and icons, meters._
+
+1. Plug the mics into **Inputs 1 and 2**. For condenser mics, press **48V** on each strip and confirm.
+2. Open the first mic's [settings](../channel-settings/) with its gear, choose **Auto-Gain › Start**, and have that person talk at their loudest until it finishes. Do the same for the second.
+3. In each mic's settings, name it ("Host", "Guest") and pick the **Vocal mic** icon.
+4. Leave the two unlinked, so each has its own fader and mute.
+5. Watch the [meters](../channels/#meters) as you talk: green most of the time, amber on the loudest moments, never red.
+
+<Callout kind="tip" title="Tip">
+    If the clip light keeps coming on, take a few dB off that mic's gain in its settings.
+</Callout>
+
+## A separate headphone mix
+
+_Uses: cues, cue sends, the outputs panel._
+
+You listen on speakers; a singer in headphones wants more of their own voice.
+
+1. Open **Settings › Cues and headphones**. Set **Headphones** to **Cue 1**, and **Cue 1** to **Own mix**.
+2. Open each channel's settings and unfold **Cue 1**. Set its **Send**: their vocal up, the guitar down.
+3. Set the headphone level in the outputs panel.
+
+Your speakers still play the monitor mix, and your faders don't change their headphones: cue sends are taken before the fader.
+
+<Callout kind="tip" title="Two people, two mixes">
+    Set <strong>Cue 2</strong> to <strong>Own mix</strong> and give it its own sends, then set{" "}
+    <strong>Line Out 3/4</strong> to <strong>Same as Cue 2</strong> and plug a headphone amp into Line Out 3/4.
+</Callout>
+
+## Play a games console through the Volt
+
+_Uses: Line 3 and 4, link, names and icons, the tray._
+
+1. Connect the console's left and right audio to **Line 3** and **Line 4** on the back.
+2. Press **Link** on the Line 3 strip, so the console is one stereo strip.
+3. In its settings, name it ("PS5") and pick the **Game console** icon.
+4. Set its fader under your voice or music. −12 dB is a good start.
+5. In the [desktop app](../desktop-app/), it's in the tray mixer, for a quick change mid-game.
+
+## Bring an app's sound into the mix
+
+_Uses: the Loopback strip._
+
+Your computer's normal sound doesn't go through the faders. To mix an app in, such as music or a call:
+
+1. In your computer's sound settings, send the app to the Volt's **LOOPBACK L/R** output. On Windows that's **Settings › System › Sound › Volume mixer**, then the app's output device.
+2. Play something. The **Loopback** strip's meters move.
+3. Set its fader, and rename it ("Music", "Calls").
+4. **Mute** it to take it out of your speakers and headphones for a moment.
+
+## Share one Volt between two computers
+
+_Uses: mix links, the status line._
+
+With the Volt on a KVM switch or moved by hand:
+
+1. On the computer with the mix you want, open **Settings › Your mix** and copy the **Mix link**.
+2. On the other computer, open the link. Volt Mixer uses it there.
+3. From then on each computer sends its own copy when it connects. Bring the mix across again whenever you change it on one.
+
+The status line says **Volt not connected · on the other computer?** while the Volt is away, and reconnects when it's back. More in [Other computers](../other-computers/).
+
+## Take your mix to work on your phone
+
+_Uses: the mix QR code, your phone's camera._
+
+1. At home, open **Settings › Your mix** and choose **QR code**.
+2. Scan it with your phone. Volt Mixer opens on the phone and keeps the mix.
+3. At work, open Volt Mixer on the phone. It shows the mix as a QR code.
+4. Scan it with the work computer's camera, or choose **Send the link** and open it there.
+
+No app, no account and no Wi-Fi in common: the mix travels in the QR code. More in [Your phone](../your-phone/#carry-your-mix).
+
+## Change levels from the sofa
+
+_Uses: the desktop app, Phone remote._
+
+1. In the desktop app, turn on **Settings › Desktop app › Phone remote**.
+2. Scan the QR code with your phone, on the same Wi-Fi.
+3. Ride the headphone, monitor and channel levels from your phone.
+
+[Your phone](../your-phone/#phone-remote) has the details and what to try if it won't connect.

@@ -1,0 +1,91 @@
+---
+import type { MarkdownHeading } from "astro";
+import GuideHeader from "../components/guide/GuideHeader.astro";
+import GuideNav from "../components/guide/GuideNav.astro";
+import GuideSearch from "../components/guide/GuideSearch.astro";
+import Footer from "../components/site/Footer.astro";
+import Icon from "../components/ui/Icon.astro";
+import { guideGroups, guideHref, neighboursOf, slugOf } from "../lib/guide-nav.ts";
+import BaseLayout from "./BaseLayout.astro";
+/* Their own files, loaded only here, so the guide adds nothing to the mixer's stylesheet. */
+import proseStyles from "../styles/guide-prose.css?url";
+import searchStyles from "../styles/guide-search.css?url";
+import guideStyles from "../styles/guide.css?url";
+
+/* A guide page (src/pages/guide/[...slug].astro): its front matter, headings and content. */
+interface Props {
+    page: { title: string; description: string; lead: string };
+    headings: MarkdownHeading[];
+}
+
+const { page, headings } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const slug = slugOf(Astro.url.pathname);
+const group = guideGroups.find((candidate) => candidate.pages.some((listed) => listed.slug === slug));
+const { previous, next } = neighboursOf(slug);
+const sections = headings.filter((heading) => heading.depth === 2);
+---
+
+<BaseLayout
+    title={slug ? `${page.title} | Volt Mixer guide` : page.title}
+    description={page.description}
+    skipLabel="Skip to the guide"
+    layout="guide">
+    <link slot="head" rel="stylesheet" href={guideStyles} />
+    <link slot="head" rel="stylesheet" href={proseStyles} />
+    <link slot="head" rel="stylesheet" href={searchStyles} />
+    <GuideHeader slot="header" />
+    <GuideNav slot="nav" current={slug} />
+    <div class="guide-page">
+        <header class="guide-title">
+            {group && <p class="guide-eyebrow">{group.title}</p>}
+            <h1>{page.title}</h1>
+            <p class="guide-lead">{page.lead}</p>
+        </header>
+        {sections.length > 0 && (
+            <nav class="guide-toc" aria-labelledby="guide-toc-heading">
+                <h2 id="guide-toc-heading">On this page</h2>
+                <ul>
+                    {sections.map((section) => (
+                        <li>
+                            <a href={`#${section.slug}`}>{section.text}</a>
+                        </li>
+                    ))}
+                </ul>
+            </nav>
+        )}
+        <div class="guide-prose">
+            <slot />
+        </div>
+        <nav class="guide-pager" aria-label="Previous and next pages">
+            {previous && (
+                <a class="guide-pager-link" href={guideHref(previous.slug, base)} rel="prev">
+                    <span class="guide-pager-label">
+                        <Icon name="arrow-left" />
+                        Previous
+                    </span>
+                    {previous.title}
+                </a>
+            )}
+            {next && (
+                <a class="guide-pager-link guide-pager-next" href={guideHref(next.slug, base)} rel="next">
+                    <span class="guide-pager-label">
+                        Next
+                        <Icon name="arrow-right" />
+                    </span>
+                    {next.title}
+                </a>
+            )}
+        </nav>
+    </div>
+    <GuideSearch />
+    <Footer slot="footer" />
+</BaseLayout>
+
+<script>
+    import { wireGuideNav } from "../scripts/guide-nav.ts";
+    import { wireGuideSearch } from "../scripts/guide-search.ts";
+
+    wireGuideNav();
+    wireGuideSearch();
+</script>

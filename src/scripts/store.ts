@@ -11,6 +11,7 @@ const prefix = "volt-mixer";
 const mixKey = (serial: string): string => `${prefix}.mix.${serial || "unknown"}`;
 const brightnessKey = (serial: string): string => `${prefix}.brightness.${serial || "unknown"}`;
 const pendingKey = `${prefix}.pending-mix`;
+const carriedKey = `${prefix}.carried-mix`;
 const viewKey = `${prefix}.view`;
 const themeKey = `${prefix}.theme`;
 const trayKey = `${prefix}.tray`;
@@ -52,6 +53,13 @@ export const loadPendingMix = (): unknown => read(pendingKey);
 export const savePendingMix = (mix: unknown): void => write(pendingKey, mix);
 /** Another tab kept a mix from a link (a storage event; this tab's own writes don't fire one). */
 export const isPendingMixChange = (event: StorageEvent): boolean => event.key === pendingKey && event.newValue !== null;
+
+/** A mix link this device carries to another computer (a phone, which can't reach a Volt itself). */
+export const loadCarriedLink = (): string | null => {
+    const link = read(carriedKey);
+    return typeof link === "string" ? link : null;
+};
+export const saveCarriedLink = (link: string | null): void => write(carriedKey, link);
 
 /** Digital inputs start hidden and the loopback channel shown, as in Console. */
 export const loadView = (): IStripView => {

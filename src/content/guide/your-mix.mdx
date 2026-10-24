@@ -1,0 +1,62 @@
+---
+title: Your mix
+description: How Volt Mixer remembers your faders on each computer, and how to start, resend or forget a mix.
+lead: Volt Mixer remembers your faders on each computer, and sends them to the Volt when it connects. The first time on a computer, you choose where they start.
+---
+
+import Callout from "../../components/guide/Callout.astro";
+import Compare from "../../components/guide/Compare.astro";
+
+## Who remembers what
+
+The Volt remembers most of its own settings, but it can't tell a computer where its faders are. So each computer keeps a copy of those, like UAD Console does.
+
+<Compare
+    columns={[
+        {
+            title: "The Volt remembers",
+            items: [
+                "48V, gain and tone",
+                "Mutes on Inputs 1–4",
+                "Which pairs are linked",
+                "Speaker and headphone levels",
+                "Clip Protection, brightness and digital input",
+            ],
+        },
+        {
+            title: "Each computer remembers",
+            items: [
+                "Channel faders and pans",
+                "Headphone mixes (cue sends)",
+                "Solo",
+                "What the headphones and Line Out 3/4 play",
+                "Channel names and icons",
+            ],
+        },
+    ]}
+/>
+
+Anything you change on the Volt itself, like a knob or the 48V button, shows on the page straight away.
+
+## Start a mix
+
+The first time on a computer, a welcome panel asks where to start ([see it in Getting started](../getting-started/#choose-a-starting-mix)):
+
+- **Start a new mix**: every channel at 0 dB, like a new UAD Console session.
+- **Bring my mix**: paste a link from another computer, or open it on this one. See [Other computers](../other-computers/).
+
+You'll see this again after **Forget mix**.
+
+<Callout kind="note" title="Why it asks">
+    A new mix sets every channel to 0 dB, which could turn up a channel you keep quiet. So the faders stay locked until
+    you choose. The Volt's own settings, like 48V, gain and the output levels, work straight away.
+</Callout>
+
+## Send it again, or start over
+
+Both are in **Settings › Your mix**.
+
+- **Apply** sends this computer's mix to the Volt again, for example after UAD Console changed it.
+- **Forget** removes this computer's mix and locks the faders until you choose again. The Volt keeps playing what it has.
+
+Your mix is saved as you go, on this computer only. Two Volts keep two separate mixes.

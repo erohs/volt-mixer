@@ -1,0 +1,22 @@
+---
+import { getCollection, render } from "astro:content";
+import GuideLayout from "../../layouts/GuideLayout.astro";
+import { guidePages } from "../../lib/guide-nav.ts";
+
+/* Every guide page, from src/content/guide; "index" is the overview at /guide/. */
+export const getStaticPaths = async () => {
+    const entries = await getCollection("guide");
+    return guidePages.map((page) => {
+        const entry = entries.find((candidate) => candidate.id === (page.slug || "index"));
+        if (!entry) throw new Error(`The guide lists "${page.slug}", but src/content/guide has no such page.`);
+        return { params: { slug: page.slug || undefined }, props: { entry } };
+    });
+};
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+---
+
+<GuideLayout page={entry.data} headings={headings}>
+    <Content />
+</GuideLayout>

@@ -22,6 +22,7 @@
     },
     "devDependencies": {
         "@astrojs/check": "0.9.10",
+        "@astrojs/mdx": "8.1.1",
         "@types/node": "24.19.1",
         "@types/w3c-web-hid": "1.0.6",
         "prettier": "3.9.9",
