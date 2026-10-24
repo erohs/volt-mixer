@@ -8,7 +8,6 @@ import { app, hooks, isLive, notice, setStatus } from "./app-state.ts";
 import { refreshChannelDialog, wireChannelDialog } from "./channel-dialog.ts";
 import { holdControlLock } from "./control-lock.ts";
 import { initDialogs } from "./dialogs.ts";
-import { watchInputs } from "./input-activity.ts";
 import { resetMeters } from "./meters-view.ts";
 import {
     forgetMix,
@@ -225,7 +224,6 @@ const wireViews = (): void => {
     applyTheme(loadTheme());
     initSliders(document);
     initDialogs();
-    watchInputs();
     wireMixerControls();
     wireChannelDialog();
     wireSettingsDialog();

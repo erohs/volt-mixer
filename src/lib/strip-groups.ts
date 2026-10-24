@@ -71,3 +71,7 @@ export const toneOf = (state: IMixerState, ids: StripIds): ToneName => {
     const toneIndex = channelById[ids[0]].toneIndex;
     return toneNames[toneIndex === undefined ? 0 : (state.tone[toneIndex] ?? 0)] ?? "off";
 };
+
+/** The TONE after a strip's current one, from Shine back round to Off (the strip's tone button). */
+export const nextTone = (state: IMixerState, ids: StripIds): number =>
+    (toneNames.indexOf(toneOf(state, ids)) + 1) % toneNames.length;

@@ -15,7 +15,6 @@ import Slider from "../ui/Slider.astro";
             <h3 class="name">
                 <span class="strip-icon" data-strip-icon></span>
                 <span data-strip-name></span>
-                <span class="visually-hidden" data-strip-tone-name></span>
             </h3>
             <!-- Straight after the name, so Tab reaches it before the tags (it's drawn in the corner). -->
             <button class="button button--icon gear" type="button" aria-haspopup="dialog" data-strip-action="settings">
@@ -24,9 +23,11 @@ import Slider from "../ui/Slider.astro";
                     Channel settings
                 </span>
             </button>
-            <!-- Analog inputs only: what the input is, and its 48V (which works like the 48V button). -->
+            <!-- Analog inputs only: the TONE (a press steps to the next one) and the 48V. -->
             <div class="tags" data-strip-tags hidden>
-                <span class="tag" data-strip-input></span>
+                <button class="tag tag--tone" type="button" data-strip-action="tone">
+                    <span data-strip-tone>Off</span>
+                </button>
                 <button class="tag tag--phantom" type="button" aria-pressed="false" data-strip-action="phantom">
                     48V
                 </button>
@@ -136,31 +137,8 @@ import Slider from "../ui/Slider.astro";
         line-height: 1.125rem;
         text-align: center;
         text-transform: uppercase;
-
-        &[data-input="mic"] {
-            color: var(--color-text-mic);
-        }
-
-        &[data-input="line"] {
-            color: var(--color-text-line);
-        }
-
-        /* Nothing coming in on this input (input-activity.ts): greyed out. */
-        &[data-input][data-idle="true"] {
-            color: var(--color-text-secondary);
-        }
-    }
-
-    /* 48V: dim while off, lit red like the Volt's 48V label while on; line inputs have none. */
-    .tag--phantom {
         color: var(--color-text-secondary);
         cursor: pointer;
-
-        &[aria-pressed="true"] {
-            border-color: var(--color-background-danger);
-            background-color: var(--color-background-danger);
-            color: var(--color-text-on-danger);
-        }
 
         &:disabled {
             cursor: default;
@@ -169,6 +147,38 @@ import Slider from "../ui/Slider.astro";
 
         &:focus-visible {
             outline-offset: 1px;
+        }
+    }
+
+    /* 48V: dim while off, lit red like the Volt's 48V label while on; line inputs have none. */
+    .tag--phantom[aria-pressed="true"] {
+        border-color: var(--color-background-danger);
+        background-color: var(--color-background-danger);
+        color: var(--color-text-on-danger);
+    }
+
+    /* TONE: dim while off, lit in the Volt's TONE ring colour otherwise; wide enough for "Warmth". */
+    .tag--tone {
+        --tone-fill: transparent;
+
+        min-inline-size: 3.75rem;
+
+        [data-tone="warmth"] & {
+            --tone-fill: var(--color-tone-warmth);
+        }
+
+        [data-tone="focus"] & {
+            --tone-fill: var(--color-tone-focus);
+        }
+
+        [data-tone="shine"] & {
+            --tone-fill: var(--color-tone-shine);
+        }
+
+        [data-tone]:not([data-tone="off"]) & {
+            border-color: var(--tone-fill);
+            background-color: var(--tone-fill);
+            color: var(--color-text-on-tone);
         }
     }
 

@@ -5,7 +5,6 @@ import { isMixKey } from "../lib/mixer-sync.ts";
 import { parseCommandReport, parseMeters, parseState } from "../lib/reports.ts";
 import { newestSpec } from "../lib/spec.ts";
 import { app, hooks, isLive, layout, notice } from "./app-state.ts";
-import { noteInputLevels } from "./input-activity.ts";
 import { showMeterLevels } from "./meters-view.ts";
 import { saveMixSoon } from "./mix-ownership.ts";
 import { checkOtherProgram, noteOtherReading, takeMixWhenFree } from "./mix-pause.ts";
@@ -100,15 +99,10 @@ const onStateReading = (data: Uint8Array): void => {
     else onFirstState(data);
 };
 
-const showMeters = (levels: Record<string, number>): void => {
-    showMeterLevels(levels);
-    noteInputLevels(levels);
-};
-
 const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): void => {
     const spec = volt.connectedSpec();
     if (!spec) return;
-    if (reportId === spec.reports.meters.id) return showMeters(parseMeters(spec, data));
+    if (reportId === spec.reports.meters.id) return showMeterLevels(parseMeters(spec, data));
     if (reportId !== spec.reports.command.id) return;
     const report = parseCommandReport(spec, data);
     if (report.type === "state") return onStateReading(data);

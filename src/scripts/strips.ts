@@ -44,12 +44,9 @@ const label = (strip: HTMLElement, selector: string, text: string): void => {
 const isAnalog = (id: ChannelId): boolean => channelById[id].kind === "analog";
 const hasPreamp = (ids: readonly ChannelId[]): boolean => ids.some((id) => channelById[id].preampIndex !== undefined);
 
-/** Analog inputs show what they are (MIC or LINE) and their 48V. */
+/** Analog inputs show their TONE and their 48V. */
 const buildInputTags = (strip: HTMLElement, group: IStripGroup): void => {
     strip.querySelector<HTMLElement>("[data-strip-tags]")!.hidden = !isAnalog(group.ids[0]);
-    const input = strip.querySelector<HTMLElement>("[data-strip-input]")!;
-    input.dataset["input"] = hasPreamp(group.ids) ? "mic" : "line";
-    input.textContent = hasPreamp(group.ids) ? "Mic" : "Line";
     label(strip, '[data-strip-action="phantom"]', `48V phantom power, ${group.name}`);
 };
 
@@ -94,16 +91,24 @@ const refreshIcon = (strip: HTMLElement, state: IMixerState, ids: StripIds): voi
     slot.replaceChildren(...[cloneIcon(name)].filter((icon) => icon !== null));
 };
 
-/** 48V and the TONE-coloured fader: what the Volt lights for these channels. */
+/** The tone button and the fader's colour, from the TONE the Volt lights for these channels. */
+const refreshTone = (strip: HTMLElement, state: IMixerState, ids: StripIds): void => {
+    const tone = toneOf(state, ids);
+    if (strip.dataset["tone"] === tone) return;
+    strip.dataset["tone"] = tone;
+    const toneName = tone.charAt(0).toUpperCase() + tone.slice(1);
+    setText(strip.querySelector("[data-strip-tone]"), toneName);
+    const name = strip.querySelector("[data-strip-name]")?.textContent ?? "";
+    label(strip, '[data-strip-action="tone"]', `${toneName} tone, ${name}`);
+};
+
+/** 48V, the icon and the tone: what the Volt lights for these channels. */
 const refreshIndicators = (strip: HTMLElement, state: IMixerState, ids: StripIds): void => {
     const preamps = ids.map((id) => channelById[id].preampIndex);
     const isPhantomOn = preamps.some((index) => index !== undefined && state.preamp.phantom[index]);
     press(strip, "phantom", isPhantomOn);
     refreshIcon(strip, state, ids);
-    const tone = toneOf(state, ids);
-    if (strip.dataset["tone"] !== tone) strip.dataset["tone"] = tone;
-    const toneName = tone.charAt(0).toUpperCase() + tone.slice(1);
-    setText(strip.querySelector("[data-strip-tone-name]"), tone === "off" ? "" : `, ${toneName} tone`);
+    refreshTone(strip, state, ids);
 };
 
 /** Updates every strip's values from state. `isLive` false makes the controls read-only. */

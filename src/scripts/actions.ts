@@ -1,5 +1,5 @@
 import type { Intent } from "../lib/intents.ts";
-import type { StripIds } from "../lib/strip-groups.ts";
+import { nextTone, type StripIds } from "../lib/strip-groups.ts";
 import { app } from "./app-state.ts";
 import { openChannelDialog } from "./channel-dialog.ts";
 import { togglePhantom } from "./phantom.ts";
@@ -13,6 +13,7 @@ const stripIntents: Record<string, (ids: StripIds) => Intent> = {
     mute: (ids) => ({ type: "mute", ids: [...ids] }),
     solo: (ids) => ({ type: "solo", ids: [...ids] }),
     link: (ids) => ({ type: "link", id: ids[0] }),
+    tone: (ids) => ({ type: "tone", ids: [...ids], tone: nextTone(app.state, ids) }),
 };
 
 const onStripAction = (button: HTMLElement): void => {

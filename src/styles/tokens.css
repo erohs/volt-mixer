@@ -36,9 +36,6 @@
     --color-fader-focus: light-dark(#1f8a4c, #5fd38d);
     --color-fader-shine: light-dark(#2563d4, #7aa5ff);
     --color-monitor: light-dark(#1d7542, #5fd38d);
-    /* An input's tag: green for a mic preamp, orange for a line input. */
-    --color-text-mic: light-dark(#1d7542, #5fd38d);
-    --color-text-line: light-dark(#a64b00, #ffa45c);
     --color-headphone: light-dark(#8a5600, #ffb547);
     --font-family-body: system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-size-title: 1.25rem;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { defaultState } from "./mixer.ts";
-import { stripGroups } from "./strip-groups.ts";
+import { nextTone, stripGroups } from "./strip-groups.ts";
 
 const shown = { isDigitalShown: false, isLoopbackShown: true };
 
@@ -56,5 +56,19 @@ describe("Using stripGroups, when the loopback channel is hidden", () => {
     test("then it should leave out the Loopback strip", () => {
         const names = stripGroups(defaultState(), { ...shown, isLoopbackShown: false }).map((group) => group.name);
         expect(names).not.toContain("Loopback");
+    });
+});
+
+describe("Using nextTone, when Input 1's tone is Off", () => {
+    test("then it should step to Warmth", () => {
+        expect(nextTone(defaultState(), ["in1"])).toBe(1);
+    });
+});
+
+describe("Using nextTone, when Input 1's tone is Shine", () => {
+    test("then it should step back round to Off", () => {
+        const state = defaultState();
+        state.tone[0] = 3;
+        expect(nextTone(state, ["in1"])).toBe(0);
     });
 });
