@@ -10,7 +10,7 @@ const withNewer = (newer: Partial<ISpec>): IProtocol => ({
 const lackingTone = withNewer({ commands: commandsWithoutTone as ISpec["commands"] });
 
 describe.each(Object.keys(protocol.firmware))("Using missingFromSpec on the recorded firmware %s", (version) => {
-    test("then nothing the page sends should be missing", () => {
+    test("then it should find nothing the page sends missing", () => {
         expect(missingFromSpec(protocol.firmware[version] as ISpec)).toEqual([]);
     });
 });
@@ -47,5 +47,34 @@ describe("Using specFor, when the firmware isn't recorded", () => {
 describe("Using compareVersions, when a part has two digits", () => {
     test("then it should compare it as a number", () => {
         expect(compareVersions("1.0.10", "1.0.9")).toBeGreaterThan(0);
+    });
+});
+
+describe("Using missingFromSpec, when a spec has no fader maximum", () => {
+    test("then it should name it", () => {
+        const { faderMaxDb: _faderMaxDb, ...rest } = complete;
+        expect(missingFromSpec(rest as ISpec)).toEqual(["faderMaxDb"]);
+    });
+});
+
+describe("Using missingFromSpec, when a spec's state layout has no brightness offset", () => {
+    test("then it should name it", () => {
+        const { brightness: _brightness, ...layout } = complete.stateLayout;
+        expect(missingFromSpec({ ...complete, stateLayout: layout as ISpec["stateLayout"] })).toEqual([
+            "stateLayout.brightness",
+        ]);
+    });
+});
+
+describe("Using missingFromSpec, when a spec doesn't name the S/PDIF format", () => {
+    test("then it should name the format list", () => {
+        expect(missingFromSpec({ ...complete, digitalFormat: ["adat"] })).toEqual(["digitalFormat"]);
+    });
+});
+
+describe("Using specFor, when no recorded firmware is complete", () => {
+    test("then it should refuse rather than guess", () => {
+        const broken: IProtocol = { ...protocol, firmware: { "1.0.3": { ...complete, end: Number.NaN } } };
+        expect(() => specFor("1.0.3", broken)).toThrow();
     });
 });

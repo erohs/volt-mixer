@@ -1,13 +1,15 @@
 ---
-import { guideGroups, guideHref } from "../../lib/guide-nav.ts";
+import { groupGuide, guideHref, type IGuidePage } from "../../lib/guide-nav.ts";
 import Icon from "../ui/Icon.astro";
 
 interface Props {
+    /** Every page, in any order: they're grouped and ordered here. */
+    pages: IGuidePage[];
     /** The page being shown, by its slug. */
     current: string;
 }
 
-const { current } = Astro.props;
+const { pages, current } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const groupId = (title: string): string => `guide-nav-${title.toLowerCase().replaceAll(" ", "-")}`;
 ---
@@ -24,7 +26,7 @@ const groupId = (title: string): string => `guide-nav-${title.toLowerCase().repl
             <span class="visually-hidden">Close</span>
         </button>
     </div>
-    {guideGroups.map((group) => (
+    {groupGuide(pages).map((group) => (
         <div class="guide-nav-group">
             <p class="guide-nav-title" id={groupId(group.title)}>
                 {group.title}

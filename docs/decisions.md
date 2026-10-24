@@ -34,17 +34,32 @@ level is a sudden loud jump. Levels still aren't ramped in code. End and a doubl
 0 dB on faders and cue sends, from anywhere (like a console's reset), and do nothing louder on
 level controls.
 
+Only the main button of the pointer that pressed counts, and a finger sets a level only with a
+tap: on the phone remote every row is a slider, and a swipe meant to scroll mustn't set one. A
+drag moves a value only the way the pointer moved (`dragValue` in `src/lib/slider-models.ts`):
+sliders round to their steps, so a level the Volt reported between steps (gain 37.3 dB) would
+otherwise jump up on the first pointer event of a press that didn't move.
+
 ## A link takes the quieter side
 
 Console copies the left channel to the right when a pair links, which can turn the right side up.
 Here a link, from the page or the Volt's INPUT button, gives both sides the quieter side's
 settings instead: the lower fader and sends, muted if either is, and on Inputs 1/2 the lower
 preamp gain (`matchQuieterMix`, `matchQuieterGain` in `src/lib/mixer.ts`). A saved mix whose
-linked sides differ is evened out the same way. So a link can only turn things down.
+linked sides differ is evened out the same way. So a link never turns a fader or send up.
+
+The pans still go hard left and right, as in Console, which sends the same bytes: a centred leg is
+−3 dB, a hard-panned one 0 dB. The pair's power is unchanged, so a stereo source sounds as loud as
+before, but a source on one side alone now plays from one speaker, 3 dB louder there. Keeping
+Console's crosspoints was chosen over scaling the linked legs down, so the Volt plays the same mix
+whichever program set it; the guide says what happens. Loopback is the computer's own stereo and
+is always linked: no intent, saved mix or link can split it (`isAlwaysLinked`).
 
 ## Lean toolchain
 
-Astro (with `@astrojs/mdx` for the guide), TypeScript, Vitest and Prettier. No ESLint, Stylelint, Playwright or axe packages: browser
+Astro (with `@astrojs/mdx` for the guide), TypeScript, Vitest and Prettier, plus `uqr` at runtime for
+the mix link's QR code (a few kilobytes, no dependencies; drawn as SVG by `src/lib/qr-svg.ts`).
+No ESLint, Stylelint, Playwright or axe packages: browser
 and accessibility checks are done by hand with the Claude in Chrome extension. The 25-line function
 and 400-line file limits are followed by hand.
 
@@ -61,6 +76,17 @@ scrolls, so the scrollbar starts below the header line rather than running besid
 `src/components/ui/Dialog.astro` does this for every dialog; new panels follow the same pattern
 instead of a sticky header inside a scrolling box.
 
+## Component styles are flat selectors
+
+Astro scopes a component's `<style>` by adding its class to each selector it can see, but not to
+the selectors nested inside another rule: `.setting { & .control {} }` reaches every `.control`
+in the row, including a Slider's. So in a component, nesting is only for the element's own states
+(`&:hover`, `&[aria-pressed]`), pseudo-elements and media queries. A descendant is written as a
+selector of its own (`.setting > .setting-control`), which Astro scopes, with a name that says
+whose it is. Reaching into a slot or a child component is deliberate and says so, with
+`:global()`, preferably on a direct child (`.link-field > :global(.button)`). The global
+stylesheets in `src/styles` are unscoped anyway, so they nest freely.
+
 ## The desktop app is Electron, and the page drives the Volt there too
 
 `desktop/` wraps the same site in Electron for home computers that want it without a browser,
@@ -75,6 +101,10 @@ has no WebHID on macOS or Linux, so the USB part would have to be rewritten nati
   the app is in the tray (`backgroundThrottling: false`, and `commit()` doesn't rely on animation
   frames). The tray window (`src/pages/tray`) only draws rows and sends intents
   (`src/lib/intents.ts`) over a `BroadcastChannel`; the main window checks and applies them.
+- Each window has its own preload: the tray's can only size and hide itself and open the main
+  window, and main answers each IPC message only from the window it's for (`isFromMainWindow`,
+  `isFromTrayWindow`), so a tray page can't reach the settings, the phone remote's pairing link or
+  the Volt.
 - Builds are unsigned (GitHub Releases): no paid certificates. macOS builds are signed ad hoc so
   Apple silicon opens them. Updates are a check and a link, not an automatic install.
 - Electron, electron-builder and the main process's TypeScript live in `desktop/` with their own
@@ -85,10 +115,16 @@ has no WebHID on macOS or Linux, so the USB part would have to be rewritten nati
 Nothing is hosted, so nothing needs an account and the work laptop reaches nothing new
 (`docs/remote-sync.md`). A mix travels as a short `#m=` link or QR code: a compact binary form
 that rounds levels down, so a link can never make anything louder. The phone remote is the tray
-page served by the app on the home network, behind a token from a QR code. Phones send
-switches as target states (`to`) and every change with a rising sequence number, so a message
-that arrives twice or late can't undo a newer one. It's plain HTTP on the home network, which the
-setting says plainly.
+page served by the app on the home network, only on the address it was set up on, so a laptop
+that starts at login on another network stays off. Phones send switches as target states (`to`)
+and every change with a rising sequence number, so a message that arrives twice or late can't undo
+a newer one. It's plain HTTP (a phone can't trust a certificate this app makes up), so the pairing
+token from the QR code is never sent: it's the key for an HMAC-SHA256 signature on every request
+(`src/lib/phone-signature.ts`, `desktop/src/phone-auth.ts`). A stream opens by signing a challenge
+the app made up, used once, and each change is signed with that challenge and its sequence number,
+so a request copied off the network can't be played again. Someone watching the network can see
+the mix, but not change it. The phone's page isn't a secure context, so it has no `crypto.subtle`;
+`src/lib/hmac.ts` is a small SHA-256 and HMAC, checked against the RFC 4231 and NIST vectors.
 
 ## No mix sync between the app and the website
 
@@ -113,8 +149,47 @@ and say so. UAD Console doesn't re-read, so it isn't noticed.
 Each change a user makes, from the page's controls, the tray window or a phone, is an intent
 (`src/lib/intents.ts`) applied by `applyIntent` and committed by `src/scripts/run-intent.ts`, so
 clamping, "this needs the mix first" and the linked-pair rules live in one place and the views
-never write page state. Another window or a phone may only send the remote intents
-(`isRemoteIntent`): levels, mutes, solo and links, not 48V, routing or names.
+never write page state: an intent for one side of a linked pair moves both, whatever view sent it.
+The views don't re-check "needs the mix" either: a fader moved before this computer has a mix is
+refused by `applyIntent`, put back, and the page says why. Another window or a phone may only send
+the remote intents (`isRemoteIntent`), the ones the tray has: levels and mutes, each mute saying
+where it goes (`to`), since a message can arrive twice. Not solo, links, mono, 48V, routing or
+names. Only the desktop app answers them: its origin is its own, while on the website any page
+of the same origin could post to the channel.
+
+## Lasting conditions aren't messages
+
+The notice bar holds the page's lasting conditions (an unchecked firmware with its Use anyway, a
+second tab, another Volt Mixer with the mix, a Volt that sent no settings), each until it no longer
+holds, and below them the latest passing message (`src/scripts/notices.ts`). They used to share
+one slot, so a passing "Mix applied" could replace Use anyway, the only way to let the page send.
+Whether the mix can go on the Volt now is one question (`canApplyMix`), and why it's held back is
+one state (`app.mixHold`: listening after connecting or taking over from another tab, or another
+Volt Mixer open). Owning the mix means nothing holds it back: a mix taken while it's held is kept
+for later (`takeOwnership`), so nothing this page sends can fight the other Volt Mixer.
+
+A solo on a strip that isn't shown silences the rest of the monitor mix with no button in sight,
+so it's a condition too, with Clear the solo (`src/scripts/hidden-solo.ts`). The page never ends
+a solo itself, on hiding a strip or switching the digital format: that would turn every other
+channel back up.
+
+## Unseen, the app idles
+
+The desktop app spends most of its life in the tray, so the hidden main window must cost next to
+nothing. Background throttling stays off (the hidden window answers the tray, phones and the Volt
+on time, and keeps re-reading the Volt every 1.5 s, which is how a Volt Mixer in a browser notices
+the app and leaves it the mix), but that also makes the hidden page count as visible. So the app
+tells the page when its window is shown (`window:visible`, `src/scripts/page-visibility.ts`), and
+while it's unseen the page neither reads the Volt's 50-a-second meter reports nor updates its
+views; it catches up when shown. Seen, a meter is drawn only while it moves, and a peak falls by
+time, not by frames.
+
+## The page picks its mode first
+
+A browser with WebHID drives a Volt; one without (a phone, Firefox, Safari) can only carry a mix
+link to a computer that can. The controller decides which before wiring anything, and gives each
+mode its own way to take in a link (`LinkReceiver`): applied or kept for the Volt, or carried. A
+second link opened on a phone used to be kept as if a Volt would connect.
 
 ## The app turns the display off itself at shutdown
 
@@ -123,8 +198,11 @@ button lights flash whatever we do, `docs/protocol.md`), so the desktop app can 
 off at sleep and shutdown (Settings › Desktop app). Windows goes on with a shutdown as soon as the
 window answers `WM_QUERYENDSESSION`, too soon for a report sent from the page, and holding main
 doesn't help because the request to the page waits too. So main writes the report itself with
-node-hid (`desktop/src/display-fade.ts`), synchronously, before it answers: about 20 ms. The page
-hands main the report for its firmware, so the protocol stays in `src/data`. Off is raw 1, which
+node-hid (`desktop/src/display-fade.ts`), synchronously, before it answers: about 20 ms. The build
+works the report out from `src/lib/commands.ts` into the site (`desktop-hid.json`, read by
+`desktop/src/volt-hid.ts`), so the protocol stays in `src/data` and main never writes bytes a page
+gave it. The page only says whether it's driving a Volt: one with firmware it doesn't know waits
+for the user's go-ahead, and so does this. Off is raw 1, which
 nothing else sets, so whichever page connects next, on either computer, fades it back up. A
 Windows service or a shutdown script would also get time, but each needs installing per computer.
 
@@ -135,12 +213,26 @@ not Starlight, and its search is a small index built with the site (`search.json
 `src/lib/guide-search.ts`), not Pagefind. A dozen pages don't need either. `@astrojs/mdx` was
 added (with the user's agreement, 2026-10-24) so pages can use real components: screenshots that
 size themselves, tips drawn with the mixer's own notice style (`.message-box`), and comparisons.
+As naovixen does, the pages import nothing: their components, and the ones that draw every table
+(a scroll region the keyboard can reach) and numbered list, are one map passed to `<Content>`
+(`src/pages/_website/guide/_entries.ts`), which the search index renders with too. Each page's
+front matter says its group and place, so the collection is the one list of pages and titles.
 The guide's stylesheets are imported with `?url`, because `cssCodeSplit: false` would otherwise
-put them in the mixer's one stylesheet, and the desktop app drops the guide from its copy of the
-site, since it opens other pages of the site in the browser anyway. The sidebar is a popover on
-narrow screens, so it opens without script; only search needs script. Screenshots are taken from
-the real page, staged in headless Edge (`tools/guide-images.mjs`), so they can be retaken whenever
-the mixer changes, and the guide is updated with every change a user can see.
+put them in the mixer's one stylesheet. The sidebar is a popover on narrow screens, so it opens
+without script; only search needs script. Screenshots are taken from the real page, staged in
+headless Edge (`tools/guide-images.mjs`), so they can be retaken whenever the mixer changes, and
+the guide is updated with every change a user can see.
+
+## One site, two builds
+
+The website and the desktop app's copy of it (`desktop/site`) are two builds of the same site.
+`VOLT_TARGET=desktop` (`desktop/scripts/build-site.mjs`) serves it from the root of `app://volt/`
+and leaves out what the app opens on the website instead (the guide, its search, privacy and the
+sitemap, and the public files only they use): those routes live in `src/pages/_website`, which
+Astro doesn't route by itself, and `astro.config.ts` adds them for the website only. So nothing
+depends on how the bundler names its chunks. The website's address is written once, in
+`src/lib/site.ts`: the build takes its path from it, and canonical links, structured data, the
+sitemap and the guide's link to the mixer point there from either build.
 
 ## A phone carries a mix; nothing pushes one
 

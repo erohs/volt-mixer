@@ -1,4 +1,5 @@
 # Checks and deploys to GitHub Pages on every push to main. Pull requests only run the checks.
+# Actions are pinned to a commit; the comment says which release it is.
 name: Deploy
 
 on:
@@ -9,45 +10,56 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    # A newer push to the same branch or pull request replaces a check still running.
+    concurrency:
+      group: build-${{ github.ref }}
+      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      # The desktop app's Electron-free tests are among these (vitest.config.ts).
       - run: pnpm test
-      - run: pnpm build
+      - name: Type-check the desktop app
+        working-directory: desktop
         env:
-          SITE_ORIGIN: https://${{ github.repository_owner }}.github.io
-          BASE_PATH: /${{ github.event.repository.name }}/
-      - uses: actions/upload-pages-artifact@v5
+          # Type checks don't need Electron's own binary.
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm typecheck
+      # The site's address comes from src/lib/site.ts.
+      - run: pnpm build
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
 
   # Only this job can publish to Pages; the build (and pull requests) can't.
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     permissions:
       pages: write
       id-token: write
+    # One deploy at a time, and one that has started always finishes.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

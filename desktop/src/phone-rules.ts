@@ -4,9 +4,9 @@ import type os from "os";
  * Who the phone remote answers, and on which address. No Electron here, so Vitest can test it.
  */
 
-export const isPrivate = (ip: string): boolean => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(ip);
+const isPrivate = (ip: string): boolean => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/.test(ip);
 
-export interface IRequestFacts {
+interface IRequestFacts {
     host: string | undefined;
     origin: string | undefined;
     remoteIp: string;

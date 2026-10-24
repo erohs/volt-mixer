@@ -16,7 +16,7 @@ describe("Using stripGroups, when Line 3/4 is linked and digital inputs are hidd
 });
 
 describe("Using stripGroups, when a linked pair has a custom name", () => {
-    test("then the stereo strip should use it", () => {
+    test("then it should use it for the stereo strip", () => {
         const state = defaultState();
         state.linked["in3-in4"] = true;
         state.names["in3"] = "PS5";
@@ -32,7 +32,7 @@ describe("Using stripGroups, when digital inputs are shown in ADAT mode", () => 
 });
 
 describe("Using stripGroups, when an unlinked pair is shown", () => {
-    test("then only its first strip should offer the link button", () => {
+    test("then it should offer the link button on its first strip only", () => {
         const groups = stripGroups(defaultState(), shown).filter(
             (group) => group.ids[0] === "in1" || group.ids[0] === "in2",
         );
@@ -41,7 +41,7 @@ describe("Using stripGroups, when an unlinked pair is shown", () => {
 });
 
 describe("Using stripGroups, when a linked pair has been renamed", () => {
-    test("then its link button should still name both hardware channels", () => {
+    test("then it should still name both hardware channels on its link button", () => {
         const state = defaultState();
         state.linked["in3-in4"] = true;
         state.names["in3"] = "PS5";

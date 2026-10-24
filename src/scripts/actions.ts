@@ -32,11 +32,16 @@ const onFader = (event: Event): void => {
     if (name === "fader" && ids) runPageIntent({ type: "fader", ids: [...ids], db: value });
 };
 
-const outputActions: Record<string, Intent> = {
+const outputIntents: Record<string, Intent> = {
     "monitor-mute": { type: "monitorMute" },
     "monitor-mono": { type: "monitorMono" },
     "headphone-mute": { type: "headphoneMute" },
 };
+
+/** The outputs panel's buttons, for the page's one [data-action] click handler (controller.ts). */
+export const outputActions: Record<string, () => void> = Object.fromEntries(
+    Object.entries(outputIntents).map(([action, intent]) => [action, () => runPageIntent(intent)]),
+);
 
 const onOutputLevel = (event: Event): void => {
     const { name, value } = (event as CustomEvent<{ name: string; value: number }>).detail;
@@ -53,11 +58,6 @@ export const wireMixerControls = (): void => {
         if (button) onStripAction(button);
     });
     document.addEventListener("slider-input", onOutputLevel);
-    document.addEventListener("click", (event) => {
-        const action = (event.target as Element).closest<HTMLElement>("[data-action]")?.dataset["action"] ?? "";
-        const intent = outputActions[action];
-        if (intent) runPageIntent(intent);
-    });
 };
 
 /** Refreshes the outputs panel. */
@@ -77,7 +77,7 @@ export const refreshOutputs = (isLive: boolean): void => {
         setSliderValue(control, value);
         control.setAttribute("aria-disabled", String(!isLive));
     }
-    for (const action of Object.keys(outputActions)) {
+    for (const action of Object.keys(outputIntents)) {
         const button = document.querySelector<HTMLButtonElement>(`[data-action="${action}"]`);
         if (button) button.disabled = !isLive;
     }

@@ -1,22 +1,33 @@
 import type { Session } from "electron";
 import { appOrigin } from "./protocol";
+import { readSiteJson } from "./site-files";
+import { parseVoltHid, type IVoltHid } from "./volt-hid";
 
 /*
  * WebHID in the app. The page's own code (src/scripts/volt-connection.ts) talks to the Volt as it
  * does in a browser; these handlers stand in for Chrome's permission prompts. The Volt is allowed
  * without asking, so it connects at startup. Main can't see HID collections, so the page still
- * checks for the Volt's control interface (usage page 0xff01) itself.
+ * checks for the Volt's control interface itself. Which Volts are allowed comes from src/data,
+ * through the site (volt-hid.ts).
  */
 
-/* Universal Audio, Volt 4 Gen 2 (src/data/volt4-gen2.json). Add product IDs with new models. */
-export const voltVendorId = 0x2b5a;
-export const voltProductIds = new Set([46]);
-/** The vendor usage page of the Volt's control interface, the one that takes commands. */
-export const voltControlUsagePage = 0xff01;
+let hid: IVoltHid | null | undefined;
+
+/** The supported Volts, or null when the build left them out (then none is allowed). */
+export const voltHid = (): IVoltHid | null => {
+    if (hid === undefined) hid = parseVoltHid(readSiteJson("desktop-hid.json"));
+    return hid;
+};
 
 /* Serial devices report their IDs as strings; only HID devices (numbers) can be the Volt. */
-const isVolt = (device: { vendorId?: number | string | undefined; productId?: number | string | undefined }): boolean =>
-    device.vendorId === voltVendorId && typeof device.productId === "number" && voltProductIds.has(device.productId);
+const isVolt = (device: {
+    vendorId?: number | string | undefined;
+    productId?: number | string | undefined;
+}): boolean => {
+    const volts = voltHid();
+    if (!volts || device.vendorId !== volts.vendorId || typeof device.productId !== "number") return false;
+    return volts.dimReports.has(device.productId);
+};
 
 const isAppOrigin = (origin: string | undefined): boolean => origin === appOrigin;
 

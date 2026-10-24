@@ -37,12 +37,8 @@
         border-block-start: 0;
     }
 
-    & :is(h2, h3) {
-        scroll-margin-block-start: calc(var(--size-bar) + var(--space-between-content));
-
-        & + * {
-            margin-block-start: var(--space-between-text);
-        }
+    & :is(h2, h3) + * {
+        margin-block-start: var(--space-between-text);
     }
 
     & a {
@@ -67,7 +63,8 @@
 
 /*
  * Numbered lists are steps, or the key to a screenshot's numbers: each number in an accent
- * circle, the same as the badges in the screenshots, with a hairline joining them.
+ * circle, the same as the badges in the screenshots, with a hairline joining them. The circles
+ * are drawn, so the list keeps role="list" (Steps.astro) for browsers that drop it without markers.
  */
 .guide-prose ol {
     display: grid;
@@ -83,7 +80,7 @@
         counter-increment: step;
 
         &::before {
-            content: counter(step);
+            content: counter(step) / "";
             position: absolute;
             inset-block-start: 0;
             inset-inline-start: 0;
@@ -100,7 +97,7 @@
         }
 
         &:not(:last-child)::after {
-            content: "";
+            content: "" / "";
             position: absolute;
             inset-block: 2.125rem calc(-1 * var(--space-between-content) + 0.375rem);
             inset-inline-start: calc(0.875rem - 0.5px);
@@ -109,7 +106,7 @@
     }
 }
 
-/* Tables: hairline rows, no boxes. A wide one sits in .table-scroll and scrolls on a phone. */
+/* Tables: hairline rows, no boxes, each in a region that scrolls sideways when it's too wide (Table.astro). */
 .guide-prose table {
     inline-size: 100%;
     border-collapse: collapse;
@@ -122,7 +119,8 @@
     }
 
     & :is(th, td) {
-        padding: var(--space-padding-compact) var(--space-padding-container) var(--space-padding-compact) 0;
+        padding-block: var(--space-padding-compact);
+        padding-inline: 0 var(--space-padding-container);
         border-block-end: var(--border-width-default) solid var(--color-border-subtle);
         vertical-align: top;
     }
@@ -134,10 +132,6 @@
 
 .table-scroll {
     overflow-x: auto;
-
-    & table {
-        min-inline-size: 34rem;
-    }
 }
 
 /* Screenshots: on the page's own colour, as they were taken, in light or dark to match the page. */
@@ -295,21 +289,18 @@
     border-block-start: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .faq-chevron {
-        transition: none;
-    }
-}
-
-/* Cards: a grid of links to pages, each a title and a line. */
-.cards {
+/* Cards (Cards.astro): a grid of links to pages, each a title and a line. */
+.guide-prose .cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
     gap: var(--space-between-content);
+    padding: 0;
+    list-style: none;
 }
 
 .guide-prose .card {
     display: grid;
+    block-size: 100%;
     align-content: start;
     gap: var(--space-between-lines);
     padding: var(--space-padding-container);
@@ -329,7 +320,7 @@
     }
 }
 
-/* Signal paths, a row of chips and arrows each; their words are in its label and the table after it. */
+/* Signal paths (Flow.astro), a row of chips and arrows each; their words are in its label and the table after it. */
 .flow {
     display: grid;
     gap: var(--space-between-content);

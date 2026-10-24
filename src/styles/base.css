@@ -63,9 +63,10 @@ input[type="radio"] {
     accent-color: var(--color-background-accent);
 }
 
+/* As wide as --dialog-size (Dialog.astro), never wider than the screen allows. */
 dialog {
     margin: auto;
-    max-inline-size: min(var(--size-dialog), calc(100vw - 2 * var(--space-padding-page)));
+    max-inline-size: min(var(--dialog-size, var(--size-dialog)), calc(100vw - 2 * var(--space-padding-page)));
     max-block-size: calc(100dvh - 2 * var(--space-padding-page));
     padding: 0;
     border: var(--border-width-default) solid var(--color-border);
@@ -74,14 +75,6 @@ dialog {
     color: var(--color-text-primary);
 
     &::backdrop {
-        background-color: rgb(0 0 0 / 45%);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        transition-duration: 0s;
+        background-color: var(--color-backdrop);
     }
 }

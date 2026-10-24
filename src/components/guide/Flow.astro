@@ -1,0 +1,27 @@
+---
+/*
+ * Signal paths, one row of steps joined by arrows each. Shown as one picture: `label` says the
+ * same in words, and the page explains it again in a table.
+ */
+
+interface Props {
+    label: string;
+    /** Each path's steps, in order. */
+    paths: string[][];
+}
+
+const { label, paths } = Astro.props;
+---
+
+<div class="flow" role="img" aria-label={label}>
+    {paths.map((steps) => (
+        <p>
+            {steps.map((step, i) => (
+                <>
+                    {i > 0 && <b>→</b>}
+                    <span>{step}</span>
+                </>
+            ))}
+        </p>
+    ))}
+</div>

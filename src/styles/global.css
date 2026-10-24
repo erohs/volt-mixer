@@ -6,6 +6,9 @@
 @import url("./button.css") layer(shared);
 @import url("./switch.css") layer(shared);
 @import url("./message.css") layer(shared);
+@import url("./text.css") layer(shared);
+@import url("./tone.css") layer(shared);
+@import url("./choice.css") layer(shared);
 
 /*
  * Last layer, so anything the script hides stays hidden over the shared styles. Unlayered
@@ -17,8 +20,15 @@
     }
 }
 
-/* Unlayered, like component styles, so no component rule can pull it back into the flow. */
-.visually-hidden {
+/*
+ * Unlayered, like component styles, so no component rule can pull it back into the flow. A live
+ * region with nothing to say is hidden the same way, never with display: none: a region has to be
+ * in the accessibility tree already for what it says next to be announced. So is a message for
+ * screen readers only (src/scripts/messages.ts).
+ */
+.visually-hidden,
+:is([role="status"], [role="alert"], [aria-live]):empty,
+.message[data-quiet] {
     position: absolute;
     inline-size: 1px;
     block-size: 1px;

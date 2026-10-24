@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { minDb } from "./gain.ts";
 import { defaultState } from "./mixer.ts";
-import { adoptSavedMix, applySavedMix, decodeMix, encodeMix, toSavedMix } from "./saved-mix.ts";
+import { adoptSavedMix, applySavedMix } from "./saved-mix.ts";
 
 const fromSaved = (value: unknown): ReturnType<typeof defaultState> => {
     const state = defaultState();
@@ -37,23 +37,8 @@ describe("Using applySavedMix, when a saved channel name is too long", () => {
     });
 });
 
-describe("Using encodeMix and decodeMix, when a mix makes the round trip", () => {
-    test("then it should come back unchanged", () => {
-        const state = defaultState();
-        (state.channels["in3"] ?? { fader: 0 }).fader = -7.5;
-        const mix = toSavedMix(state);
-        expect(decodeMix(encodeMix(mix))).toEqual(mix);
-    });
-});
-
-describe("Using decodeMix, when the code is garbage", () => {
-    test("then it should return null", () => {
-        expect(decodeMix("%%%")).toBeNull();
-    });
-});
-
 describe("Using adoptSavedMix, when the saved mix has Line 3/4 linked but the Volt doesn't", () => {
-    test("then the Volt's link state should win", () => {
+    test("then it should let the Volt's link state win", () => {
         const state = defaultState();
         adoptSavedMix(state, { linked: { "in3-in4": true } }, 12);
         expect(state.linked["in3-in4"]).toBe(false);
@@ -61,7 +46,7 @@ describe("Using adoptSavedMix, when the saved mix has Line 3/4 linked but the Vo
 });
 
 describe("Using adoptSavedMix, when the saved mix has Line 3 unmuted but the Volt has it muted", () => {
-    test("then the Volt's mute should win", () => {
+    test("then it should let the Volt's mute win", () => {
         const state = defaultState();
         adoptSavedMix(state, { channels: { in3: { isMuted: false } } }, 12);
         expect(state.channels["in3"]?.isMuted).toBe(true);
@@ -77,5 +62,18 @@ describe("Using applySavedMix, when a saved icon isn't one of the channel icons"
 describe("Using applySavedMix, when the saved mix predates icons", () => {
     test("then it should have no custom icons", () => {
         expect(fromSaved({ names: { in1: "Mic" } }).icons).toEqual({});
+    });
+});
+
+describe("Using applySavedMix, when a saved mix has Loopback unlinked", () => {
+    test("then it should keep Loopback linked", () => {
+        expect(fromSaved({ linked: { "loopbackL-loopbackR": false } }).linked["loopbackL-loopbackR"]).toBe(true);
+    });
+});
+
+describe("Using applySavedMix, when a saved linked pair was left centred", () => {
+    test("then it should pan its sides hard left and right, as a link does", () => {
+        const state = fromSaved({ linked: { "in3-in4": true }, channels: { in3: { pan: 0 }, in4: { pan: 0 } } });
+        expect([state.channels.in3.pan, state.channels.in4.pan]).toEqual([-1, 1]);
     });
 });

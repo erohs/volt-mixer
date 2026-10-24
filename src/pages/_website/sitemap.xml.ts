@@ -1,13 +1,15 @@
 import type { APIRoute } from "astro";
-import { guideHref, guidePages } from "../lib/guide-nav.ts";
+import { guideHref } from "../../lib/guide-nav.ts";
+import { site, websiteUrlOf } from "../../lib/site.ts";
+import { guideEntries } from "./guide/_entries.ts";
 
 /* A few pages, so a hand-written sitemap rather than a dependency. Submitted in Search Console. */
-export const GET: APIRoute = ({ site }) => {
-    const pageUrl = new URL(import.meta.env.BASE_URL, site).href;
+export const GET: APIRoute = async () => {
+    const base = import.meta.env.BASE_URL;
     const urls = [
-        pageUrl,
-        ...guidePages.map((page) => new URL(guideHref(page.slug, import.meta.env.BASE_URL), site).href),
-        new URL("privacy/", pageUrl).href,
+        site.websiteUrl,
+        ...(await guideEntries()).map((page) => websiteUrlOf(guideHref(page.slug, base), base)),
+        websiteUrlOf(`${base}${site.privacyPath}`, base),
     ];
     const xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',

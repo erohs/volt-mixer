@@ -16,7 +16,7 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
         <div class="body">
             <div data-tray-content>
                 <ul class="rows" data-tray-rows></ul>
-                <p class="note" data-tray-note hidden></p>
+                <p class="note hint" role="status" data-tray-note></p>
                 <!-- On a phone only: opens the mix on the website, which keeps it to carry (carry-mix.ts). -->
                 <a class="keep" target="_blank" rel="noopener" data-tray-keep hidden>
                     Keep this mix on my phone
@@ -47,7 +47,7 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
                 <Icon name="volume-x" class="muted" />
                 <span class="tip" aria-hidden="true" data-row-tip></span>
             </button>
-            <Slider kind="fader" name="row" class="row-slider" />
+            <Slider kind="fader" name="row" />
         </li>
     </template>
 
@@ -85,20 +85,6 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
         font-size: var(--font-size-heading);
     }
 
-    /* The same colours as the main window's status. */
-    .status {
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
-
-        &[data-status="on"] {
-            color: var(--color-text-success);
-        }
-
-        &[data-status="away"] {
-            color: var(--color-text-warning);
-        }
-    }
-
     /* Room above the first row for its value bubble. */
     .body {
         overflow-y: auto;
@@ -131,23 +117,20 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
             color: var(--color-text-primary);
         }
 
-        & :global(.muted) {
-            display: none;
-        }
-
         &[aria-pressed="true"] {
             border-color: transparent;
             background-color: transparent;
             color: var(--color-background-danger);
-
-            & .what {
-                display: none;
-            }
-
-            & :global(.muted) {
-                display: inline-block;
-            }
         }
+    }
+
+    .mute > :global(.muted),
+    .mute[aria-pressed="true"] > .what {
+        display: none;
+    }
+
+    .mute[aria-pressed="true"] > :global(.muted) {
+        display: inline-block;
     }
 
     .what {
@@ -194,7 +177,7 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
      * No value beside the slider: it shows in a bubble above the handle while the handle is held
      * or moved with the keyboard. The slider's own readout becomes the bubble.
      */
-    .row :global(.slider) {
+    .row > :global(.slider) {
         position: relative;
         grid-template: "control" var(--size-slider-thumb) / 1fr;
     }
@@ -208,27 +191,14 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
         translate: calc(var(--slider-position) * -100%) 0;
     }
 
-    .row :global(.slider:has(.control:focus-visible, .control[data-dragging])) :global(.value) {
+    .row > :global(.slider:has(.control:focus-visible, .control[data-dragging])) > :global(.value) {
         visibility: visible;
     }
 
-    /* The TONE colours, as on the page's strips. */
-    [data-tone="warmth"] {
-        --slider-colour: var(--color-fader-warmth);
-    }
-
-    [data-tone="focus"] {
-        --slider-colour: var(--color-fader-focus);
-    }
-
-    [data-tone="shine"] {
-        --slider-colour: var(--color-fader-shine);
-    }
+    /* A row's TONE colours its fader as on the page's strips (data-tone, src/styles/tone.css). */
 
     .note {
         margin-block-start: var(--space-between-content);
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
     }
 
     /* Under the rows, quiet: something to take away rather than a control. */
@@ -253,11 +223,11 @@ import ChannelIconTemplate from "../../components/mixer/ChannelIconTemplate.astr
             text-decoration: underline;
             text-underline-offset: 0.2em;
         }
+    }
 
-        & :global(.icon) {
-            inline-size: 1em;
-            block-size: 1em;
-        }
+    .open > :global(.icon) {
+        inline-size: 1em;
+        block-size: 1em;
     }
 
     .close {

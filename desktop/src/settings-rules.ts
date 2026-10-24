@@ -13,7 +13,7 @@ export interface IDesktopSettings {
     closeToTray: boolean;
     /** Serve the phone remote on the home network (desktop/src/phone.ts). */
     phoneRemote: boolean;
-    /** Which of this computer's addresses the phone uses; empty for the first one. */
+    /** The address Phone remote was set up on; it answers there only, so not on another network. */
     phoneAddress: string;
     /** The one-time hint on keeping the tray icon visible (Windows hides new ones). */
     hasSeenTrayHint: boolean;

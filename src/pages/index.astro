@@ -11,9 +11,29 @@ import Header from "../components/site/Header.astro";
 import Notice from "../components/site/Notice.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { site } from "../lib/site.ts";
+
+const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: site.name,
+    description: site.description,
+    url: site.websiteUrl,
+    image: new URL("og-image.png", site.websiteUrl).href,
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "Windows, macOS, Linux, ChromeOS",
+    browserRequirements: "Requires WebHID: Microsoft Edge or Google Chrome",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "GBP" },
+    isAccessibleForFree: true,
+    license: site.licenceUrl,
+    sameAs: [site.repositoryUrl],
+};
 ---
 
-<BaseLayout title={site.title} description={site.description}>
+<BaseLayout
+    title={site.title}
+    description={site.description}
+    skipLabel="Skip to the mixer"
+    structuredData={structuredData}>
     <Header slot="header" />
     <Notice />
     <noscript>
@@ -62,14 +82,17 @@ import { site } from "../lib/site.ts";
         @media (width >= 60rem) {
             grid-template-columns: minmax(0, 1fr) 18rem;
             align-items: start;
+        }
+    }
 
-            & :global(.outputs) {
-                grid-area: 1 / 2;
-            }
+    @media (width >= 60rem) {
+        /* OutputPanel's own section. */
+        .mixer > :global(.outputs) {
+            grid-area: 1 / 2;
+        }
 
-            & .channels {
-                grid-area: 1 / 1;
-            }
+        .channels {
+            grid-area: 1 / 1;
         }
     }
 
@@ -98,7 +121,8 @@ import { site } from "../lib/site.ts";
     }
 
     .unsupported {
-        margin: var(--space-between-content) var(--space-page-inline) 0;
+        margin-block-start: var(--space-between-content);
+        margin-inline: var(--space-page-inline);
         padding: var(--space-padding-container);
         border: var(--border-width-default) solid var(--color-text-warning);
         border-radius: var(--radius-medium);

@@ -2,18 +2,21 @@
 title: Sliders and keys
 description: Moving Volt Mixer's faders and sliders with a mouse, touch, the keyboard and the mouse wheel.
 lead: Every fader and slider works the same way, with a mouse, a finger or the keyboard.
+group: The mixer
+order: 4
 ---
-
-import Callout from "../../components/guide/Callout.astro";
 
 ## Mouse and touch
 
 | Do this                     | And                                                          |
 | --------------------------- | ------------------------------------------------------------ |
-| Press anywhere on the track | The slider jumps there, and you can keep dragging.           |
+| Click anywhere on the track | The slider jumps there, and you can keep dragging.           |
+| Tap the track with a finger | The slider jumps there. Swiping across it scrolls the page.  |
 | Drag the handle             | It moves from where it is, as far as you drag.               |
 | Double-click                | Back to rest: see the table below.                           |
 | Turn the mouse wheel        | Small steps, once the slider has focus (click or Tab to it). |
+
+Only the main mouse button moves a slider, and a slider only moves the way you drag: pressing and holding without moving never changes a level.
 
 <Callout kind="caution" title="A press jumps straight there">
     A stray press high on the monitor or headphone level is a sudden loud jump. Drag the handle when you're not sure.
@@ -25,8 +28,6 @@ The mouse wheel only moves a slider you've clicked or tabbed to, so scrolling do
 
 Tab to a slider, then:
 
-<div class="table-scroll">
-
 | Key                          | Faders and sends | Pan        | Gain    | Monitor, headphones |
 | ---------------------------- | ---------------- | ---------- | ------- | ------------------- |
 | <kbd>→</kbd> or <kbd>↑</kbd> | +0.5 dB          | 1 right    | +0.5 dB | +0.5                |
@@ -36,8 +37,6 @@ Tab to a slider, then:
 | <kbd>Home</kbd>              | Off (−∞)         | Full left  | 0 dB    | 0                   |
 | <kbd>End</kbd>               | 0 dB             | Full right | Nothing | Nothing             |
 | Double-click                 | 0 dB             | Centre     | 0 dB    | 0                   |
-
-</div>
 
 <Callout kind="tip" title="End never turns anything up to full">
     On a fader, End goes to 0 dB, wherever you start. On the monitor and headphone levels it does nothing.

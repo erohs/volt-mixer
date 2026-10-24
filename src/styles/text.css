@@ -1,0 +1,21 @@
+/* Small text that several components share. */
+
+/* A quiet line beside or under something: help, a description, a status that isn't urgent. */
+.hint {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+}
+
+/* The connection's status line, in the mixer's header and the tray (data-status from the script). */
+.status {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-small);
+
+    &[data-status="on"] {
+        color: var(--color-text-success);
+    }
+
+    &[data-status="away"] {
+        color: var(--color-text-warning);
+    }
+}

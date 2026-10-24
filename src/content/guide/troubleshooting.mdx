@@ -2,10 +2,9 @@
 title: Troubleshooting
 description: Answers to common Volt Mixer problems, and what each of its messages means.
 lead: Find your problem, or the message you see, and open it for the answer.
+group: Help
+order: 2
 ---
-
-import Callout from "../../components/guide/Callout.astro";
-import Faq from "../../components/guide/Faq.astro";
 
 ## Common problems
 
@@ -23,11 +22,12 @@ The browser can't talk to USB devices. Use Microsoft Edge or Google Chrome, with
 
 </Faq>
 
-<Faq question="The faders are greyed out">
+<Faq question="The faders are greyed out, or spring back">
 
-- **Not connected:** the status line says so. Connect the Volt.
-- **No mix yet:** choose one on the [welcome panel](../getting-started/#choose-a-starting-mix).
-- **Another Volt Mixer has it:** a note at the top says which. Close the other one.
+- **Greyed out, not connected:** the status line says so. Connect the Volt.
+- **Spring back, no mix yet:** a note at the top says so. Choose a mix on the [welcome panel](../getting-started/#choose-a-starting-mix).
+- **Spring back, another Volt Mixer has it:** a note at the top says which. Close the other one.
+- **Spring back just after connecting:** Volt Mixer checks for a few seconds that nothing else is using the Volt, then puts your mix on it.
 
 </Faq>
 
@@ -67,6 +67,12 @@ Volt Mixer doesn't scan: your phone's camera, or the other computer's, does. The
 
 </Faq>
 
+<Faq question="The guide's search says it isn't available">
+
+The search loads the guide's index the first time you open it. If it can't, usually because the connection dropped, it says “Search isn't available right now”. Check your connection and type again: it tries again each time.
+
+</Faq>
+
 ## Messages about connecting
 
 Messages appear in a bar at the top of the mixer, like this one. Each can be dismissed with its ×.
@@ -77,7 +83,7 @@ Messages appear in a bar at the top of the mixer, like this one. Each can be dis
 
 <Faq question="“Volt Mixer can't reach a Volt from here”">
 
-A panel shown in Firefox, Safari and on phones, which can't talk to USB devices. Open Volt Mixer in Microsoft Edge or Google Chrome on the computer the Volt is plugged into. On a phone, you can still [carry a mix or use the phone remote](../your-phone/).
+A panel shown in Firefox, Safari and on phones, which can't talk to USB devices. If you opened a mix link there, the panel shows that mix to carry instead, and says the same. Open Volt Mixer in Microsoft Edge or Google Chrome on the computer the Volt is plugged into. On a phone, you can still [carry a mix or use the phone remote](../your-phone/).
 
 </Faq>
 

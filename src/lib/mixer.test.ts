@@ -4,7 +4,7 @@ import { toHex } from "./commands.ts";
 import type { IReport } from "./commands.ts";
 import { applyHardwareState, defaultState, routeSources, setLinked } from "./mixer.ts";
 import type { IMixerState } from "./mixer.ts";
-import { createMixerSync } from "./mixer-sync.ts";
+import { createMixerSync, reportedSettings } from "./mixer-sync.ts";
 import { parseState } from "./reports.ts";
 import { specFor } from "./spec.ts";
 
@@ -35,9 +35,9 @@ describe("Using the mixer sync, when nothing has changed", () => {
 });
 
 describe("Using the mixer sync, when this computer doesn't own the mix", () => {
-    test("then a fader move should send nothing", () => {
+    test("then it should send nothing for a fader move", () => {
         const { state, diff } = synced(false);
-        (state.channels["in3"] ?? { fader: 0 }).fader = 6;
+        state.channels.in3.fader = 6;
         expect(diff()).toEqual([]);
     });
 });
@@ -45,7 +45,7 @@ describe("Using the mixer sync, when this computer doesn't own the mix", () => {
 describe("Using the mixer sync, when Line 3 moves to −6 dB", () => {
     test("then it should send exactly its two monitor crosspoints", () => {
         const { state, diff } = synced(true);
-        (state.channels["in3"] ?? { fader: 0 }).fader = -6;
+        state.channels.in3.fader = -6;
         expect(diff()).toEqual(["f0010200b02f570bf7", "f0010201b02f570bf7"]);
     });
 });
@@ -56,16 +56,16 @@ describe("Using the mixer sync, when Line 3/4 is linked on the page", () => {
         setLinked(state, ["in3", "in4"], true);
         return diff();
     };
-    test("then the link flag should go first", () => {
+    test("then it should send the link flag first", () => {
         expect(linked()[0]).toBe("f0120212f7");
     });
-    test("then Line 3 should be hard left", () => {
+    test("then it should put Line 3 hard left", () => {
         expect(linked()).toEqual(expect.arrayContaining(["f001020000000020f7", "f001020100000000f7"]));
     });
-    test("then Line 4 should be hard right", () => {
+    test("then it should put Line 4 hard right", () => {
         expect(linked()).toEqual(expect.arrayContaining(["f001030000000000f7", "f001030100000020f7"]));
     });
-    test("then preamp gain and tone should not be copied", () => {
+    test("then it should copy neither preamp gain nor tone", () => {
         expect(linked().some((hex) => hex.startsWith("f016") || hex.startsWith("f022"))).toBe(false);
     });
 });
@@ -81,13 +81,13 @@ describe("Using the mixer sync, when Line 3 and Line 4 are unmuted", () => {
 describe("Using the mixer sync, when Input 1 is soloed", () => {
     const soloed = (): string[] => {
         const { state, diff } = synced(true);
-        (state.channels["in1"] ?? { isSoloed: false }).isSoloed = true;
+        state.channels.in1.isSoloed = true;
         return diff();
     };
-    test("then Line 3's monitor legs should go silent", () => {
+    test("then it should silence Line 3's monitor legs", () => {
         expect(soloed()).toEqual(expect.arrayContaining(["f001020000000000f7", "f001020100000000f7"]));
     });
-    test("then no cue crosspoint should change", () => {
+    test("then it should change no cue crosspoint", () => {
         expect(soloed().some((hex) => /^f001..0[2-5]/.test(hex))).toBe(false);
     });
 });
@@ -101,14 +101,14 @@ describe("Using applyHardwareState, when the dump shows Line 3/4 linked with onl
     test("then it should report the pair whose link changed", () => {
         expect(applied().changed).toEqual(["in3-in4"]);
     });
-    test("then the hardware's mutes should win over the link copy", () => {
+    test("then it should let the hardware's mutes win over the link copy", () => {
         const { state } = applied();
         expect([state.channels["in3"]?.isMuted, state.channels["in4"]?.isMuted]).toEqual([false, true]);
     });
 });
 
 describe("Using applyHardwareState on the captured baseline dump", () => {
-    test("then the headphone level should read 79.6", () => {
+    test("then it should read the headphone level as 79.6", () => {
         const state = defaultState();
         applyHardwareState(state, parseState(spec, dumpWith()));
         expect(state.headphone.level).toBe(79.6);
@@ -116,7 +116,7 @@ describe("Using applyHardwareState on the captured baseline dump", () => {
 });
 
 describe("Using routeSources, when Cue 2's MIX is off and the headphones follow Cue 2", () => {
-    test("then the headphones should get Cue 2's own mix", () => {
+    test("then it should give the headphones Cue 2's own mix", () => {
         const state = defaultState();
         state.cues.cue2.isMix = false;
         state.headphoneSource = "cue2";
@@ -125,7 +125,55 @@ describe("Using routeSources, when Cue 2's MIX is off and the headphones follow 
 });
 
 describe("Using routeSources, when no cue is mirrored", () => {
-    test("then Line Out 3/4 should get the computer's playback", () => {
+    test("then it should give Line Out 3/4 the computer's playback", () => {
         expect(routeSources(defaultState()).line34).toBe("playback34");
+    });
+});
+
+describe("Using the mixer sync, when an ADAT input is soloed but the Volt is set to S/PDIF", () => {
+    test("then it should still silence Line 3's monitor legs, never turn them back up", () => {
+        const { state, diff } = synced(true);
+        state.device.digitalFormat = "spdif";
+        state.channels.in3.isMuted = false;
+        diff();
+        state.channels.adat1.isSoloed = true;
+        expect(diff()).toEqual(expect.arrayContaining(["f001020000000000f7", "f001020100000000f7"]));
+    });
+});
+
+describe("Using the mixer sync, when only the mix is asked for", () => {
+    test("then it should send no report of what the Volt keeps itself", () => {
+        const state = defaultState();
+        state.isMixOwned = true;
+        const reports = hexOf(createMixerSync().diff(state, spec, { isFull: true, kind: "mix" }));
+        expect(reports.some((hex) => !/^f00[12]/.test(hex))).toBe(false);
+    });
+});
+
+describe("Using the mixer sync, when the mix is forgotten", () => {
+    test("then it should send the mix again but not the Volt's own settings", () => {
+        const { state } = synced(true);
+        const sync = createMixerSync();
+        sync.prime(state, spec);
+        sync.forget({ kind: "mix" });
+        expect(hexOf(sync.diff(state, spec)).every((hex) => /^f00[12]/.test(hex))).toBe(true);
+    });
+});
+
+describe("Using reportedSettings, when only a fader moves", () => {
+    test("then it should say nothing the Volt reports changed", () => {
+        const state = defaultState();
+        const before = reportedSettings(state, spec);
+        state.channels.in3.fader = -20;
+        expect(reportedSettings(state, spec)).toBe(before);
+    });
+});
+
+describe("Using reportedSettings, when the monitor level changes", () => {
+    test("then it should say so", () => {
+        const state = defaultState();
+        const before = reportedSettings(state, spec);
+        state.monitor.level = 40;
+        expect(reportedSettings(state, spec)).not.toBe(before);
     });
 });

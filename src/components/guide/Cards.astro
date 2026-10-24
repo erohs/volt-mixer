@@ -1,0 +1,21 @@
+---
+/* A grid of links to other pages of the guide, each a title and a line about it. */
+
+interface Props {
+    /** Each card's address (relative to the page it's on), title and line. */
+    cards: { href: string; title: string; text: string }[];
+}
+
+const { cards } = Astro.props;
+---
+
+<ul class="cards" role="list">
+    {cards.map((card) => (
+        <li>
+            <a class="card" href={card.href}>
+                <strong>{card.title}</strong>
+                {card.text}
+            </a>
+        </li>
+    ))}
+</ul>

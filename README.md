@@ -12,8 +12,7 @@ shows what every control does, with step-by-step examples.
 2. Open **[naovixen.github.io/volt-mixer](https://naovixen.github.io/volt-mixer/)** in Microsoft Edge
    or Google Chrome. Firefox and Safari can't talk to the Volt.
 3. Choose **Connect Volt** and pick your Volt from the list.
-4. The first time, choose **Start from Console's defaults**, or open a mix link from another
-   computer.
+4. The first time, choose **Start a new mix**, or open a mix link from another computer.
 
 Close UAD Console if it's open on the same computer.
 
@@ -47,7 +46,8 @@ Your phone can do two things, each with its own QR code:
   phone keeps the mix; at the other computer, scan the phone's code with its camera. Works with
   just the website.
 - **Change levels** as a remote: in the desktop app, turn on **Settings › Desktop app › Phone
-  remote** and scan its code. Your phone needs to be on the same Wi-Fi.
+  remote** and scan its code. Your phone needs to be on the same Wi-Fi, the one you turned the
+  remote on in.
 
 <picture>
     <source media="(prefers-color-scheme: dark)" srcset="public/guide/images/remote-dark.webp">

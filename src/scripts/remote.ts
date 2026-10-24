@@ -21,9 +21,10 @@ export interface ITraySnapshot {
     mixLink: string | null;
 }
 
+/** A tray window names itself in hello and bye, so one closing doesn't silence another. */
 export type RemoteMessage =
-    | { kind: "hello" }
-    | { kind: "bye" }
+    | { kind: "hello"; id: string }
+    | { kind: "bye"; id: string }
     | { kind: "intent"; intent: unknown }
     | { kind: "snapshot"; snapshot: ITraySnapshot }
     | { kind: "result"; result: IntentResult };
@@ -34,7 +35,8 @@ export const openChannel = (): BroadcastChannel | null =>
 interface IResponder {
     /** Only the tab that drives the Volt answers; a read-only second tab stays quiet. */
     isActive: () => boolean;
-    snapshot: () => ITraySnapshot;
+    /** What a view shows now; the mix link only for a phone, which can carry it. */
+    snapshot: (isForPhone: boolean) => ITraySnapshot;
     run: (intent: Intent) => IntentResult;
     /** A tray window opened or a phone connected: what it's about to show should be fresh. */
     onViewOpened: () => void;
@@ -42,40 +44,62 @@ interface IResponder {
 
 let channel: BroadcastChannel | null = null;
 let responder: IResponder | null = null;
-let isTrayOpen = false;
+const openTrays = new Set<string>();
 let phoneCount = 0;
+/** What each kind of view was last sent, so an unchanged snapshot isn't sent again. */
+const lastSent = { tray: "", phone: "" };
 
 const post = (message: RemoteMessage): void => channel?.postMessage(message);
 const isActive = (): boolean => responder !== null && responder.isActive();
 
-/** Sends the tray and any phones what they show now; called after every refresh. */
+/** Sends the tray and any phones what they show now, if it changed; called after every refresh. */
 export const publish = (): void => {
-    if (!isActive() || (!isTrayOpen && phoneCount === 0)) return;
-    const snapshot = responder!.snapshot();
-    if (isTrayOpen) post({ kind: "snapshot", snapshot });
-    if (phoneCount > 0) desktopApp()?.publishToPhones(snapshot);
+    if (!isActive()) return;
+    const send = (target: keyof typeof lastSent, deliver: (snapshot: ITraySnapshot) => void): void => {
+        const snapshot = responder!.snapshot(target === "phone");
+        const text = JSON.stringify(snapshot);
+        if (text === lastSent[target]) return;
+        lastSent[target] = text;
+        deliver(snapshot);
+    };
+    if (openTrays.size > 0) send("tray", (snapshot) => post({ kind: "snapshot", snapshot }));
+    if (phoneCount > 0) send("phone", (snapshot) => desktopApp()?.publishToPhones(snapshot));
 };
 
-/** Another window and a phone may only ask for the remote intents (no 48V, no routing, no renaming). */
+/** Another window and a phone may only ask for the remote intents (levels and mutes). */
 const run = (intent: unknown): IntentResult =>
     isActive() && isRemoteIntent(intent) ? responder!.run(intent) : "ignored";
 
+/** A view that just opened gets everything, changed or not. */
+const onOpened = (target: keyof typeof lastSent): void => {
+    lastSent[target] = "";
+    responder?.onViewOpened();
+    publish();
+};
+
 const onMessage = ({ data }: MessageEvent): void => {
     const message = data as Partial<RemoteMessage> | null;
-    if (message?.kind === "hello") return ((isTrayOpen = true), responder?.onViewOpened(), publish());
-    if (message?.kind === "bye") return void (isTrayOpen = false);
+    const id = message && "id" in message && typeof message.id === "string" ? message.id : "";
+    if (message?.kind === "hello") return (openTrays.add(id), onOpened("tray"));
+    if (message?.kind === "bye") return void openTrays.delete(id);
     if (message?.kind === "intent") post({ kind: "result", result: run(message.intent) });
 };
 
-/** Makes this page answer tray windows and phones. */
+/**
+ * Makes this page answer tray windows and phones. Only in the desktop app, whose origin is its
+ * own: on the website, any page of the same origin could post to the channel.
+ */
 export const wireRemote = (answer: IResponder): void => {
+    const desktop = desktopApp();
+    if (!desktop) return;
     responder = answer;
     channel = openChannel();
     channel?.addEventListener("message", onMessage);
-    desktopApp()?.onPhoneIntent(run);
-    desktopApp()?.onPhoneCount((count) => {
-        if (count > phoneCount) answer.onViewOpened();
+    desktop.onPhoneIntent(run);
+    desktop.onPhoneCount((count) => {
+        const isNew = count > phoneCount;
         phoneCount = count;
-        publish();
+        if (isNew) onOpened("phone");
+        else publish();
     });
 };

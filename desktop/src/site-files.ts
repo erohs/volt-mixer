@@ -1,13 +1,15 @@
 import { app } from "electron";
-import fs from "fs/promises";
+import fs from "fs";
 import path from "path";
 import { fileWithin } from "./site-paths";
 
-/* The built site (../site, or resources/site when packaged), for app:// and for the phone. */
+/*
+ * The built site, for app:// and for the phone. It's packed in app.asar with main's code
+ * (electron-builder.yml), so the asar integrity check covers it; app.getAppPath() is app.asar
+ * when packaged and desktop/ when run from source.
+ */
 
-export const siteDir = path.resolve(
-    app.isPackaged ? path.join(process.resourcesPath, "site") : path.join(__dirname, "..", "site"),
-);
+const siteDir = path.resolve(app.getAppPath(), "site");
 
 const contentTypes: Record<string, string> = {
     ".html": "text/html; charset=utf-8",
@@ -37,7 +39,19 @@ export const readSiteFile = async (pathname: string): Promise<{ body: Buffer; ty
     const file = fileWithin(siteDir, pathname);
     if (!file) return null;
     try {
-        return { body: await fs.readFile(file), type: contentTypes[path.extname(file)] ?? "application/octet-stream" };
+        return {
+            body: await fs.promises.readFile(file),
+            type: contentTypes[path.extname(file)] ?? "application/octet-stream",
+        };
+    } catch {
+        return null;
+    }
+};
+
+/** A JSON file the build put in the site for main (desktop-hid.json), or null when it's missing or broken. */
+export const readSiteJson = (name: string): unknown => {
+    try {
+        return JSON.parse(fs.readFileSync(path.join(siteDir, name), "utf8")) as unknown;
     } catch {
         return null;
     }

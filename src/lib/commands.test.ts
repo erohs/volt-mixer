@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import * as commands from "./commands.ts";
+import { defaultState, type IMixerState } from "./mixer.ts";
+import { createMixerSync } from "./mixer-sync.ts";
 import { parseCommandReport } from "./reports.ts";
 import type { DeviceReport } from "./reports.ts";
 import { specFor } from "./spec.ts";
@@ -31,21 +33,35 @@ const isReproduced = (label: string, build: (value: number) => commands.IReport[
     );
 };
 
-describe("Using sendToBus, when re-encoding the captured Line 3 fader sweep", () => {
+/** The crosspoints the page itself sends for one source's two legs into a bus, after `change`. */
+const legsAfter =
+    (source: number, destinations: [number, number], change: (state: IMixerState, value: number) => void) =>
+    (value: number): commands.IReport[] => {
+        const state = defaultState();
+        state.isMixOwned = true;
+        change(state, value);
+        const keys = (key: string): boolean => destinations.some((destination) => key === `x${source}:${destination}`);
+        return createMixerSync().diff(state, spec, { isFull: true, kind: "mix", keys });
+    };
+
+describe("Using the mixer sync, when re-encoding the captured Line 3 fader sweep", () => {
     test("then it should reproduce every crosspoint UA's software sent", () => {
-        expect(isReproduced("ANALOG 3 fader", (db) => commands.sendToBus(spec, 2, "monitor", db, 0))).toBe(true);
+        const build = legsAfter(2, spec.mixBuses.monitor, (state, db) => (state.channels.in3.fader = db));
+        expect(isReproduced("ANALOG 3 fader", build)).toBe(true);
     });
 });
 
-describe("Using sendToBus, when re-encoding the captured Line 3 pan sweep", () => {
+describe("Using the mixer sync, when re-encoding the captured Line 3 pan sweep", () => {
     test("then it should reproduce every crosspoint UA's software sent", () => {
-        expect(isReproduced("ANALOG 3 pan", (pan) => commands.sendToBus(spec, 2, "monitor", 0, pan))).toBe(true);
+        const build = legsAfter(2, spec.mixBuses.monitor, (state, pan) => (state.channels.in3.pan = pan));
+        expect(isReproduced("ANALOG 3 pan", build)).toBe(true);
     });
 });
 
-describe("Using sendToBus, when re-encoding the captured Input 1 cue 1 send sweep", () => {
+describe("Using the mixer sync, when re-encoding the captured Input 1 cue 1 send sweep", () => {
     test("then it should reproduce every crosspoint UA's software sent", () => {
-        expect(isReproduced("ANALOG 1 cue_0 send", (db) => commands.sendToBus(spec, 0, "cue1", db, 0))).toBe(true);
+        const build = legsAfter(0, spec.mixBuses.cue1, (state, db) => (state.channels.in1.cue1.db = db));
+        expect(isReproduced("ANALOG 1 cue_0 send", build)).toBe(true);
     });
 });
 
@@ -101,7 +117,7 @@ const roundTripFailures = (steps: IStep[]): string[] =>
 describe.each(["1.0.3.0", "1.0.3.0-startup", "1.0.3.0-manual"])(
     "Using parseCommandReport on the %s capture",
     (name) => {
-        test("then every report it decodes should encode back to the same bytes", () => {
+        test("then it should encode every report it decodes back to the same bytes", () => {
             expect(roundTripFailures(decoded(name))).toEqual([]);
         });
     },

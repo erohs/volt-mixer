@@ -30,7 +30,11 @@ export const fillMessage = (element: HTMLElement, kind: MessageKind, text: strin
     element.replaceChildren(icon, body);
 };
 
+/** Fills waiting to happen (showMessage), so clearing a message also stops one about to appear. */
+const pendingFills = new WeakMap<HTMLElement, number>();
+
 export const clearMessage = (element: HTMLElement): void => {
+    window.clearTimeout(pendingFills.get(element));
     delete element.dataset["kind"];
     element.replaceChildren();
 };
@@ -49,5 +53,8 @@ export const showMessage = (
     if (!element) return;
     clearMessage(element);
     element.toggleAttribute("data-quiet", isQuiet);
-    window.setTimeout(() => fillMessage(element, kind, text), 50);
+    pendingFills.set(
+        element,
+        window.setTimeout(() => fillMessage(element, kind, text), 50),
+    );
 };

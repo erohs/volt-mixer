@@ -11,7 +11,7 @@ import SettingRow from "../ui/SettingRow.astro";
         <span data-phone-status-text>Starting…</span>
     </p>
     <QrCode name="phone" label="QR code that opens the phone remote">
-        <p class="description" data-phone-address-text></p>
+        <p class="hint" data-phone-address-text></p>
     </QrCode>
     <div data-phone-address-row hidden>
         <SettingRow
@@ -48,11 +48,6 @@ import SettingRow from "../ui/SettingRow.astro";
         gap: var(--space-between-content);
     }
 
-    .description {
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
-    }
-
     /* The phone's status, easy to see at a glance: green with a filled dot once a phone is in. */
     .phone-status {
         display: inline-flex;
@@ -65,26 +60,26 @@ import SettingRow from "../ui/SettingRow.astro";
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
         font-weight: var(--font-weight-semi-bold);
+    }
 
-        & .dot {
-            inline-size: 0.5rem;
-            block-size: 0.5rem;
-            border: var(--border-width-standout) solid currentColor;
-            border-radius: 50%;
-        }
+    .phone-status[data-state="connected"] {
+        border-color: currentColor;
+        color: var(--color-text-success);
+    }
 
-        &[data-state="connected"] {
-            border-color: currentColor;
-            color: var(--color-text-success);
+    .phone-status[data-state="problem"] {
+        border-color: currentColor;
+        color: var(--color-text-warning);
+    }
 
-            & .dot {
-                background-color: currentColor;
-            }
-        }
+    .dot {
+        inline-size: 0.5rem;
+        block-size: 0.5rem;
+        border: var(--border-width-standout) solid currentColor;
+        border-radius: 50%;
+    }
 
-        &[data-state="problem"] {
-            border-color: currentColor;
-            color: var(--color-text-warning);
-        }
+    .phone-status[data-state="connected"] > .dot {
+        background-color: currentColor;
     }
 </style>

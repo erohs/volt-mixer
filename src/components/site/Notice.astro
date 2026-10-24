@@ -5,11 +5,13 @@ const messageIcons = ["circle-check", "info", "triangle-alert", "circle-x"];
 ---
 
 <!--
-    Messages about the whole page: always in it, empty when idle, so a new one is announced (urgent
-    for warnings and errors). Every message gets a Dismiss button, cloned from the template by
-    notice() in src/scripts/app-state.ts; its kind's icon comes from #message-icons.
+    Messages about the whole page, one box each: always in the page, empty when idle, so a new one
+    is announced (polite here; notice() in src/scripts/app-state.ts gives an urgent one role="alert").
+    Each box is a .message-box.notice-item[data-notice-item] holding its .message.notice-text, an
+    optional action button and a Dismiss button cloned from #notice-dismiss; its kind's icon comes
+    from #message-icons.
 -->
-<div class="notice message-box" aria-live="polite" data-notice></div>
+<div class="notice" aria-live="polite" data-notice></div>
 <template id="notice-dismiss">
     <button class="button button--icon dismiss" type="button" data-notice-dismiss>
         <Icon name="close" />
@@ -25,10 +27,15 @@ const messageIcons = ["circle-check", "info", "triangle-alert", "circle-x"];
 </template>
 
 <style>
-    /* The box itself is shared with the guide's tips (.message-box, src/styles/message.css). */
+    /* Empty, it takes no space but stays in the page (the shared live-region rule, global.css). */
     .notice:not(:empty) {
-        margin: var(--space-between-blocks) var(--space-page-inline) 0;
+        display: grid;
+        gap: var(--space-between-text);
+        margin-block-start: var(--space-between-blocks);
+        margin-inline: var(--space-page-inline);
     }
+
+    /* Each box is shared with the guide's tips (.message-box, src/styles/message.css). */
 
     /* Wider than body text: a notice is one or two sentences, best read on one line. */
     .notice :global(.notice-text) {

@@ -1,0 +1,17 @@
+---
+/*
+ * Every table in the guide (the `table` of the guide's components map): in a region that scrolls
+ * sideways when it's wider than the page. The region can take focus, so it can be scrolled with
+ * the keyboard, and it's named by the table's column headings.
+ */
+
+const html = await Astro.slots.render("default");
+const headings = [...html.matchAll(/<th[^>]*>(.*?)<\/th>/gs)].map(([, cell = ""]) =>
+    cell.replace(/<[^>]+>/g, "").trim(),
+);
+const label = `Table: ${headings.filter(Boolean).join(", ")}`;
+---
+
+<div class="table-scroll" role="region" tabindex="0" aria-label={label}>
+    <table set:html={html} />
+</div>

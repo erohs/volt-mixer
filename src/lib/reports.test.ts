@@ -6,7 +6,7 @@ import { modelName, specFor } from "./spec.ts";
 const spec = specFor("1.0.3").spec;
 
 describe("Using parseIdentify, when bcdDevice is 0x0103", () => {
-    test("then the version should be 1.0.3", () => {
+    test("then it should read the version as 1.0.3", () => {
         expect(parseIdentify(Uint8Array.from([0x5a, 0x2b, 0x2e, 0x00, 0x03, 0x01])).version).toBe("1.0.3");
     });
 });
@@ -26,7 +26,7 @@ describe("Using parseMeters, when monitor left reads the captured −30 dBFS tes
 });
 
 describe("Using meterFill, when the level is −30 dBFS", () => {
-    test("then the meter should be half full", () => {
+    test("then it should fill the meter halfway", () => {
         expect(meterFill(-30)).toBe(0.5);
     });
 });

@@ -1,6 +1,6 @@
-import { crosspointValue, panGains } from "./gain.ts";
+import { crosspointValue } from "./gain.ts";
 import { clamp } from "./numbers.ts";
-import type { BusName, CommandName, ISpec, MuteField } from "./spec.ts";
+import type { CommandName, DigitalFormat, ISpec, MuteField } from "./spec.ts";
 
 /** A HID output report: its report ID and the data bytes after it. */
 export interface IReport {
@@ -29,13 +29,6 @@ const cmd = (spec: ISpec, name: CommandName): number => spec.commands[name];
 
 export const crosspoint = (spec: ISpec, source: number, destination: number, linear: number): IReport =>
     command(spec, cmd(spec, "crosspoint"), [source, destination, ...u32le(crosspointValue(spec, linear))]);
-
-/** Both legs of a mono source into a stereo bus. */
-export const sendToBus = (spec: ISpec, source: number, bus: BusName, db: number, pan: number): IReport[] => {
-    const [left, right] = spec.mixBuses[bus];
-    const [gainLeft, gainRight] = panGains(db, pan);
-    return [crosspoint(spec, source, left, gainLeft), crosspoint(spec, source, right, gainRight)];
-};
 
 export const route = (spec: ISpec, destination: number, source: number): IReport =>
     command(spec, cmd(spec, "route"), [destination, source, 0]);
@@ -109,8 +102,9 @@ export const monitorMono = (spec: ISpec, isOn: boolean): IReport =>
 export const clipProtection = (spec: ISpec, isOn: boolean): IReport =>
     command(spec, cmd(spec, "clipProtection"), [Number(isOn)]);
 export const brightness = (spec: ISpec, raw: number): IReport => command(spec, cmd(spec, "brightness"), [raw & 0xff]);
-export const digitalFormat = (spec: ISpec, name: string): IReport =>
-    command(spec, cmd(spec, "digitalFormat"), [Math.max(0, spec.digitalFormat.indexOf(name))]);
+/** A complete spec names every format (missingFromSpec), so the index is always found. */
+export const digitalFormat = (spec: ISpec, format: DigitalFormat): IReport =>
+    command(spec, cmd(spec, "digitalFormat"), [spec.digitalFormat.indexOf(format)]);
 export const stateRequest = (spec: ISpec): IReport => command(spec, cmd(spec, "stateRequest"));
 export const identifyLights = (spec: ISpec): IReport => command(spec, cmd(spec, "identifyLights"));
 export const identify = (spec: ISpec): IReport => ({

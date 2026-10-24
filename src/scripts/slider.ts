@@ -1,29 +1,40 @@
-import { sliderModels } from "../lib/slider-models.ts";
+import { dragValue, sliderModel } from "../lib/slider-models.ts";
 import type { ISliderModel } from "../lib/slider-models.ts";
+import { newestSpec, type ISpec } from "../lib/spec.ts";
 
 /*
- * Behaviour for the Slider component (role="slider"). A press on the track sets the value there
- * and drags on from it; a press on the handle, or on the label, scale or value, drags from where it
- * is, as far as the pointer travels. Changes the user makes are announced with a bubbling
- * "slider-input" event carrying { name, value }.
+ * Behaviour for the Slider component (role="slider"). A mouse or pen press on the track sets the
+ * value there and drags on from it; a finger sets it only with a tap, so a swipe can scroll the
+ * page. A press on the handle, or on the label, scale or value, drags from where it is, as far as
+ * the pointer travels, and only the way it travels. Changes the user makes are announced with a
+ * bubbling "slider-input" event carrying { name, value }.
  */
 
 interface ISliderState {
     model: ISliderModel;
+    /** The spec the model's ranges came from. */
+    spec: ISpec;
     value: number;
 }
 
+/** How far a finger can move and still count as a tap, in CSS pixels. */
+const tapSlop = 6;
 const states = new WeakMap<HTMLElement, ISliderState>();
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+let spec = newestSpec();
+
+/** Sliders take their ranges (the fader's maximum, the gain's) from the connected Volt's spec. */
+export const useSliderSpec = (next: ISpec): void => {
+    spec = next;
+};
 
 const stateOf = (control: HTMLElement): ISliderState => {
-    let state = states.get(control);
-    if (!state) {
-        const model = (sliderModels[control.dataset["kind"] ?? ""] ?? sliderModels["level"])!();
-        state = { model, value: model.min };
-        states.set(control, state);
-    }
-    return state;
+    const state = states.get(control);
+    if (state && state.spec === spec) return state;
+    const model = sliderModel(control.dataset["kind"] ?? "", spec);
+    const fresh = { model, spec, value: state?.value ?? model.min };
+    states.set(control, fresh);
+    return fresh;
 };
 
 const render = (control: HTMLElement, state: ISliderState): void => {
@@ -40,7 +51,8 @@ const render = (control: HTMLElement, state: ISliderState): void => {
 /** Shows a value that came from the page or the Volt; never announces it as a user change. */
 export const setSliderValue = (control: HTMLElement, value: number): void => {
     const state = stateOf(control);
-    if (state.value === value && control.hasAttribute("aria-valuetext")) return;
+    const isShown = control.getAttribute("aria-valuemax") === String(state.model.max);
+    if (state.value === value && isShown) return;
     state.value = value;
     render(control, state);
 };
@@ -78,35 +90,58 @@ const isOnTrack = (control: HTMLElement, event: PointerEvent): boolean => {
     return control.contains(target) && !target.closest(".thumb");
 };
 
-/** Calls `onMove` for each move of the captured pointer until it's released. */
-const followPointer = (control: HTMLElement, onMove: (move: PointerEvent) => void): void => {
+interface IPointerHandlers {
+    onMove: (move: PointerEvent) => void;
+    /** Released (not cancelled: a cancel is the browser taking the gesture, to scroll). */
+    onUp: (up: PointerEvent) => void;
+}
+
+/** Follows the pointer that pressed, and only that one, until it's released or the browser takes it. */
+const followPointer = (control: HTMLElement, pointerId: number, { onMove, onUp }: IPointerHandlers): void => {
     // For styling: a value readout can show only while the handle is held.
     control.toggleAttribute("data-dragging", true);
-    const onUp = (): void => {
+    const isOurs = (event: PointerEvent): boolean => event.pointerId === pointerId;
+    const move = (event: PointerEvent): void => void (isOurs(event) && onMove(event));
+    const end = (event: PointerEvent): void => {
+        if (!isOurs(event)) return;
         control.removeAttribute("data-dragging");
-        control.removeEventListener("pointermove", onMove);
-        control.removeEventListener("pointerup", onUp);
-        control.removeEventListener("pointercancel", onUp);
+        control.removeEventListener("pointermove", move);
+        control.removeEventListener("pointerup", end);
+        control.removeEventListener("pointercancel", end);
+        if (event.type === "pointerup") onUp(event);
     };
-    control.addEventListener("pointermove", onMove);
-    control.addEventListener("pointerup", onUp);
-    control.addEventListener("pointercancel", onUp);
+    control.addEventListener("pointermove", move);
+    control.addEventListener("pointerup", end);
+    control.addEventListener("pointercancel", end);
 };
 
-/** Starts a drag of `control`, after setting it to the press if that's on the track. */
+const pointerAlong = (control: HTMLElement, event: PointerEvent): number =>
+    isVertical(control) ? -event.clientY : event.clientX;
+
+/** Starts a drag of `control`; a press on the track sets it there first (a finger's, only as a tap). */
 const startDrag = (control: HTMLElement, event: PointerEvent): void => {
+    if (event.button !== 0 || !event.isPrimary) return;
     // Stops the browser starting a text selection or drag, which would cancel this one.
-    event.preventDefault();
-    const { model } = stateOf(control);
-    if (isOnTrack(control, event)) change(control, model.fromPosition(positionAt(control, event)));
+    if (event.pointerType !== "touch") event.preventDefault();
+    const isTouch = event.pointerType === "touch";
+    const isTrackPress = isOnTrack(control, event);
+    if (isTrackPress && !isTouch) change(control, stateOf(control).model.fromPosition(positionAt(control, event)));
     const { length } = travelOf(control);
-    const pointer = isVertical(control) ? event.clientY : event.clientX;
-    const position = model.toPosition(stateOf(control).value);
+    const start = { pointer: pointerAlong(control, event), x: event.clientX, y: event.clientY };
+    const value = stateOf(control).value;
     control.setPointerCapture(event.pointerId);
     control.focus();
-    followPointer(control, (move) => {
-        const travel = isVertical(control) ? pointer - move.clientY : move.clientX - pointer;
-        change(control, model.fromPosition(clamp01(position + travel / length)));
+    followPointer(control, event.pointerId, {
+        onMove: (move) => {
+            const { model } = stateOf(control);
+            const travel = (pointerAlong(control, move) - start.pointer) / length;
+            change(control, dragValue(model, value, clamp01(model.toPosition(value) + travel)));
+        },
+        onUp: (up) => {
+            const isTap = Math.hypot(up.clientX - start.x, up.clientY - start.y) < tapSlop;
+            if (isTouch && isTrackPress && isTap)
+                change(control, stateOf(control).model.fromPosition(positionAt(control, up)));
+        },
     });
 };
 

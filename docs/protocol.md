@@ -1,6 +1,6 @@
 # Volt 4 Gen 2 control protocol notes
 
-Status (firmware 1.0.3.0): **decoded and verified**: commands, front-panel notifications and the state dump. `node tools/verify-protocol.mjs <decoded-dir>` re-checks the encoder against any capture.
+Status (firmware 1.0.3.0): **decoded and verified**: commands, front-panel notifications and the state dump. `pnpm test` re-checks the encoder against the decoded captures in `reference/decoded` (`src/lib/commands.test.ts`).
 
 ## Layer 2: USB HID (what the web page speaks)
 
@@ -36,7 +36,7 @@ Mixer `dst` IDs: `00/01` Monitor mix L/R, `02/03` Cue 1 L/R, `04/05` Cue 2 L/R.
 
 **Done on the host, not in firmware:** pan (folded into the crosspoint gains), solo (Console rewrites all crosspoints), mute for digital/loopback channels (crosspoint = 0), and stereo link (paired crosspoints). The page has to reproduce this logic.
 
-**Not over USB MIDI (tested 2026-10-23):** sending `F0 11 F7` and `F0 17 F7` as SysEx to the Volt's USB MIDI port (`tools/midi-probe.js`) got no reply and no light flash, while the same Identify over HID flashed the lights. The MIDI port appears to pass through to the MIDI jacks only, so Web MIDI (and therefore Firefox) can't control the mixer.
+**Not over USB MIDI (tested 2026-10-23):** sending `F0 11 F7` and `F0 17 F7` as SysEx to the Volt's USB MIDI port (with a probe since removed, as the question is settled) got no reply and no light flash, while the same Identify over HID flashed the lights. The MIDI port appears to pass through to the MIDI jacks only, so Web MIDI (and therefore Firefox) can't control the mixer.
 
 **Not over HID:** sample rate and clock source go as USB Audio Class control requests through the driver. The page can't set them; they're shown read-only or left out.
 
@@ -85,7 +85,7 @@ Mixer `dst` IDs: `00/01` Monitor mix L/R, `02/03` Cue 1 L/R, `04/05` Cue 2 L/R.
 ## Layer 1 — UAMixerHelper JSON API (reference for names and ranges)
 
 UA's mixer helper listens on `127.0.0.1:4720`. Send `get <path>\0` and it replies with JSON `{"path":…,"data":{"properties":…,"children":[…],"commands":[…]}}\0`.
-Tools: `tools/uaget.js`, `tools/crawl.js`, `tools/snapshot.js` (read-only). Run them with `MSYS_NO_PATHCONV=1` in Git Bash.
+Tools: `node tools/ua.js get`, `tree` and `snapshot` (read-only). Run them with `MSYS_NO_PATHCONV=1` in Git Bash.
 Raw dumps: `reference/ua-api-tree-devices.json`, `reference/ua-api-snapshot.json`.
 
 Device: `/devices/<id>`, where `<id>` is the unit's serial number in ASCII hex, zero-padded to 16 bytes. `tools/lib/ua-api.js` `findVolt()` looks it up, so nothing is hard-coded.

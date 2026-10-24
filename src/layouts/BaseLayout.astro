@@ -1,5 +1,5 @@
 ---
-import { site } from "../lib/site.ts";
+import { site, websiteUrlOf } from "../lib/site.ts";
 import "../styles/global.css";
 
 interface Props {
@@ -11,27 +11,27 @@ interface Props {
     skipLabel?: string;
     /** Names the page's layout on <body>, for a layout that sets the whole page out (the guide). */
     layout?: string;
+    /** What a link preview says the page is. */
+    ogType?: "website" | "article";
+    /** schema.org data about the page, for search engines; only on an indexed page. */
+    structuredData?: Record<string, unknown>;
 }
 
-const { title, description, isIndexed = true, skipLabel = "Skip to the mixer", layout } = Astro.props;
-const base = import.meta.env.BASE_URL;
-const pageUrl = new URL(Astro.url.pathname, Astro.site).href;
-const imageUrl = new URL(`${base}og-image.png`, Astro.site).href;
-const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    name: site.name,
+const {
+    title,
     description,
-    url: pageUrl,
-    image: imageUrl,
-    applicationCategory: "MultimediaApplication",
-    operatingSystem: "Windows, macOS, Linux, ChromeOS",
-    browserRequirements: "Requires WebHID: Microsoft Edge or Google Chrome",
-    offers: { "@type": "Offer", price: "0", priceCurrency: "GBP" },
-    isAccessibleForFree: true,
-    license: site.licenceUrl,
-    sameAs: [site.repositoryUrl],
-};
+    isIndexed = true,
+    skipLabel = "Skip to content",
+    layout,
+    ogType = "website",
+    structuredData,
+} = Astro.props;
+const base = import.meta.env.BASE_URL;
+/* The page on the website, whichever build this is (the desktop app's is served from its own root). */
+const pageUrl = websiteUrlOf(Astro.url.pathname, base);
+const imageUrl = websiteUrlOf(`${base}og-image.png`, base);
+/* "<" escaped, so nothing in the data can close the script element early. */
+const jsonLd = structuredData && JSON.stringify(structuredData).replaceAll("<", "\\u003c");
 ---
 
 <!doctype html>
@@ -49,7 +49,7 @@ const structuredData = {
         <link rel="apple-touch-icon" href={`${base}apple-touch-icon.png`} />
         <link rel="manifest" href={`${base}manifest.webmanifest`} />
 
-        <meta property="og:type" content="website" />
+        <meta property="og:type" content={ogType} />
         <meta property="og:site_name" content={site.name} />
         <meta property="og:locale" content="en_GB" />
         <meta property="og:title" content={title} />
@@ -65,7 +65,7 @@ const structuredData = {
         <meta name="twitter:description" content={description} />
         <meta name="twitter:image" content={imageUrl} />
         <meta name="twitter:image:alt" content={site.imageAlt} />
-        {isIndexed && <script is:inline type="application/ld+json" set:html={JSON.stringify(structuredData)} />}
+        {isIndexed && jsonLd && <script is:inline type="application/ld+json" set:html={jsonLd} />}
         <slot name="head" />
     </head>
     <body data-layout={layout}>
@@ -86,14 +86,14 @@ const structuredData = {
         position: absolute;
         inset-block-start: -10rem;
         inset-inline-start: var(--space-between-text);
-        z-index: 2;
+        z-index: var(--z-index-skip);
         padding: var(--space-padding-action);
         border-radius: var(--radius-small);
         background-color: var(--color-background-surface);
+    }
 
-        &:focus {
-            inset-block-start: var(--space-between-text);
-        }
+    .skip:focus {
+        inset-block-start: var(--space-between-text);
     }
 
     main:focus-visible {

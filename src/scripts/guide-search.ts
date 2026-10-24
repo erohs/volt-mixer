@@ -10,18 +10,23 @@ const part = <T extends Element>(selector: string): T => document.querySelector<
 const dialog = (): HTMLDialogElement => part("#guide-search");
 const input = (): HTMLInputElement => part("[data-guide-search-input]");
 const list = (): HTMLElement => part("[data-guide-search-results]");
-let index: Promise<IGuideSection[]> | null = null;
+/** The index, or null when it couldn't be loaded. */
+let index: Promise<IGuideSection[] | null> | null = null;
 
-const loadIndex = (): Promise<IGuideSection[]> => {
+const fetchIndex = async (url: string): Promise<IGuideSection[]> => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`The search index answered ${response.status}.`);
+    return (await response.json()) as IGuideSection[];
+};
+
+const loadIndex = (): Promise<IGuideSection[] | null> => {
     const url = part<HTMLElement>("[data-guide-search-form]").dataset["index"] ?? "";
-    // A failed fetch isn't kept, so the next search tries again.
-    const forget = (): IGuideSection[] => {
+    // A failure isn't kept, so the next search tries again.
+    const forget = (): null => {
         index = null;
-        return [];
+        return null;
     };
-    index ??= fetch(url)
-        .then((response) => response.json() as Promise<IGuideSection[]>)
-        .catch(forget);
+    index ??= fetchIndex(url).catch(forget);
     return index;
 };
 
@@ -46,19 +51,27 @@ const resultItem = (result: IGuideResult, terms: string[]): HTMLLIElement => {
     return item;
 };
 
-const statusText = (count: number, query: string): string => {
+const statusText = (count: number | null, query: string): string => {
     if (!query.trim()) return "";
+    if (count === null) return "Search isn't available right now. Check your connection, then try again.";
     if (count === 0) return `Nothing found for “${query.trim()}”. Try a shorter or different word.`;
     return count === 1 ? "1 result." : `${count} results.`;
 };
 
+/** Written only when it changes, so a screen reader isn't told the same thing at every key. */
+const setStatus = (text: string): void => {
+    const status = part("[data-guide-search-status]");
+    if (status.textContent !== text) status.textContent = text;
+};
+
 const search = async (): Promise<void> => {
     const query = input().value;
-    const results = searchGuide(await loadIndex(), query);
+    const sections = await loadIndex();
     if (input().value !== query) return;
+    const results = sections ? searchGuide(sections, query) : [];
     const terms = termsOf(query);
     list().replaceChildren(...results.map((result) => resultItem(result, terms)));
-    part("[data-guide-search-status]").textContent = statusText(results.length, query);
+    setStatus(statusText(sections && results.length, query));
 };
 
 const open = (): void => {

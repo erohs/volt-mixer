@@ -1,13 +1,16 @@
 import { minDb } from "../lib/gain.ts";
 import type { Intent } from "../lib/intents.ts";
-import { channelById } from "../lib/mixer.ts";
+import { channelById, cueNames } from "../lib/mixer.ts";
 import type { ChannelId, CueName } from "../lib/mixer.ts";
+import { stripGroups, type IStripGroup } from "../lib/strip-groups.ts";
 import { formatDb } from "../lib/taper.ts";
 import { app, hooks } from "./app-state.ts";
 import { closeIconList, refreshChannelIcon, wireChannelIcon } from "./channel-icon.ts";
+import { setText } from "./dom.ts";
 import { togglePhantom } from "./phantom.ts";
 import { runPageIntent } from "./run-intent.ts";
-import { initSliders, setSliderValue } from "./slider.ts";
+import { setSliderValue } from "./slider.ts";
+import { startAutoGain as startVoltAutoGain } from "./volt-session.ts";
 
 /* The channel settings dialog (ChannelDialog.astro), for whichever strip opened it. */
 
@@ -15,7 +18,6 @@ import { initSliders, setSliderValue } from "./slider.ts";
 let openIds: ChannelId[] = [];
 const dialog = (): HTMLDialogElement => document.querySelector<HTMLDialogElement>("#channel-dialog")!;
 const part = <T extends Element>(selector: string): T | null => dialog().querySelector<T>(selector);
-const cues: CueName[] = ["cue1", "cue2"];
 
 const preampIndexes = (): number[] =>
     openIds.map((id) => channelById[id].preampIndex).filter((index): index is number => index !== undefined);
@@ -39,17 +41,40 @@ const showSections = (first: ChannelId, isStereo: boolean): void => {
     for (const row of ["pan-0", "cue1-pan-0", "cue2-pan-0"]) relabel(row, isStereo ? "Left pan" : "Pan");
 };
 
+/** The strip that `id` is on now, as it's shown: one channel, or the linked pair it's part of. */
+const groupOf = (id: ChannelId): IStripGroup | undefined =>
+    stripGroups(app.state, app.view).find((group) => group.ids.includes(id));
+
+/** The title and the name box's placeholder say the strip's name (which a rename changes). */
+const showName = (name: string): void => {
+    setText(part("[data-dialog-title]"), `${name} settings`);
+    part<HTMLInputElement>("[data-channel-field='name']")!.placeholder = name;
+};
+
 /** Opens the dialog for a strip's channels (one, or a linked pair). */
 export const openChannelDialog = (ids: readonly [ChannelId, ...ChannelId[]]): void => {
     openIds = [...ids];
-    const name = document.querySelector(`[data-ids="${ids.join(",")}"] [data-strip-name]`)?.textContent ?? "";
-    dialog().querySelector("[data-dialog-title]")!.textContent = `${name} settings`;
+    showName(groupOf(ids[0])?.name ?? "");
     part<HTMLInputElement>("[data-channel-field='name']")!.value = app.state.names[ids[0]] ?? "";
-    part<HTMLInputElement>("[data-channel-field='name']")!.placeholder = name;
     showSections(ids[0], ids.length > 1);
     closeIconList();
     dialog().showModal();
     hooks.refresh();
+};
+
+/**
+ * After the strips change (a pair linked from the Volt's INPUT button, the digital format), the
+ * dialog follows its channel: to the pair it's now part of, or back to one side. It closes if
+ * the channel isn't shown any more.
+ */
+export const followLayout = (): void => {
+    const first = openIds[0];
+    if (first === undefined) return;
+    const group = groupOf(first);
+    if (!group) return dialog().close();
+    if (group.ids.join(",") === openIds.join(",")) return;
+    openIds = [...group.ids];
+    showSections(group.ids[0], group.isStereo);
 };
 
 const setSlider = (name: string, value: number, isLive: boolean): void => {
@@ -59,23 +84,22 @@ const setSlider = (name: string, value: number, isLive: boolean): void => {
     control.setAttribute("aria-disabled", String(!isLive));
 };
 
+/** Pans and cue sends work even before this computer has the mix: runPageIntent says why they wait. */
 const refreshMix = (isLive: boolean): void => {
     const [first, second] = openIds.map((id) => app.state.channels[id]);
-    const isMixLive = isLive && app.state.isMixOwned;
     if (!first) return;
-    setSlider("pan-0", Math.round(first.pan * 100), isMixLive);
-    if (second) setSlider("pan-1", Math.round(second.pan * 100), isMixLive);
-    for (const cue of cues) {
-        setSlider(`${cue}-level`, first[cue].db, isMixLive);
-        setSlider(`${cue}-pan-0`, Math.round(first[cue].pan * 100), isMixLive);
-        if (second) setSlider(`${cue}-pan-1`, Math.round(second[cue].pan * 100), isMixLive);
+    setSlider("pan-0", Math.round(first.pan * 100), isLive);
+    if (second) setSlider("pan-1", Math.round(second.pan * 100), isLive);
+    for (const cue of cueNames) {
+        setSlider(`${cue}-level`, first[cue].db, isLive);
+        setSlider(`${cue}-pan-0`, Math.round(first[cue].pan * 100), isLive);
+        if (second) setSlider(`${cue}-pan-1`, Math.round(second[cue].pan * 100), isLive);
         const mute = part<HTMLInputElement>(`[data-channel-field='${cue}-mute']`);
         if (mute) mute.checked = first[cue].isMuted;
         // The folded cue's header shows its send, so it can be read without opening it.
         const send = first[cue];
         const state = send.isMuted ? "Muted" : send.db <= minDb ? "Off" : formatDb(send.db);
-        const summary = part(`[data-group-state='${cue}']`);
-        if (summary && summary.textContent !== state) summary.textContent = state;
+        setText(part(`[data-group-state='${cue}']`), state);
     }
 };
 
@@ -93,7 +117,9 @@ const refreshPreamp = (isLive: boolean): void => {
 
 /** Updates the open dialog's values from state. */
 export const refreshChannelDialog = (isLive: boolean): void => {
-    if (openIds.length === 0) return;
+    const first = openIds[0];
+    if (first === undefined) return;
+    showName(groupOf(first)?.name ?? "");
     refreshChannelIcon(openIds);
     refreshPreamp(isLive);
     refreshMix(isLive);
@@ -101,11 +127,6 @@ export const refreshChannelDialog = (isLive: boolean): void => {
         "button[data-channel-action], [data-channel-field]:not([data-channel-field='name'])",
     );
     for (const control of controls) control.disabled = !isLive;
-    // Cue mutes are part of the mix, like the sliders beside them.
-    for (const cue of cues) {
-        const mute = part<HTMLInputElement>(`[data-channel-field='${cue}-mute']`);
-        if (mute) mute.disabled = !isLive || !app.state.isMixOwned;
-    }
 };
 
 /** A pan slider for one side (0 left, 1 right) of the mix or a cue; −100…100 on the slider. */
@@ -136,7 +157,7 @@ const startAutoGain = (): void => {
     const status = part<HTMLElement>("[data-auto-gain-status]")!;
     const seconds = Number(part<HTMLSelectElement>("[data-channel-field='auto-gain-seconds']")?.value ?? 10);
     const mask = preampIndexes().reduce((bits, index) => bits | (1 << index), 0);
-    if (!hooks.autoGain(mask, seconds)) return;
+    if (!startVoltAutoGain(mask, seconds)) return;
     let left = seconds;
     window.clearInterval(autoGainTimer);
     status.textContent = `Listening for ${left} seconds. Play your loudest part.`;
@@ -155,7 +176,7 @@ const fieldIntent = (input: HTMLInputElement | HTMLSelectElement): Intent | null
     const field = input.dataset["channelField"] ?? "";
     if (field === "name") return { type: "rename", ids: openIds, name: input.value };
     if (field === "tone") return { type: "tone", ids: openIds, tone: Number(input.value) };
-    const cue = cues.find((name) => field === `${name}-mute`);
+    const cue = cueNames.find((name) => field === `${name}-mute`);
     return cue ? { type: "cueMute", ids: openIds, cue, to: (input as HTMLInputElement).checked } : null;
 };
 
@@ -164,7 +185,6 @@ const run = (intent: Intent | null | undefined): void => {
 };
 
 export const wireChannelDialog = (): void => {
-    initSliders(dialog());
     wireChannelIcon(() => openIds);
     dialog().addEventListener("slider-input", (event) => {
         const { name, value } = (event as CustomEvent<{ name: string; value: number }>).detail;

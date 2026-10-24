@@ -57,38 +57,45 @@ const zones = `--meter-caution: ${zoneStops.caution * 100}%; --meter-danger: ${z
         background-color: var(--color-meter-danger);
     }
 
-    [data-orientation="vertical"] {
+    .meter:where([data-orientation="vertical"]) {
         --meter-direction: to top;
 
         grid-template-rows: var(--size-meter) 1fr;
         inline-size: var(--size-meter);
-
-        & .cover {
-            inset: 0 0 auto;
-            block-size: calc((1 - var(--meter-level)) * 100%);
-        }
     }
 
-    [data-orientation="horizontal"] {
+    .meter:where([data-orientation="vertical"]) .cover {
+        inset-block: 0 auto;
+        inset-inline: 0;
+        block-size: calc((1 - var(--meter-level)) * 100%);
+    }
+
+    /* Fills from the inline start, so it follows the text's direction; the clip light is at the end. */
+    .meter:where([data-orientation="horizontal"]) {
         --meter-direction: to right;
 
         grid-template-columns: 1fr var(--size-meter);
         block-size: var(--size-meter);
+    }
 
-        & .bar {
-            grid-column: 1;
-            grid-row: 1;
-        }
+    .meter:where([data-orientation="horizontal"]:dir(rtl)) {
+        --meter-direction: to left;
+    }
 
-        & .clip {
-            grid-column: 2;
-            grid-row: 1;
-        }
+    .meter:where([data-orientation="horizontal"]) .bar {
+        grid-column: 1;
+        grid-row: 1;
+    }
 
-        & .cover {
-            inset: 0 0 0 auto;
-            inline-size: calc((1 - var(--meter-level)) * 100%);
-        }
+    .meter:where([data-orientation="horizontal"]) .clip {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .meter:where([data-orientation="horizontal"]) .cover {
+        inset-block: 0;
+        inset-inline: auto 0;
+        inline-size: calc((1 - var(--meter-level)) * 100%);
     }
 
     @media (forced-colors: active) {
@@ -98,8 +105,8 @@ const zones = `--meter-caution: ${zoneStops.caution * 100}%; --meter-danger: ${z
 
         .cover,
         .clip {
+            border: var(--border-width-default) solid CanvasText;
             background-color: Canvas;
-            border: 1px solid CanvasText;
         }
     }
 </style>

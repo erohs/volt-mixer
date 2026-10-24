@@ -1,6 +1,16 @@
-import { app, BrowserWindow, nativeTheme, screen, shell, type Rectangle } from "electron";
+import {
+    app,
+    BrowserWindow,
+    nativeTheme,
+    screen,
+    shell,
+    type IpcMainEvent,
+    type IpcMainInvokeEvent,
+    type Rectangle,
+} from "electron";
 import path from "path";
-import { appOrigin } from "./protocol";
+import { websiteUrl } from "./app-info";
+import { appOrigin, isFromWindow } from "./protocol";
 import { loadSettings } from "./settings";
 
 /*
@@ -9,8 +19,6 @@ import { loadSettings } from "./settings";
  */
 
 const isLinux = process.platform === "linux";
-/** Where the site's other pages live (the app only serves the mixer and the tray). */
-const websiteUrl = "https://naovixen.github.io/volt-mixer/";
 /* The tray's width; its height follows its rows (fitTrayWindow). */
 const trayWindowSize = { width: 340, height: 300 };
 let mainWindow: BrowserWindow | null = null;
@@ -24,14 +32,20 @@ export const markQuitting = (): void => {
     isQuitting = true;
 };
 
-const webPreferences = {
-    preload: path.join(__dirname, "preload.js"),
+/** Each window gets only its own preload's API. */
+const webPreferences = (preload: string) => ({
+    preload: path.join(__dirname, preload),
     sandbox: true,
     contextIsolation: true,
     nodeIntegration: false,
-    // Hidden in the tray it still has to answer the tray window and send to the Volt.
+    // On Linux, a spellchecker would fetch its dictionaries from Google; nothing here needs one.
+    spellcheck: false,
+    // Hidden, the main window still answers the tray and sends to the Volt; the tray sizes itself.
     backgroundThrottling: false,
-};
+});
+
+export const isFromMainWindow = (event: IpcMainEvent | IpcMainInvokeEvent): boolean => isFromWindow(event, mainWindow);
+export const isFromTrayWindow = (event: IpcMainEvent | IpcMainInvokeEvent): boolean => isFromWindow(event, trayWindow);
 
 /** Links to the web (GitHub, releases) open in the browser; nothing navigates away from the app. */
 const lockNavigation = (window: BrowserWindow): void => {
@@ -51,6 +65,17 @@ const lockNavigation = (window: BrowserWindow): void => {
 
 const background = (): string => (nativeTheme.shouldUseDarkColors ? "#171615" : "#f5f3ef");
 
+/** A page that crashes is loaded again: the main window's holds the only connection to the Volt. */
+const reloadAfterCrash = (window: BrowserWindow): void => {
+    let crashedAt = 0;
+    window.webContents.on("render-process-gone", (_event, { reason }) => {
+        // Crashing again straight away would only crash again; it waits for the next one.
+        const isLooping = Date.now() - crashedAt < 10_000;
+        crashedAt = Date.now();
+        if (reason !== "clean-exit" && !isLooping && !isQuitting && !window.isDestroyed()) window.webContents.reload();
+    });
+};
+
 /** Close and minimise put the window in the tray (if chosen); closing it for real quits the app. */
 const keepInTray = (window: BrowserWindow): void => {
     window.on("close", (event) => {
@@ -58,8 +83,6 @@ const keepInTray = (window: BrowserWindow): void => {
         event.preventDefault();
         window.hide();
     });
-    // Windows is shutting down or signing out: let the window close.
-    window.on("session-end", markQuitting);
     // Closed for real (not to the tray): nothing drives the Volt any more, so the app quits.
     window.on("closed", () => {
         mainWindow = null;
@@ -78,12 +101,14 @@ export const createMainWindow = (isShown: boolean): BrowserWindow => {
         show: false,
         autoHideMenuBar: true,
         backgroundColor: background(),
-        webPreferences,
+        webPreferences: webPreferences("preload.js"),
     });
     mainWindow = window;
     lockNavigation(window);
+    reloadAfterCrash(window);
     window.once("ready-to-show", () => isShown && window.show());
     keepInTray(window);
+    tellVisibility(window, "window:visible");
     void window.loadURL(`${appOrigin}/`);
     return window;
 };
@@ -111,14 +136,28 @@ const createTrayWindow = (): BrowserWindow => {
         title: "Volt Mixer",
         backgroundColor: background(),
         ...(process.platform === "darwin" ? { type: "panel" } : {}),
-        webPreferences,
+        webPreferences: webPreferences("tray-preload.js"),
     });
     lockNavigation(window);
+    reloadAfterCrash(window);
     if (process.platform === "darwin") window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     hideOnBlur(window);
-    tellTrayItsVisibility(window);
+    hideOnClose(window);
+    tellVisibility(window, "tray:visible");
     void window.loadURL(`${appOrigin}/tray/`);
     return window;
+};
+
+/** Alt+F4, Cmd+W or a Linux title bar's close hides it, like its own Close button; quitting closes it. */
+const hideOnClose = (window: BrowserWindow): void => {
+    window.on("close", (event) => {
+        if (isQuitting) return;
+        event.preventDefault();
+        window.hide();
+    });
+    window.on("closed", () => {
+        if (trayWindow === window) trayWindow = null;
+    });
 };
 
 /** Like the Windows volume flyout: clicking anywhere else puts it away. */
@@ -132,13 +171,18 @@ const hideOnBlur = (window: BrowserWindow): void =>
     });
 
 /*
- * The tray page asks the main window for updates only while it's shown (the page can't tell: with
- * background throttling off, a hidden window still counts as visible).
+ * Tells a window's page whether anyone can see it (the page can't tell: with background throttling
+ * off, a hidden window still counts as visible). The tray asks for updates only while it's shown;
+ * the main window draws its meters and views only while it's shown, so in the tray it idles.
  */
-const tellTrayItsVisibility = (window: BrowserWindow): void => {
-    const tell = (): void => window.webContents.send("tray:visible", window.isVisible());
+const tellVisibility = (window: BrowserWindow, channel: string): void => {
+    const tell = (): void => {
+        if (!window.isDestroyed()) window.webContents.send(channel, window.isVisible() && !window.isMinimized());
+    };
     window.on("show", tell);
     window.on("hide", tell);
+    window.on("minimize", tell);
+    window.on("restore", tell);
     window.webContents.on("did-finish-load", tell);
 };
 

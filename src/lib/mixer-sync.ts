@@ -1,11 +1,23 @@
 import * as commands from "./commands.ts";
 import type { IReport } from "./commands.ts";
+import { mixLegs } from "./crosspoints.ts";
 import { crosspointValue } from "./gain.ts";
-import { crosspointTable, directMask, hardwareLinkMask, phantomMask, routeSources } from "./mixer.ts";
+import { directMask, hardwareLinkMask, phantomMask, routeSources } from "./mixer.ts";
 import type { IMixerState } from "./mixer.ts";
 import type { ISpec } from "./spec.ts";
 
-type KeyFilter = (key: string) => boolean;
+/**
+ * "mix": what only this page knows (crosspoints and routing), sent once it owns the mix.
+ * "reported": what the Volt reports about itself (links, mutes, levels, preamps, display).
+ */
+export type SyncKind = "mix" | "reported";
+
+export interface ISyncScope {
+    /** Only this kind; both when left out. */
+    kind?: SyncKind;
+    /** Only the keys this accepts ("brightness", "gain0", …); all when left out. */
+    keys?: (key: string) => boolean;
+}
 
 interface IEntry {
     key: string;
@@ -13,107 +25,124 @@ interface IEntry {
     build: () => IReport[];
 }
 
-export interface IMixerSync {
-    /** Reports for what changed since the last diff (`isFull`: everything). */
-    diff: (state: IMixerState, spec: ISpec, options?: { isFull?: boolean; filter?: KeyFilter }) => IReport[];
-    /** Treats the current state as already applied. */
-    prime: (state: IMixerState, spec: ISpec, filter?: KeyFilter) => void;
-    /** Forgets what was sent, so it goes again on the next diff. */
-    forget: (filter?: KeyFilter) => void;
+interface IGroup {
+    kind: SyncKind;
+    entries: (state: IMixerState, spec: ISpec) => IEntry[];
 }
 
-export const isMixKey: KeyFilter = (key) => key.startsWith("x") || key.startsWith("route");
+export interface IMixerSync {
+    /** Reports for what changed since the last diff (`isFull`: everything in scope). */
+    diff: (state: IMixerState, spec: ISpec, options?: ISyncScope & { isFull?: boolean }) => IReport[];
+    /** Treats the current state as already applied. */
+    prime: (state: IMixerState, spec: ISpec, scope?: ISyncScope) => void;
+    /** Forgets what was sent, so it goes again on the next diff. */
+    forget: (scope?: ISyncScope) => void;
+}
+
+const entry = (key: string, value: unknown, build: () => IReport | IReport[]): IEntry => ({
+    key,
+    value,
+    build: () => [build()].flat(),
+});
 
 const crosspointEntries = (state: IMixerState, spec: ISpec): IEntry[] =>
-    [...crosspointTable(state, spec)].map(([key, linear]) => {
-        const [source = 0, destination = 0] = key.split(":").map(Number);
-        return {
-            key: `x${key}`,
-            value: crosspointValue(spec, linear),
-            build: () => [commands.crosspoint(spec, source, destination, linear)],
-        };
-    });
+    mixLegs(state, spec).map(({ source, destination, linear }) =>
+        entry(`x${source}:${destination}`, crosspointValue(spec, linear), () =>
+            commands.crosspoint(spec, source, destination, linear),
+        ),
+    );
 
 const routeEntries = (state: IMixerState, spec: ISpec): IEntry[] => {
     if (!state.isMixOwned) return [];
-    const sources = routeSources(state);
+    const { headphone, line34 } = routeSources(state);
     return [
-        {
-            key: "routeHeadphone",
-            value: sources.headphone,
-            build: () => commands.routePair(spec, "headphone", sources.headphone),
-        },
-        { key: "routeLine34", value: sources.line34, build: () => commands.routePair(spec, "line34", sources.line34) },
+        entry("routeHeadphone", headphone, () => commands.routePair(spec, "headphone", headphone)),
+        entry("routeLine34", line34, () => commands.routePair(spec, "line34", line34)),
     ];
 };
 
-const deviceEntries = (state: IMixerState, spec: ISpec): IEntry[] => [
-    { key: "direct", value: directMask(state), build: () => [commands.muteWord(spec, "direct", directMask(state))] },
-    {
-        key: "monitorMute",
-        value: state.monitor.isMuted,
-        build: () => [commands.muteWord(spec, "monitorMute", state.monitor.isMuted)],
-    },
-    { key: "mono", value: state.monitor.isMono, build: () => [commands.monitorMono(spec, state.monitor.isMono)] },
-    {
-        key: "monitorLevel",
-        value: state.monitor.level,
-        build: () => [commands.monitorLevel(spec, state.monitor.level)],
-    },
-    { key: "phantom", value: phantomMask(state), build: () => [commands.phantomMask(spec, phantomMask(state))] },
-    { key: "tone", value: state.tone, build: () => [commands.tone(spec, state.tone)] },
-    ...state.preamp.gain.map((db, i) => ({
-        key: `gain${i}`,
-        value: db,
-        build: () => [commands.preampGain(spec, i, db)],
-    })),
-    {
-        key: "headphone",
-        value: [state.headphone.level, state.headphone.isMuted],
-        build: () => [commands.headphone(spec, state.headphone.level, state.headphone.isMuted)],
-    },
-    {
-        key: "clip",
-        value: state.device.isClipProtected,
-        build: () => [commands.clipProtection(spec, state.device.isClipProtected)],
-    },
-    {
-        key: "brightness",
-        value: state.device.brightness,
-        build: () => [commands.brightness(spec, state.device.brightness)],
-    },
-    {
-        key: "digital",
-        value: state.device.digitalFormat,
-        build: () => [commands.digitalFormat(spec, state.device.digitalFormat)],
-    },
+const linkEntries = (state: IMixerState, spec: ISpec): IEntry[] => {
+    const mask = hardwareLinkMask(state);
+    return [entry("links", mask, () => commands.linkMask(spec, mask))];
+};
+
+const outputEntries = (state: IMixerState, spec: ISpec): IEntry[] => {
+    const { monitor, headphone } = state;
+    const direct = directMask(state);
+    return [
+        entry("direct", direct, () => commands.muteWord(spec, "direct", direct)),
+        entry("monitorMute", monitor.isMuted, () => commands.muteWord(spec, "monitorMute", monitor.isMuted)),
+        entry("mono", monitor.isMono, () => commands.monitorMono(spec, monitor.isMono)),
+        entry("monitorLevel", monitor.level, () => commands.monitorLevel(spec, monitor.level)),
+        entry("headphone", [headphone.level, headphone.isMuted], () =>
+            commands.headphone(spec, headphone.level, headphone.isMuted),
+        ),
+    ];
+};
+
+const inputEntries = (state: IMixerState, spec: ISpec): IEntry[] => {
+    const phantom = phantomMask(state);
+    return [
+        entry("phantom", phantom, () => commands.phantomMask(spec, phantom)),
+        entry("tone", state.tone, () => commands.tone(spec, state.tone)),
+        ...state.preamp.gain.map((db, i) => entry(`gain${i}`, db, () => commands.preampGain(spec, i, db))),
+    ];
+};
+
+const deviceEntries = (state: IMixerState, spec: ISpec): IEntry[] => {
+    const { isClipProtected, brightness, digitalFormat } = state.device;
+    return [
+        entry("clip", isClipProtected, () => commands.clipProtection(spec, isClipProtected)),
+        entry("brightness", brightness, () => commands.brightness(spec, brightness)),
+        entry("digital", digitalFormat, () => commands.digitalFormat(spec, digitalFormat)),
+    ];
+};
+
+/** In sending order. Link state goes first: Console sends it before re-writing the pair's crosspoints. */
+const groups: IGroup[] = [
+    { kind: "reported", entries: linkEntries },
+    { kind: "mix", entries: crosspointEntries },
+    { kind: "mix", entries: routeEntries },
+    { kind: "reported", entries: outputEntries },
+    { kind: "reported", entries: inputEntries },
+    { kind: "reported", entries: deviceEntries },
 ];
 
-/** Link state goes first: Console sends it before re-writing the pair's crosspoints. */
-const entries = (state: IMixerState, spec: ISpec): IEntry[] => [
-    { key: "links", value: hardwareLinkMask(state), build: () => [commands.linkMask(spec, hardwareLinkMask(state))] },
-    ...crosspointEntries(state, spec),
-    ...routeEntries(state, spec),
-    ...deviceEntries(state, spec),
-];
+/** The entries in scope, each with its group's kind; a group of another kind isn't even built. */
+const entriesIn = (
+    state: IMixerState,
+    spec: ISpec,
+    { kind, keys = () => true }: ISyncScope,
+): (IEntry & { kind: SyncKind })[] =>
+    groups
+        .filter((group) => kind === undefined || group.kind === kind)
+        .flatMap((group) => group.entries(state, spec).map((member) => ({ ...member, kind: group.kind })))
+        .filter((member) => keys(member.key));
+
+/** What the Volt reports about itself, as one comparable value: whether a reading changed anything. */
+export const reportedSettings = (state: IMixerState, spec: ISpec): string =>
+    JSON.stringify(entriesIn(state, spec, { kind: "reported" }).map(({ key, value }) => [key, value]));
 
 /** Remembers what the Volt was last told and produces only the reports that differ. */
 export const createMixerSync = (): IMixerSync => {
-    const sent = new Map<string, string>();
-    const diff: IMixerSync["diff"] = (state, spec, { isFull = false, filter = () => true } = {}) => {
+    const sent = new Map<string, { kind: SyncKind; value: string }>();
+    const diff: IMixerSync["diff"] = (state, spec, { isFull = false, ...scope } = {}) => {
         const reports: IReport[] = [];
-        for (const entry of entries(state, spec)) {
-            if (!filter(entry.key)) continue;
-            const value = JSON.stringify(entry.value);
-            if (!isFull && sent.get(entry.key) === value) continue;
-            sent.set(entry.key, value);
-            reports.push(...entry.build());
+        for (const { key, kind, value, build } of entriesIn(state, spec, scope)) {
+            const text = JSON.stringify(value);
+            if (!isFull && sent.get(key)?.value === text) continue;
+            sent.set(key, { kind, value: text });
+            reports.push(...build());
         }
         return reports;
     };
     return {
         diff,
-        prime: (state, spec, filter) => void diff(state, spec, filter ? { filter } : {}),
-        forget: (filter = () => true) => [...sent.keys()].filter(filter).forEach((key) => sent.delete(key)),
+        prime: (state, spec, scope = {}) => void diff(state, spec, scope),
+        forget: ({ kind, keys = () => true } = {}) => {
+            for (const [key, { kind: sentKind }] of sent) {
+                if ((kind === undefined || kind === sentKind) && keys(key)) sent.delete(key);
+            }
+        },
     };
 };

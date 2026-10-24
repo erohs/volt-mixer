@@ -43,19 +43,19 @@ describe("Using isShownInTray, when only one side of a linked pair was left out"
 });
 
 describe("Using trayRows, when a channel has a mic preamp", () => {
-    test("then its row should have the mic icon", () => {
+    test("then it should give its row the mic icon", () => {
         expect(trayRows(defaultState(), view, []).find((row) => row.key === "in1")?.icon).toBe("mic");
     });
 });
 
 describe("Using trayRows, when a channel is the computer's loopback", () => {
-    test("then its row should have the laptop icon", () => {
+    test("then it should give its row the laptop icon", () => {
         expect(trayRows(defaultState(), view, []).find((row) => row.name === "Loopback")?.icon).toBe("laptop");
     });
 });
 
 describe("Using trayRows, when Input 1 has the Warmth tone", () => {
-    test("then its row should carry the tone for the fader colour", () => {
+    test("then it should carry the tone in its row, for the fader colour", () => {
         const state = defaultState();
         state.tone[0] = 1;
         expect(trayRows(state, view, []).find((row) => row.key === "in1")?.tone).toBe("warmth");
@@ -63,7 +63,7 @@ describe("Using trayRows, when Input 1 has the Warmth tone", () => {
 });
 
 describe("Using trayRows, when a channel has a chosen icon", () => {
-    test("then its row should use it", () => {
+    test("then it should use it in its row", () => {
         const state = defaultState();
         state.icons["in3"] = "gamepad-2";
         expect(trayRows(state, view, []).find((row) => row.key === "in3")?.icon).toBe("gamepad-2");

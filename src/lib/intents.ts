@@ -1,35 +1,48 @@
 import { isChannelIcon } from "./channel-icons.ts";
 import { minDb } from "./gain.ts";
-import { channelById, isChannelId, matchQuieterGain, pairKey, pairOf, setLinked, trimName } from "./mixer.ts";
-import type { ChannelId, CueName, DigitalFormat, IChannel, IMixerState } from "./mixer.ts";
+import {
+    channelById,
+    isAlwaysLinked,
+    isChannelId,
+    linkGroup,
+    matchQuieterGain,
+    pairKey,
+    pairOf,
+    setLinked,
+    trimName,
+} from "./mixer.ts";
+import type { ChannelId, CueName, IChannel, IMixerState } from "./mixer.ts";
 import { clamp, isFiniteNumber } from "./numbers.ts";
-import type { ISpec } from "./spec.ts";
+import { outputLevelMax, type DigitalFormat, type ISpec } from "./spec.ts";
 
 /*
  * Every change a user makes, from the page's own controls, the tray window or a phone. This is the
  * one place they change state: values are clamped, and mix changes wait until this computer owns
  * the mix. Another window or a phone may only send the remote ones, checked by isRemoteIntent.
  *
- * A switch either flips (`to` left out: a button on the page or in the tray) or is set to `to`
- * (the phone, whose messages could arrive twice or late, so flipping could undo a change).
+ * A switch either flips (`to` left out: a button on this page) or is set to `to`. Another window
+ * or a phone always says `to`: its messages could arrive twice or late, and a flip would undo.
+ *
+ * A linked pair moves together whatever a view sends: the linked-pair rules live here.
  */
 
 type Ids = ChannelId[];
 
 /* One member per type, so TypeScript can narrow each check. */
+/** What the tray window and a phone may change: levels and mutes. */
 export type RemoteIntent =
     | { type: "fader"; ids: Ids; db: number }
     | { type: "mute"; ids: Ids; to?: boolean }
-    | { type: "solo"; ids: Ids; to?: boolean }
-    | { type: "link"; id: ChannelId }
     | { type: "monitorLevel"; level: number }
     | { type: "headphoneLevel"; level: number }
     | { type: "monitorMute"; to?: boolean }
-    | { type: "monitorMono"; to?: boolean }
     | { type: "headphoneMute"; to?: boolean };
 
-/** Changes only the page's own controls make: channel settings and Settings. */
+/** Changes only the page's own controls make: the strips' other buttons, channel settings and Settings. */
 export type PageIntent =
+    | { type: "solo"; ids: Ids; to?: boolean }
+    | { type: "link"; id: ChannelId }
+    | { type: "monitorMono"; to?: boolean }
     | { type: "pan"; id: ChannelId; pan: number }
     | { type: "cueSend"; ids: Ids; cue: CueName; db: number }
     | { type: "cuePan"; id: ChannelId; cue: CueName; pan: number }
@@ -72,7 +85,7 @@ const setChannels = (state: IMixerState, ids: Ids, change: (first: IChannel) => 
 
 const toggleLink = (state: IMixerState, id: ChannelId): boolean => {
     const pair = pairOf(id);
-    if (!pair) return false;
+    if (!pair || isAlwaysLinked(pair)) return false;
     const isOn = !state.linked[pairKey(pair)];
     setLinked(state, pair, isOn);
     if (isOn) matchQuieterGain(state, pair);
@@ -90,15 +103,20 @@ const setEach = (indexes: number[], change: (index: number) => void): boolean =>
 
 const isTone = (tone: number, spec: ISpec): boolean => Number.isInteger(tone) && tone >= 0 && tone < spec.tone.length;
 
-/* Console's 0–100 scale for the outputs. The Volt jumps loud below 0, so 0 is the floor. */
-const remoteAppliers: { [T in RemoteIntent["type"]]: Applier<T> } = {
+const stripAppliers: { [T in "fader" | "mute" | "solo" | "link"]: Applier<T> } = {
     fader: (state, { ids, db }, spec) => setChannels(state, ids, () => ({ fader: clamp(db, minDb, spec.faderMaxDb) })),
     // Only the field asked for: a pair's two mutes can differ (the Volt reports each input's own).
     mute: (state, { ids, to }) => setChannels(state, ids, (first) => ({ isMuted: to ?? !first.isMuted })),
     solo: (state, { ids, to }) => setChannels(state, ids, (first) => ({ isSoloed: to ?? !first.isSoloed })),
     link: (state, { id }) => toggleLink(state, id),
-    monitorLevel: (state, { level }) => done(() => (state.monitor.level = clamp(level, 0, 100))),
-    headphoneLevel: (state, { level }) => done(() => (state.headphone.level = clamp(level, 0, 100))),
+};
+
+/* Console's 0–100 scale for the outputs. The Volt jumps loud below 0, so 0 is the floor. */
+const outputAppliers: {
+    [T in "monitorLevel" | "headphoneLevel" | "monitorMute" | "monitorMono" | "headphoneMute"]: Applier<T>;
+} = {
+    monitorLevel: (state, { level }) => done(() => (state.monitor.level = clamp(level, 0, outputLevelMax))),
+    headphoneLevel: (state, { level }) => done(() => (state.headphone.level = clamp(level, 0, outputLevelMax))),
     monitorMute: ({ monitor }, { to }) => done(() => (monitor.isMuted = to ?? !monitor.isMuted)),
     monitorMono: ({ monitor }, { to }) => done(() => (monitor.isMono = to ?? !monitor.isMono)),
     headphoneMute: ({ headphone }, { to }) => done(() => (headphone.isMuted = to ?? !headphone.isMuted)),
@@ -146,7 +164,8 @@ const labelAppliers: { [T in "rename" | "icon"]: Applier<T> } = {
 };
 
 const appliers = {
-    ...remoteAppliers,
+    ...stripAppliers,
+    ...outputAppliers,
     ...mixAppliers,
     ...preampAppliers,
     ...settingAppliers,
@@ -158,34 +177,39 @@ const appliers = {
 const mixTypes = new Set<Intent["type"]>(["fader", "solo", "pan", "cueSend", "cuePan", "cueMute"]);
 const routingTypes = new Set<Intent["type"]>(["headphoneSource", "cueSource", "mirror"]);
 
-const needsMix = (intent: Intent): boolean =>
+/** Whether a change is part of the mix, so it waits until this computer owns it. */
+export const needsMix = (intent: Intent): boolean =>
     mixTypes.has(intent.type) ||
     routingTypes.has(intent.type) ||
     (intent.type === "mute" && intent.ids.some((id) => channelById[id].kind !== "analog"));
 
-/** Whether a view has to be rebuilt after the change: strips merge or split, appear, or are renamed. */
-export const changesLayout = (intent: Intent): boolean =>
-    intent.type === "link" || intent.type === "digitalFormat" || intent.type === "rename";
+/** Whether a view has to be rebuilt after the change: strips merge, split or appear. A rename is refreshed in place. */
+export const changesLayout = (intent: Intent): boolean => intent.type === "link" || intent.type === "digitalFormat";
+
+/* What a linked pair shares (matchQuieterMix, matchQuieterGain). Pan, tone and labels are per side. */
+const pairedTypes = new Set<Intent["type"]>(["fader", "mute", "solo", "cueSend", "cueMute", "preampGain"]);
+
+/** The intent with its channels widened to their linked partners, for what a pair shares. */
+const forLinks = (state: IMixerState, intent: Intent): Intent =>
+    "ids" in intent && pairedTypes.has(intent.type) ? { ...intent, ids: linkGroup(state, intent.ids) } : intent;
 
 /** Applies one intent to the state; the caller commits (and re-lays out, see changesLayout). */
 export const applyIntent = (state: IMixerState, intent: Intent, spec: ISpec): IntentResult => {
     if (needsMix(intent) && !state.isMixOwned) return "needsMix";
     const apply = appliers[intent.type] as Applier<Intent["type"]>;
-    return apply(state, intent, spec) ? "ok" : "ignored";
+    return apply(state, forLinks(state, intent), spec) ? "ok" : "ignored";
 };
 
 const isIdList = (value: unknown): value is Ids =>
     Array.isArray(value) && value.length > 0 && value.length <= 2 && value.every(isChannelId);
-const toggleTypes = new Set(["monitorMute", "monitorMono", "headphoneMute"]);
 
 /** Whether a message from another window or a phone is one of the changes those may ask for. */
 export const isRemoteIntent = (value: unknown): value is RemoteIntent => {
     if (typeof value !== "object" || value === null) return false;
-    const { type, ids, id, db, level, to } = value as Record<string, unknown>;
-    if (to !== undefined && typeof to !== "boolean") return false;
+    const { type, ids, db, level, to } = value as Record<string, unknown>;
     if (type === "fader") return isIdList(ids) && isFiniteNumber(db);
-    if (type === "mute" || type === "solo") return isIdList(ids);
-    if (type === "link") return isChannelId(id);
     if (type === "monitorLevel" || type === "headphoneLevel") return isFiniteNumber(level);
-    return typeof type === "string" && toggleTypes.has(type);
+    // A mute says where it goes: a message could arrive twice, and a flip would undo it.
+    if (type === "mute") return isIdList(ids) && typeof to === "boolean";
+    return (type === "monitorMute" || type === "headphoneMute") && typeof to === "boolean";
 };

@@ -3,7 +3,11 @@ import { channelIcons } from "./channel-icons.ts";
 import { minDb } from "./gain.ts";
 import { decodeMixCode, encodeMixCode } from "./mix-code.ts";
 import { channels, defaultState, pairs, setLinked } from "./mixer.ts";
-import { applySavedMix, encodeMix, isMixHash, mixFromHash, toSavedMix, type ISavedMix } from "./saved-mix.ts";
+import { bytesToBase64Url } from "./base64url.ts";
+import { applySavedMix, toSavedMix, type ISavedMix } from "./saved-mix.ts";
+
+/** An older `#mix=` link's code: the saved mix as base64 JSON. */
+const longCode = (mix: ISavedMix): string => bytesToBase64Url(new TextEncoder().encode(JSON.stringify(mix)));
 
 /** A mix like a real one: a few channels moved, a pair linked, a name and an icon. */
 const typicalMix = (): ISavedMix => {
@@ -39,7 +43,7 @@ describe("Using encodeMixCode and decodeMixCode, when a typical mix makes the ro
 });
 
 describe("Using encodeMixCode, when the mix is a typical one", () => {
-    test("then the whole link should stay under 160 characters", () => {
+    test("then it should keep the whole link under 160 characters", () => {
         const link = `https://naovixen.github.io/volt-mixer/#m=${encodeMixCode(typicalMix())}`;
         expect(link.length).toBeLessThan(160);
     });
@@ -48,7 +52,7 @@ describe("Using encodeMixCode, when the mix is a typical one", () => {
 describe("Using encodeMixCode, when the mix is Console's default", () => {
     test("then it should be far shorter than the old link", () => {
         const mix = toSavedMix(defaultState());
-        expect(encodeMixCode(mix).length * 10).toBeLessThan(encodeMix(mix).length);
+        expect(encodeMixCode(mix).length * 10).toBeLessThan(longCode(mix).length);
     });
 });
 
@@ -116,37 +120,19 @@ describe("Using decodeMixCode, when the code isn't base64", () => {
     });
 });
 
-describe("Using mixFromHash, when the link is an older #mix= one", () => {
-    test("then it should still read it", () => {
-        const mix = typicalMix();
-        expect(mixFromHash(`#mix=${encodeMix(mix)}`)).toEqual(mix);
-    });
-});
-
 /* The format depends on these orders: a change here needs a new version of the code. */
 describe("Using the mix code's orders, when they're checked against the format", () => {
-    test("then the channels should be in the order the code was written for", () => {
+    test("then it should keep the channels in the order the code was written for", () => {
         expect(channels.map((c) => c.id).join(",")).toBe(
             "in1,in2,in3,in4,spdifL,spdifR,adat1,adat2,adat3,adat4,adat5,adat6,adat7,adat8,loopbackL,loopbackR",
         );
     });
 
-    test("then the pairs should be in the order the code was written for", () => {
+    test("then it should keep the pairs in the order the code was written for", () => {
         expect(pairs.map((pair) => pair[0]).join(",")).toBe("in1,in3,spdifL,adat1,adat3,adat5,adat7,loopbackL");
     });
 
-    test("then the first icons should be in the order the code was written for", () => {
+    test("then it should keep the first icons in the order the code was written for", () => {
         expect(Object.keys(channelIcons).slice(0, 4).join(",")).toBe("mic,mic-vocal,headset,headphones");
-    });
-});
-
-describe.each([
-    ["#m=AgAAAA", true],
-    ["#mix=eyJ2ZXJzaW9uIjoxfQ", true],
-    ["#t=pairing-token", false],
-    ["#main", false],
-])("Using isMixHash on %s", (hash, isMix) => {
-    test(`then it should say ${isMix ? "it's" : "it isn't"} a mix link`, () => {
-        expect(isMixHash(hash)).toBe(isMix);
     });
 });

@@ -78,7 +78,7 @@ pnpm install
 ## Run it locally
 
 ```sh
-pnpm dev       # the site at http://localhost:4321, reloading as you edit
+pnpm dev       # the site at http://localhost:4321/volt-mixer/, reloading as you edit
 pnpm test      # unit tests, capture re-encoding and colour-contrast checks
 pnpm lint      # type checks (astro check) and formatting (prettier)
 pnpm format    # fixes formatting
@@ -92,6 +92,7 @@ The desktop app has its own packages:
 cd desktop
 pnpm install
 pnpm start     # builds the site into desktop/site and runs the app
+pnpm typecheck # type checks the app's own code (its tests run with the site's, in pnpm test)
 pnpm dist      # installers for this system, into desktop/release
 ```
 
@@ -109,10 +110,11 @@ src/
                      mixer model, sync, saved mix, tapers, meters
   scripts/           browser code: WebHID connection, controller, sliders, strips, dialogs
   components/        ui/ (Slider, Meter, Dialog, Icon), mixer/ (strips, outputs, dialogs), site/, guide/
-  layouts/ pages/    BaseLayout and GuideLayout; the mixer page, the desktop app's tray page and
-                     the guide's pages and search index (pages/guide)
-  styles/            tokens (light-dark pairs), reset, base, button, message; guide*.css for
-                     the guide only
+  layouts/ pages/    BaseLayout and GuideLayout; the mixer page and the desktop app's tray page;
+                     pages/_website: what only the website has (the guide's pages and search
+                     index, privacy, the sitemap)
+  styles/            tokens (light-dark pairs), reset, base, and the shared button, switch,
+                     message, text, tone and choice styles; guide*.css for the guide only
   icons/             SVG icons, with their licences
 public/              icon and web app manifest; guide/images, the guide's screenshots
 tools/               capture kit for a Windows PC with UAD Console (Node 24), and the guide's
@@ -125,18 +127,22 @@ docs/                protocol, maintenance guide, decisions
 ## The user guide
 
 The guide at `/guide/` is for people using Volt Mixer. Each page is an MDX file (Markdown that
-can use components) in `src/content/guide`, shown by `src/pages/guide/[...slug].astro` with
-`src/layouts/GuideLayout.astro`.
+can use components) in `src/content/guide`, shown by `src/pages/_website/guide/[...slug].astro`
+with `src/layouts/GuideLayout.astro`.
 
 **Any change a user can see updates the guide, and its screenshots, before it's pushed.**
 
-- **Add a page:** write `src/content/guide/<slug>.mdx` with the same front matter as the others
-  (`title`, `description`, `lead`), then add it to `src/lib/guide-nav.ts`, which orders the
-  sidebar, the previous and next links, the search index and the sitemap. The build fails if the
-  two disagree.
+- **Add a page:** write `src/content/guide/<slug>.mdx` with the same front matter as the others:
+  `title`, `description`, `lead`, its sidebar `group` (one of `guideGroupTitles` in
+  `src/lib/guide-nav.ts`) and its `order` in that group, plus `navTitle` if the sidebar should
+  call it something shorter. That places it in the sidebar, the previous and next links, the
+  search index and the sitemap. The build fails if two pages claim one place.
 - **Write for scanning:** short paragraphs, numbered lists for steps, a table where one thing
   maps to another, and side-by-side lists where two things are compared.
-- **Components** (`src/components/guide`), imported at the top of a page:
+- **Components** (`src/components/guide`) need no imports: they're passed to every page from
+  `guideComponents` in `src/pages/_website/guide/_entries.ts`. A new one is a component there and
+  a line in that map. Markdown tables and numbered lists are drawn by `Table.astro` and
+  `NumberedList.astro` from the same map.
     - `<Shot name="strip" alt="…" />`: a screenshot in light and dark, sized automatically.
     - `<Parts>`: wraps a numbered list that keys a screenshot's numbers. Start each item with the
       part's name in bold, then its explanation on the next line.
@@ -144,16 +150,20 @@ can use components) in `src/content/guide`, shown by `src/pages/guide/[...slug].
       Without a title it is a notice, as the mixer shows one.
     - `<Compare columns={[…]} />`: two lists side by side, each under its title.
     - `<Faq question="…">`: a question that opens to its answer (Troubleshooting).
+    - `<Cards cards={[…]} />`: links to other pages, each a title and a line.
+    - `<Flow label="…" paths={[[…]]} />`: signal paths, steps joined by arrows.
+    - `<WebsiteLink>…</WebsiteLink>`: a link to the mixer on the website (its address is in
+      `src/lib/site.ts`).
 - **One screenshot, one place:** show a screen once, on the page that explains it, and link to it
   from elsewhere.
-- **Search** needs no service: `src/pages/guide/search.json.ts` renders each page's content at
+- **Search** needs no service: `src/pages/_website/guide/search.json.ts` renders each page's content at
   build time and cuts it into sections, and `src/lib/guide-search.ts` ranks them in the browser.
 - **Screenshots** come from the real mixer, staged in headless Edge or Chrome, in light and dark.
   Nothing in it can reach a Volt. After changing how the mixer looks:
 
     ```sh
     pnpm build
-    pnpm preview            # http://localhost:4321
+    pnpm preview            # http://localhost:4321/volt-mixer/
     cd tools
     node guide-images.mjs   # rewrites public/guide/images and src/data/guide-images.json
     cd ..
@@ -163,8 +173,9 @@ can use components) in `src/content/guide`, shown by `src/pages/guide/[...slug].
     `tools/guide-stage.js` sets up each scene and numbers its parts; `tools/guide-images.mjs` says
     how large each one is shown, so small parts are shown bigger and their numbers stay readable.
 
-The guide's styles and script load only on its pages, and the desktop app leaves it out
-(`desktop/scripts/build-site.mjs`), so it adds nothing to the mixer.
+The guide's styles and script load only on its pages, and the desktop app's build
+(`VOLT_TARGET=desktop`, from `desktop/scripts/build-site.mjs`) leaves it out, so it adds nothing
+to the mixer ([decisions](docs/decisions.md#one-site-two-builds)).
 
 ## Ground rules
 
@@ -245,18 +256,21 @@ For example `feat/volt-2-gen2-support`.
 
 ```sh
 cd tools
-npm install
+pnpm install
 ```
 
-The tools use npm and plain JavaScript on purpose ([decisions](docs/decisions.md#tools-stay-javascript)).
-`node-hid` lets them read the device directly.
+`tools/` is its own pnpm project, in plain JavaScript on purpose
+([decisions](docs/decisions.md#tools-stay-javascript)). `node-hid` lets the tools read the device
+directly.
 
 ### 3. Get ready
 
 Before any capture:
 
 - **Take your headphones off and turn speakers down.** Captures step every level through its
-  range.
+  range. They mute the monitor and headphone outputs for the whole run and refuse to start if
+  they can't, but Line Out 3/4 has no mute: unplug anything there, and set both cues' Mirror to
+  None in UAD Console (a capture refuses to start while a cue is mirrored).
 - **Unplug ribbon mics.** Captures switch 48V phantom power on and off, which can damage them.
 - Make sure **UAD Console is running**: the tools talk to its helper on `127.0.0.1:4720`.
 - Close Volt Mixer (website and app).
@@ -290,8 +304,10 @@ This records every setting so you can prove nothing was left changed at the end.
 ### 6. Record the captures
 
 Each capture records USB traffic while settings change, with a timestamped log so every packet can
-be labelled. Every value touched is saved first and put back at the end, even after an error or
-Ctrl+C. If anything ever looks wrong afterwards, `node ua.js restore` puts it back.
+be labelled. Each run also saves a full snapshot first (`captures/snapshot-before-run.json`), puts
+everything back at the end, even after an error or Ctrl+C, then compares every setting with the
+snapshot and says loudly if anything differs. If anything ever looks wrong afterwards,
+`node ua.js restore` puts the snapshot back.
 
 1. **Try a dry run first.** It only reads, and prints the plan:
 
@@ -303,14 +319,16 @@ Ctrl+C. If anything ever looks wrong afterwards, `node ua.js restore` puts it ba
     lists the inputs, buses and outputs your interface really has. If it fails or misses things,
     this is where the tool needs adapting for your model (it was written on a Volt 4 Gen 2).
 
-2. **The automated sweep** (accept the administrator prompt; USBPcap needs it):
+2. **The automated sweep** (accept the administrator prompt: only the USB recorder needs it, and
+   it records only the Volt when USBPcap can tell which device it is):
 
     ```sh
     powershell -File run-capture.ps1
     ```
 
     It steps every setting through UAD Console while recording. About 15 minutes, mostly
-    unattended.
+    unattended. `-Phases routing,autogain` runs only some phases (the names are in
+    `capture-run.js`).
 
 3. **Console starting up**, which shows the full state Console pushes when it connects:
 
@@ -349,14 +367,16 @@ Two more maps the page needs:
     node state-probe.mjs          # change one setting at a time and map the dump
     ```
 
-    It writes `reference/decoded/<firmware>-state/state-map.json`. It imports the protocol from
-    `src/lib/spec.ts`, so for a new model it needs the identify and state-request commands from
-    the decode above first.
+    It writes `reference/decoded/<firmware>-state/state-map.json`. Like the sweep, it mutes the
+    outputs, saves and restores a full snapshot, and checks the dump is back as it was. It imports
+    the protocol from `src/lib/spec.ts`, so for a new model it needs the identify and
+    state-request commands from the decode above first.
 
 - **The meters** (read-only):
 
     ```sh
     node meter-probe.mjs in1-mic 6   # label, seconds; play into one input at a time
+    node meter-probe.mjs --raw 3 6   # one meter's raw values (offset, seconds), to spot spikes
     ```
 
     Results go to `reference/decoded/meters.jsonl`.
@@ -377,13 +397,13 @@ the page then stays read-only. That's the safety net: an incomplete spec can't s
 Because the code supports one model today, the first new model also needs these changes. Ask your
 agent to make them in small, separate commits:
 
-| File                             | Today                                          | Needs                                       |
-| -------------------------------- | ---------------------------------------------- | ------------------------------------------- |
-| `src/lib/spec.ts`                | imports `volt4-gen2.json` only                 | every data file, and a lookup by product ID |
-| `src/scripts/volt-connection.ts` | accepts only `protocol.productId`              | any product ID with a data file             |
-| `src/lib/mixer.ts`               | one fixed `channels` list (Input 1 … Loopback) | the channel list per model                  |
-| `desktop/src/hid.ts`             | `voltProductIds = new Set([46])`               | your product ID added                       |
-| `README.md`                      | "Only the Volt 4 Gen 2 works for now"          | your model listed                           |
+| File                             | Today                                           | Needs                                       |
+| -------------------------------- | ----------------------------------------------- | ------------------------------------------- |
+| `src/lib/spec.ts`                | imports `volt4-gen2.json` only                  | every data file, and a lookup by product ID |
+| `src/scripts/volt-connection.ts` | accepts only `protocol.productId`               | any product ID with a data file             |
+| `src/lib/mixer.ts`               | one fixed `channels` list (Input 1 … Loopback)  | the channel list per model                  |
+| `desktop/scripts/*.mjs`          | the app's Volts and udev rule: `productId` only | every supported product ID                  |
+| `README.md`                      | "Only the Volt 4 Gen 2 works for now"           | your model listed                           |
 
 Keep the Volt 4 Gen 2 working exactly as before: its tests must still pass unchanged.
 
@@ -413,10 +433,11 @@ Finally, take an "after" snapshot and compare:
 
 ```sh
 cd tools
-node ua.js snapshot ../captures/snapshot-after.json
+node ua.js diff ../captures/snapshot-before.json
 ```
 
-It should match `snapshot-before.json`. If not, `node ua.js restore`.
+It compares the snapshot with the device now and should say `identical`. If not,
+`node ua.js restore ../captures/snapshot-before.json`.
 
 ### 10. Check what you're committing
 
@@ -477,7 +498,7 @@ The `.deb` sets this up for you. For the AppImage, or the website in Chrome, add
 then unplug and replug the Volt:
 
 ```sh
-echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="2b5a", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-volt-mixer.rules
+echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="2b5a", ATTRS{idProduct}=="002e", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-volt-mixer.rules
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
@@ -500,6 +521,10 @@ Only Windows has been tried with a Volt so far; reports from macOS and Linux are
 
 ## Releases
 
-For maintainers: bump `desktop/package.json`'s version, then push a matching `v*` tag.
-`.github/workflows/release.yml` builds every system's installer into a draft release, to be checked
-and published by hand. The website deploys from `main` through `.github/workflows/deploy.yml`.
+For maintainers: bump `desktop/package.json`'s version, then push a matching `v*` tag (the
+release fails if they differ). `.github/workflows/release.yml` builds every system's installer
+with read-only access, then a separate job attaches them to the tag's draft release, to be checked
+and published by hand. A manual run of the workflow only builds, and keeps the installers as
+artefacts. Every action in both workflows is pinned to a commit: when you update one, look up the
+new release's commit and keep the `# vX.Y.Z` comment beside it. The website deploys from `main`
+through `.github/workflows/deploy.yml`.

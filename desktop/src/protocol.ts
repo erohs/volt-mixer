@@ -1,4 +1,4 @@
-import { protocol, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
+import { protocol, type BrowserWindow, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
 import { csp, readSiteFile } from "./site-files";
 
 /*
@@ -8,8 +8,13 @@ import { csp, readSiteFile } from "./site-files";
 
 export const appOrigin = "app://volt";
 
-/** IPC is answered only for the app's own pages. */
-export const isFromApp = (event: IpcMainEvent | IpcMainInvokeEvent): boolean =>
+/**
+ * IPC is answered only for the window it's meant for (windows.ts: isFromMainWindow,
+ * isFromTrayWindow), and only while that window shows the app's own page.
+ */
+export const isFromWindow = (event: IpcMainEvent | IpcMainInvokeEvent, window: BrowserWindow | null): boolean =>
+    window !== null &&
+    event.sender === window.webContents &&
     event.senderFrame?.url.startsWith(`${appOrigin}/`) === true;
 
 /** Before the app is ready: makes app:// a standard, secure scheme. */

@@ -1,8 +1,10 @@
 ---
 import Dialog from "../ui/Dialog.astro";
+import FeedbackButton from "../ui/FeedbackButton.astro";
 import Icon from "../ui/Icon.astro";
 import InlineMessage from "../ui/InlineMessage.astro";
 import LinkField from "../ui/LinkField.astro";
+import MixPasteForm from "./MixPasteForm.astro";
 import PhoneRemote from "./PhoneRemote.astro";
 import QrCode from "../ui/QrCode.astro";
 import Reveal from "../ui/Reveal.astro";
@@ -122,7 +124,7 @@ import Slider from "../ui/Slider.astro";
                 data-desktop="startAtLogin"
             />
         </SettingRow>
-        <p class="note" data-desktop-login-status hidden></p>
+        <p class="hint" data-desktop-login-status hidden></p>
         <fieldset class="choices" data-desktop-login-start hidden>
             <legend class="visually-hidden">When it starts at sign-in</legend>
             <label>
@@ -188,68 +190,43 @@ import Slider from "../ui/Slider.astro";
                 Check
             </button>
         </SettingRow>
-        <p class="note" role="status" data-update-status></p>
+        <p class="hint" role="status" data-update-status></p>
     </SettingGroup>
 
     <SettingGroup id="your-mix" title="Your mix">
         <!-- The link fills the width; a click on it (or the button) copies it (mix-link.ts). -->
-        <div class="mix-link">
-            <div class="text">
-                <label class="name" for="mix-link-input">
-                    Mix link
-                </label>
-                <p class="description" id="mix-link-description">
-                    Open it on another computer to use this mix there.
-                </p>
-            </div>
+        <SettingRow
+            id="mix-link"
+            name="Mix link"
+            description="Open it on another computer to use this mix there."
+            for="mix-link-input"
+            isStacked>
             <LinkField
                 id="mix-link-input"
                 type="text"
                 readonly
                 aria-describedby="mix-link-description message-mix-link"
                 data-mix-link>
-                <button class="button button--icon button--feedback" type="button" data-mix-copy>
-                    <span class="face">
-                        <Icon name="copy" />
-                        <span class="visually-hidden">Copy mix link</span>
-                    </span>
-                    <Icon name="check" class="feedback feedback--success" />
-                    <Icon name="close" class="feedback feedback--error" />
-                </button>
+                <FeedbackButton variant="icon" data-mix-copy>
+                    <Icon name="copy" />
+                    <span class="visually-hidden">Copy mix link</span>
+                </FeedbackButton>
             </LinkField>
             <Reveal summary="QR code" data-mix-qr>
                 <QrCode name="mix" label="QR code of this mix link">
-                    <p class="description">
+                    <p class="hint">
                         Scan it with your phone to carry the mix, or with another computer's camera to use it there.
                     </p>
                 </QrCode>
             </Reveal>
             <InlineMessage name="mix-link" />
-        </div>
+        </SettingRow>
         <!-- A link from another computer, pasted here; it replaces this computer's mix (controller.ts). -->
-        <form class="mix-link" data-mix-paste>
-            <div class="text">
-                <label class="name" for="mix-paste-input">
-                    Use a mix link
-                </label>
-                <p class="description" id="mix-paste-description">
-                    From another computer. It replaces this one's mix.
-                </p>
-            </div>
-            <LinkField
-                id="mix-paste-input"
-                type="url"
-                required
-                aria-describedby="mix-paste-description message-mix-paste"
-                data-mix-link-input>
-                <button class="button button--feedback" type="submit">
-                    <span class="face">Use</span>
-                    <Icon name="check" class="feedback feedback--success" />
-                    <Icon name="close" class="feedback feedback--error" />
-                </button>
-            </LinkField>
-            <InlineMessage name="mix-paste" />
-        </form>
+        <MixPasteForm
+            id="mix-paste"
+            name="Use a mix link"
+            description="From another computer. It replaces this one's mix."
+        />
         <SettingRow id="push-mix" name="Apply mix" description="Send it to the Volt now.">
             <button class="button" type="button" aria-describedby="push-mix-description" data-action="push-mix">
                 Apply
@@ -263,56 +240,25 @@ import Slider from "../ui/Slider.astro";
     </SettingGroup>
 
     <SettingGroup id="about" title="About this Volt">
-        <p class="note" data-device-info>
+        <p class="hint" data-device-info>
             Not connected.
         </p>
-        <p class="note">Sample rate and clock are set in Windows or your audio app.</p>
+        <p class="hint">Sample rate and clock are set in Windows or your audio app.</p>
     </SettingGroup>
 </Dialog>
 
 <style>
-    .note {
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
-    }
-
     /* The two ways to start at sign-in, under Auto start. */
     .choices:not([hidden]) {
         display: grid;
         gap: var(--space-between-lines);
-        margin: 0;
-        padding: 0 0 0 var(--space-between-content);
-        border: 0;
-
-        & label {
-            display: flex;
-            align-items: center;
-            gap: var(--space-between-text);
-            min-block-size: var(--size-action-minimum);
-        }
+        padding-inline-start: var(--space-between-content);
     }
 
-    .note:empty {
-        display: none;
-    }
-
-    /* Mix link: the name and help above, the link across the full width with its copy button. */
-    .mix-link {
-        display: grid;
+    .choices > label {
+        display: flex;
+        align-items: center;
         gap: var(--space-between-text);
-
-        & .text {
-            display: grid;
-            gap: 0.125rem;
-        }
-
-        & .name {
-            font-weight: var(--font-weight-semi-bold);
-        }
-    }
-
-    .description {
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
+        min-block-size: var(--size-action-minimum);
     }
 </style>

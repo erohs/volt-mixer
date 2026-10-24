@@ -11,11 +11,11 @@ const githubPrivacy = "https://docs.github.com/site-policy/privacy-policies/gith
     title="Privacy | Volt Mixer"
     description="Volt Mixer's privacy statement: no accounts, cookies, analytics or tracking; your mix stays on your computer.">
     <article class="privacy">
-        <p class="back">
+        <p class="hint">
             <a href={base}>← Volt Mixer</a>
         </p>
         <h1>Privacy statement</h1>
-        <p class="meta">Last updated {updated}. Applies to the Volt Mixer website and the Volt Mixer desktop app.</p>
+        <p class="hint">Last updated {updated}. Applies to the Volt Mixer website and the Volt Mixer desktop app.</p>
 
         <h2>In short</h2>
         <p>
@@ -71,8 +71,8 @@ const githubPrivacy = "https://docs.github.com/site-policy/privacy-policies/gith
             itself.
         </p>
         <p>
-            If you turn on Phone remote, the app answers phones on your home network that have scanned its QR code. It
-            sends nothing to the internet.
+            If you turn on Phone remote, the app answers phones that have scanned its QR code, only on the network you
+            turned it on in. It sends nothing to the internet.
         </p>
 
         <h2>Questions</h2>
@@ -91,26 +91,20 @@ const githubPrivacy = "https://docs.github.com/site-policy/privacy-policies/gith
         max-inline-size: 42rem;
         margin-inline: auto;
         padding: var(--space-padding-page);
-
-        & h2 {
-            margin-block-start: var(--space-between-content);
-        }
-
-        & ul {
-            display: grid;
-            gap: var(--space-between-text);
-            padding-inline-start: 1.25rem;
-        }
-
-        & a {
-            color: var(--color-text-accent);
-            text-underline-offset: 0.2em;
-        }
     }
 
-    .meta,
-    .back {
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
+    h2 {
+        margin-block-start: var(--space-between-content);
+    }
+
+    ul {
+        display: grid;
+        gap: var(--space-between-text);
+        padding-inline-start: 1.25rem;
+    }
+
+    a {
+        color: var(--color-text-accent);
+        text-underline-offset: 0.2em;
     }
 </style>

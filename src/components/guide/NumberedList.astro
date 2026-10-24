@@ -1,0 +1,14 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+/*
+ * Every numbered list in the guide (the `ol` of the guide's components map). Its numbers are drawn
+ * in circles (guide-prose.css) instead of list markers, and role="list" keeps it a list for the
+ * screen readers that stop treating a list without markers as one.
+ */
+type Props = HTMLAttributes<"ol">;
+---
+
+<ol {...Astro.props} role="list">
+    <slot />
+</ol>

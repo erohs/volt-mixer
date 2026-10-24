@@ -37,6 +37,8 @@
     --color-fader-shine: light-dark(#2563d4, #7aa5ff);
     --color-monitor: light-dark(#1d7542, #5fd38d);
     --color-headphone: light-dark(#8a5600, #ffb547);
+    /* Behind a modal dialog or the guide's menu, in both themes. */
+    --color-backdrop: rgb(0 0 0 / 40%);
     --font-family-body: system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-size-title: 1.25rem;
     --font-size-heading: 1.0625rem;
@@ -65,6 +67,7 @@
     --size-slider-track: 0.375rem;
     --size-slider-thumb: 1.25rem;
     --size-meter: 0.5rem;
+    --space-between-meters: 0.1875rem;
     --size-dialog: 30rem;
     /* The top bar, the same height on the mixer and in the guide. */
     --size-bar: 4rem;
@@ -83,11 +86,23 @@
     --border-width-default: 1px;
     --border-width-standout: 2px;
     --border-width-highlight: 3px;
+    --radius-extra-small: 4px;
     --radius-small: 6px;
     --radius-medium: 10px;
     --radius-large: 14px;
     --duration-fast: 150ms;
     --easing-standard: ease;
+    /* What sits over what: a focused field over its neighbour, the guide's top bar, the skip link over all. */
+    --z-index-raised: 1;
+    --z-index-bar: 2;
+    --z-index-skip: 3;
+}
+
+/* Every transition takes its duration from a token, so this stops them all. */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --duration-fast: 0s;
+    }
 }
 
 /* Settings › View › Theme; without a choice the page follows the system. */

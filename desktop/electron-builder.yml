@@ -1,20 +1,23 @@
-# Unsigned builds, published as a draft GitHub Release by .github/workflows/release.yml.
+# Unsigned builds. .github/workflows/release.yml attaches them to a draft GitHub Release, so
+# electron-builder itself never publishes (publish: null). The repository and homepage come from
+# package.json.
 appId: io.github.naovixen.voltmixer
 productName: Volt Mixer
 copyright: Copyright © 2026 Naomi
 directories:
   output: release
   buildResources: build
+# The site is packed in app.asar with main's code, so the asar integrity check covers it too
+# (src/site-files.ts). It includes desktop-hid.json, which main reads (src/volt-hid.ts).
 files:
   - out/**
+  - site/**
   - package.json
 # node-hid's prebuilt binaries use Node-API, which Electron loads as they are; rebuilding them
 # would need a compiler on every release runner.
 npmRebuild: false
-# The site and the tray icons sit beside the app (see site and iconPath in src/).
+# The tray icons sit beside the app, as files the system's tray can open (iconPath in src/tray.ts).
 extraResources:
-  - from: site
-    to: site
   - from: build/tray.png
     to: tray.png
   - from: build/trayTemplate.png
@@ -54,11 +57,8 @@ linux:
   category: AudioVideo
   icon: build/icon.png
   artifactName: Volt-Mixer-${version}-${arch}.${ext}
+# Written by scripts/linux-scripts.mjs (pnpm dist): electron-builder's own scripts plus the udev rule.
 deb:
   afterInstall: build/linux/after-install.sh
   afterRemove: build/linux/after-remove.sh
-publish:
-  provider: github
-  owner: naovixen
-  repo: volt-mixer
-  releaseType: draft
+publish: null

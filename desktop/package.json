@@ -5,7 +5,11 @@
     "description": "Volt Mixer as a desktop app: the Volt 4 Gen 2's mixer in a window and the system tray.",
     "license": "MIT",
     "author": "Naomi",
-    "homepage": "https://github.com/naovixen/volt-mixer",
+    "homepage": "https://naovixen.github.io/volt-mixer/",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/naovixen/volt-mixer"
+    },
     "private": true,
     "main": "out/main.js",
     "packageManager": "pnpm@12.8.1",
@@ -13,9 +17,9 @@
         "postinstall": "node node_modules/electron/install.js",
         "build:site": "node scripts/build-site.mjs",
         "build": "pnpm build:site && node scripts/clean-out.mjs && tsc -p tsconfig.json",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
         "start": "pnpm build && electron .",
-        "dist": "pnpm build && electron-builder --publish never",
-        "release": "pnpm build && electron-builder --publish always"
+        "dist": "pnpm build && node scripts/linux-scripts.mjs && electron-builder --publish never"
     },
     "devDependencies": {
         "@types/node": "24.19.1",

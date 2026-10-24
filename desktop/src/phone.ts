@@ -1,221 +1,136 @@
-import { app, ipcMain } from "electron";
-import crypto from "crypto";
-import fs from "fs";
-import http from "http";
+import type http from "http";
 import os from "os";
-import path from "path";
-import { readJson, send } from "./http-helpers";
-import { homeAddresses, refusalFor, type IPhoneAddress } from "./phone-rules";
-import { askPage } from "./page-requests";
-import { isFromApp } from "./protocol";
-import { csp, readSiteFile } from "./site-files";
+import { homeAddresses, type IPhoneAddress } from "./phone-rules";
+import { closeServer, listenOn, phonePort } from "./phone-server";
+import { endStreams, streamCount, toStreams, watchStreamCount } from "./phone-streams";
+import { currentToken, rotateToken } from "./phone-token";
+import { loadSettings } from "./settings";
 import { getMainWindow } from "./windows";
 
 /*
- * The phone remote: the tray page, served on the home network while Settings › Desktop app ›
- * Phone remote is on. The phone pairs by scanning a QR code that carries a secret token; every
- * API request must send it. Only private addresses are served, the Host must be this computer's
- * address (against DNS rebinding), and only the tray page's own files are offered. It's plain
- * HTTP, so someone able to watch the home network could read the token: the setting says so.
- *
- *   GET  /api/events   one JSON line per change ({ kind: "snapshot", snapshot }), blank keep-alives
- *   POST /api/intent   { client, seq, intent } → { result }; an older seq from a phone is ignored
+ * The phone remote: the tray page served on the home network while Settings › Desktop app ›
+ * Phone remote is on (phone-server.ts). It answers only on the address it was set up on, so a
+ * laptop that starts at login on someone else's Wi-Fi stays off. reconcilePhoneRemote brings the
+ * server in line with the settings and the network, on a settings change, on waking and every
+ * few seconds while it's on; it restarts the server only when the address to serve on changes.
+ * Settings hears every change of state (phone:status), so it never has to ask.
  */
 
-const port = 48190;
-const maxStreams = 4;
-const maxBodyBytes = 4096;
-const intentsPerSecond = 50;
-const securityHeaders = {
-    "Content-Security-Policy": csp,
-    "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "no-referrer",
-};
-const pageFiles = new Set(["/tray/", "/theme.js", "/icon.svg", "/apple-touch-icon.png", "/icon-192.png"]);
-
+const networkCheckMs = 10_000;
+const keepAliveMs = 20_000;
 let server: http.Server | null = null;
 let boundAddress = "";
-let startError = "";
+let problem = "";
+let networkCheck: NodeJS.Timeout | undefined;
 let keepAlive: NodeJS.Timeout | undefined;
-const streams = new Set<http.ServerResponse>();
-const lastSeq = new Map<string, number>();
-const rates = new Map<string, { second: number; count: number }>();
+let reconciling = Promise.resolve();
+let lastTold = "";
 
-// ---------- the pairing token ----------
-
-const tokenFile = (): string => path.join(app.getPath("userData"), "phone.json");
-let token = "";
-
-/** A new token: phones paired with the old one stop working. */
-export const rotatePhoneToken = (): void => {
-    token = crypto.randomBytes(32).toString("base64url");
-    try {
-        fs.writeFileSync(tokenFile(), JSON.stringify({ token }));
-    } catch {
-        /* Not writable: the token lasts until the app quits. */
-    }
-    for (const stream of streams) stream.end();
-};
-
-const currentToken = (): string => {
-    if (token) return token;
-    try {
-        const saved = (JSON.parse(fs.readFileSync(tokenFile(), "utf8")) as { token?: unknown }).token;
-        if (typeof saved === "string" && saved.length >= 32) return (token = saved);
-    } catch {
-        /* First run: make one. */
-    }
-    rotatePhoneToken();
-    return token;
-};
-
-const digest = (text: string): Buffer => crypto.createHash("sha256").update(text).digest();
-const hasToken = (authorization: string | undefined): boolean =>
-    crypto.timingSafeEqual(digest(authorization?.match(/^Bearer (\S+)$/)?.[1] ?? ""), digest(currentToken()));
-
-// ---------- addresses ----------
-
-/** This computer's addresses on its home network, best first, for the QR code. */
-export const phoneAddresses = (): IPhoneAddress[] => homeAddresses(os.networkInterfaces());
-
-// ---------- snapshots from the main window, to the phones ----------
-
-let latest = "";
-let sent = "";
-let sendTimer: NodeJS.Timeout | undefined;
-
-const toPhones = (line: string): void => {
-    for (const stream of streams) stream.write(`${line}\n`);
-};
-
-/** At most 20 a second, and only when something changed. */
-ipcMain.on("phone:publish", (event, snapshot: unknown) => {
-    if (!isFromApp(event)) return;
-    latest = JSON.stringify({ kind: "snapshot", snapshot });
-    if (sendTimer || latest === sent) return;
-    sendTimer = setTimeout(() => {
-        sendTimer = undefined;
-        sent = latest;
-        toPhones(latest);
-    }, 50);
-});
-
-/** The main window publishes to phones only while some are connected. */
-const tellPageHowMany = (): void => getMainWindow()?.webContents.send("phone:count", streams.size);
-
-// ---------- requests ----------
-
-const remoteIp = (req: http.IncomingMessage): string => req.socket.remoteAddress?.replace(/^::ffff:/, "") ?? "";
-
-const refusal = (req: http.IncomingMessage): number =>
-    refusalFor(
-        { host: req.headers.host, origin: req.headers.origin, remoteIp: remoteIp(req) },
-        `${boundAddress}:${port}`,
-    );
-
-const serveFile = async (res: http.ServerResponse, pathname: string): Promise<void> => {
-    if (pathname === "/") return send(res, 302, { Location: "/tray/" });
-    const isPageFile = pageFiles.has(pathname) || pathname.startsWith("/_astro/");
-    const file = isPageFile ? await readSiteFile(pathname) : null;
-    if (!file) return send(res, 404, securityHeaders);
-    res.writeHead(200, { ...securityHeaders, "Content-Type": file.type, "Cache-Control": "no-cache" });
-    res.end(file.body);
-};
-
-const openStream = (req: http.IncomingMessage, res: http.ServerResponse): void => {
-    if (streams.size >= maxStreams) return send(res, 503, securityHeaders);
-    res.writeHead(200, { ...securityHeaders, "Content-Type": "application/x-ndjson", "Cache-Control": "no-store" });
-    res.flushHeaders();
-    res.socket?.setNoDelay(true);
-    streams.add(res);
-    tellPageHowMany();
-    if (latest) res.write(`${latest}\n`);
-    req.on("close", () => {
-        streams.delete(res);
-        tellPageHowMany();
-    });
-};
-
-/** Counted per address: the client name is the phone's own choice. */
-const isWithinRate = (address: string): boolean => {
-    const second = Math.floor(Date.now() / 1000);
-    const rate = rates.get(address);
-    const count = rate?.second === second ? rate.count + 1 : 1;
-    if (rates.size > 64) rates.clear();
-    rates.set(address, { second, count });
-    return count <= intentsPerSecond;
-};
-
-/** Keeps each phone page's last sequence number; past 64, the one heard from longest ago goes. */
-const rememberSeq = (client: string, seq: number): void => {
-    lastSeq.delete(client);
-    if (lastSeq.size >= 64) lastSeq.delete(lastSeq.keys().next().value ?? "");
-    lastSeq.set(client, seq);
-};
-
-/** One intent from a phone. Its seq only grows, so a late or repeated one is dropped, not applied. */
-const takeIntent = async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
-    if (!req.headers["content-type"]?.startsWith("application/json")) return send(res, 415, securityHeaders);
-    const body = (await readJson(req, maxBodyBytes)) as { client?: unknown; seq?: unknown; intent?: unknown } | null;
-    const { client, seq } = body ?? {};
-    if (typeof client !== "string" || client.length > 40 || typeof seq !== "number")
-        return send(res, 400, securityHeaders);
-    if (!isWithinRate(remoteIp(req))) return send(res, 429, securityHeaders);
-    if (seq <= (lastSeq.get(client) ?? -1)) return send(res, 200, securityHeaders, { result: "stale" });
-    rememberSeq(client, seq);
-    const result = await askPage("phone-intent", body?.intent);
-    send(res, 200, securityHeaders, { result: result ?? "ignored" });
-};
-
-const handle = async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
-    const refused = refusal(req);
-    if (refused) return send(res, refused, securityHeaders);
-    const url = new URL(req.url ?? "/", `http://${boundAddress}:${port}`);
-    if (!url.pathname.startsWith("/api/")) return req.method === "GET" ? serveFile(res, url.pathname) : send(res, 405);
-    if (!hasToken(req.headers.authorization)) return send(res, 401, securityHeaders);
-    if (url.pathname === "/api/events" && req.method === "GET") return openStream(req, res);
-    if (url.pathname === "/api/intent" && req.method === "POST") return takeIntent(req, res);
-    send(res, 404, securityHeaders);
-};
-
-// ---------- on and off ----------
-
-export const stopPhoneRemote = (): void => {
-    clearInterval(keepAlive);
-    for (const stream of streams) stream.end();
-    streams.clear();
-    server?.close();
-    server?.closeAllConnections();
-    server = null;
-    tellPageHowMany();
-};
-
-/** Serves phones on `address` (or this computer's first private address). */
-export const startPhoneRemote = (address: string): void => {
-    stopPhoneRemote();
-    const addresses = phoneAddresses().map((entry) => entry.address);
-    boundAddress = addresses.includes(address) ? address : (addresses[0] ?? "");
-    startError = boundAddress ? "" : "This computer isn't on a home network.";
-    if (!boundAddress) return;
-    server = http.createServer((req, res) => void handle(req, res).catch(() => send(res, 500)));
-    Object.assign(server, { headersTimeout: 10_000, requestTimeout: 10_000, maxConnections: 16 });
-    server.on("error", (error: NodeJS.ErrnoException) => {
-        startError =
-            error.code === "EADDRINUSE"
-                ? `Port ${port} is in use by another program.`
-                : "The phone remote couldn't start.";
-        server = null;
-    });
-    server.listen(port, boundAddress);
-    keepAlive = setInterval(() => toPhones(""), 20_000);
-};
+const addresses = (): IPhoneAddress[] => homeAddresses(os.networkInterfaces());
+const isServing = (): boolean => server?.listening === true;
 
 /** What Settings shows: the address, the link for the QR code, and how many phones are connected. */
 export const phoneInfo = () => ({
-    isRunning: server !== null,
-    address: boundAddress,
-    addresses: phoneAddresses(),
-    link: server ? `http://${boundAddress}:${port}/tray/#t=${currentToken()}` : "",
-    error: startError,
-    phones: streams.size,
+    isRunning: isServing(),
+    address: loadSettings().phoneAddress,
+    addresses: addresses(),
+    link: isServing() ? `http://${boundAddress}:${phonePort}/tray/#t=${currentToken()}` : "",
+    error: problem,
+    phones: streamCount(),
 });
+
+/** The main window hears the remote's state when it changes, and publishes to phones only while some are in. */
+const tellPage = (): void => {
+    const info = phoneInfo();
+    const told = JSON.stringify(info);
+    if (told === lastTold) return;
+    lastTold = told;
+    getMainWindow()?.webContents.send("phone:status", info);
+    getMainWindow()?.webContents.send("phone:count", info.phones);
+};
+
+watchStreamCount(tellPage);
+
+/** Tells the main window again, as its page has (re)loaded and knows nothing yet. */
+export const tellPhoneStatus = (): void => {
+    lastTold = "";
+    tellPage();
+};
+
+/** The address to serve on now, or why there's none. */
+const wanted = (): { address: string; problem: string } => {
+    const { phoneRemote, phoneAddress } = loadSettings();
+    const here = addresses();
+    if (!phoneRemote) return { address: "", problem: "" };
+    if (here.some((entry) => entry.address === phoneAddress)) return { address: phoneAddress, problem: "" };
+    if (here.length === 0) return { address: "", problem: "This computer isn't on a home network." };
+    if (!phoneAddress) return { address: "", problem: "Choose the address your phone can reach." };
+    return {
+        address: "",
+        problem: `This computer isn't on the network Phone remote was set up on (${phoneAddress}). Choose an address to use this one.`,
+    };
+};
+
+const stopServer = async (): Promise<void> => {
+    const closing = server;
+    server = null;
+    boundAddress = "";
+    clearInterval(keepAlive);
+    endStreams();
+    if (closing) await closeServer(closing);
+};
+
+const startServer = async (address: string): Promise<void> => {
+    try {
+        server = await listenOn(address);
+        boundAddress = address;
+        keepAlive = setInterval(() => toStreams(""), keepAliveMs);
+    } catch (error) {
+        const isPortTaken = (error as NodeJS.ErrnoException).code === "EADDRINUSE";
+        problem = isPortTaken ? `Port ${phonePort} is in use by another program.` : "The phone remote couldn't start.";
+    }
+};
+
+const watchNetwork = (isOn: boolean): void => {
+    if (isOn && !networkCheck) networkCheck = setInterval(() => void reconcilePhoneRemote(), networkCheckMs);
+    if (isOn) return;
+    clearInterval(networkCheck);
+    networkCheck = undefined;
+};
+
+const reconcileNow = async (): Promise<void> => {
+    const goal = wanted();
+    if (!isServing() || boundAddress !== goal.address) {
+        await stopServer();
+        problem = goal.problem;
+        if (goal.address) await startServer(goal.address);
+    }
+    watchNetwork(loadSettings().phoneRemote);
+    tellPage();
+};
+
+/** Starts, moves or stops the phone remote to match the settings and the network; one at a time. */
+export const reconcilePhoneRemote = (): Promise<void> =>
+    (reconciling = reconciling.then(reconcileNow).catch(() => undefined));
+
+/** As the app quits. */
+export const stopPhoneRemote = (): void => {
+    watchNetwork(false);
+    void stopServer();
+};
+
+/** A new pairing code: every phone paired with the old one is let go and has to scan again. */
+export const rotatePhoneToken = (): void => {
+    rotateToken();
+    endStreams();
+    tellPage();
+};
+
+/**
+ * Where turning the remote on sets it up: the address it has, if this computer is on it, or
+ * else the best one here. The user is at the computer, choosing this network.
+ */
+export const setUpAddress = (saved: string): string => {
+    const here = addresses();
+    return here.some((entry) => entry.address === saved) ? saved : (here[0]?.address ?? saved);
+};

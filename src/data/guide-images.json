@@ -13,15 +13,15 @@
     },
     "setup": {
         "width": 871,
-        "height": 253
+        "height": 277
     },
     "carry": {
         "width": 382,
-        "height": 593
+        "height": 705
     },
     "phone-none": {
         "width": 382,
-        "height": 415
+        "height": 431
     },
     "tray": {
         "width": 340,
@@ -33,7 +33,7 @@
     },
     "channel": {
         "width": 480,
-        "height": 981
+        "height": 997
     },
     "cue": {
         "width": 568,
@@ -53,6 +53,6 @@
     },
     "settings-mix": {
         "width": 578,
-        "height": 568
+        "height": 563
     }
 }

@@ -2,11 +2,9 @@
 title: Channels
 description: The channel strips in Volt Mixer, the Volt 4 Gen 2's inputs, and what each part of a strip does.
 lead: Each of the Volt's inputs has a strip, with its level in the monitor mix, its meters and its buttons. A linked pair shares one stereo strip.
+group: The mixer
+order: 1
 ---
-
-import Callout from "../../components/guide/Callout.astro";
-import Parts from "../../components/guide/Parts.astro";
-import Shot from "../../components/guide/Shot.astro";
 
 ## Parts of a strip
 
@@ -63,14 +61,20 @@ Mute takes the channel out of the monitor mix.
 
 While any channel is soloed, the monitor mix plays only the soloed ones. Solo more than one to hear a few together; press S again to un-solo. The headphone mixes ([cues](../outputs/#cues)) aren't affected.
 
+A soloed strip that isn't shown (hidden in **Settings › View**, or ADAT inputs while the Volt is set to S/PDIF) still keeps the rest of the monitor mix silent. A note at the top says so, with a button to clear the solo; Volt Mixer never clears it for you, as that would turn every other channel back up.
+
 ## Link
 
 Link joins a pair into one stereo strip: one fader, one mute, one solo. The pairs are Inputs 1 and 2, Lines 3 and 4, S/PDIF left and right, and ADAT 1/2, 3/4, 5/6 and 7/8. Holding the Volt's **INPUT** button links and unlinks too.
 
-<Callout kind="tip" title="Linking can only turn things down">
+<Callout kind="tip" title="Linking never turns a fader up">
     When a pair links, both sides take the quieter side's settings: the lower fader and headphone sends, muted if either
-    side was, and on Inputs 1 and 2 the lower gain. Each side keeps its own tone, and gets its own pan.
+    side was, and on Inputs 1 and 2 the lower gain. Each side keeps its own tone. The sides pan hard left and right, as
+    in UAD Console: a stereo source sounds as loud as before, but something on one side only now plays from one speaker,
+    a little louder there.
 </Callout>
+
+Loopback, the computer's own sound, is always stereo, so it has no link button.
 
 ## Meters
 

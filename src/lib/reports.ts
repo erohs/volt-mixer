@@ -1,5 +1,4 @@
-import type { DigitalFormat } from "./mixer.ts";
-import { commandNames, type CommandName, type ISpec, type MuteField } from "./spec.ts";
+import { commandNames, type CommandName, type DigitalFormat, type ISpec, type MuteField } from "./spec.ts";
 
 export interface IIdentity {
     vendorId: number;
@@ -8,9 +7,12 @@ export interface IIdentity {
     serial: string;
 }
 
-/** Everything the Volt reports about itself in its state dump. Fader and pan positions aren't in it. */
+/**
+ * Everything the Volt reports about itself in its state dump. Fader and pan positions aren't in it.
+ * Masks stay masks, as in the Volt's other reports; src/lib/mixer.ts turns them into page state.
+ */
 export interface IHardwareState {
-    phantom: [boolean, boolean];
+    phantomMask: number;
     digitalFormat: DigitalFormat;
     linkMask: number;
     directMask: number;
@@ -107,15 +109,21 @@ export const parseCommandReport = (spec: ISpec, data: Uint8Array): DeviceReport 
     return (name && decoders[name]?.(spec, data)) ?? { type: "unknown", cmd };
 };
 
+/** Reads the state dump's fields: `data` starts at the command byte, offsets count after it. */
+const stateReader = (spec: ISpec, data: Uint8Array) => ({
+    at: (offset: number): number => byte(data, 1 + offset),
+    word: (offset: number): number => u16(data, 1 + offset),
+    gain: (index: number): number =>
+        u16(data, 1 + (spec.stateLayout.preampGainU16[index] ?? 0)) / spec.preampGainStepsPerDb,
+});
+
 /** State dump (reply to the state request): `data` starts at the command byte. */
 export const parseState = (spec: ISpec, data: Uint8Array): IHardwareState => {
     const layout = spec.stateLayout;
-    const at = (offset: number): number => byte(data, 1 + offset);
-    const word = (offset: number): number => u16(data, 1 + offset);
-    const gain = (index: number): number => word(layout.preampGainU16[index] ?? 0) / spec.preampGainStepsPerDb;
+    const { at, word, gain } = stateReader(spec, data);
     const [tone1 = 0, tone2 = 0] = layout.toneNibbles;
     return {
-        phantom: [Boolean(at(layout.phantomMask) & 1), Boolean(at(layout.phantomMask) & 2)],
+        phantomMask: at(layout.phantomMask),
         digitalFormat: formatAt(spec, at(layout.digitalFormat)),
         linkMask: at(layout.linkMask) & 0x0f,
         directMask: at(layout.directMask),

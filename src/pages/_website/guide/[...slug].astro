@@ -1,0 +1,22 @@
+---
+import { render } from "astro:content";
+import GuideLayout from "../../../layouts/GuideLayout.astro";
+import { guideComponents, guideEntries } from "./_entries.ts";
+
+/* Every guide page, from src/content/guide; "index" is the overview at /guide/. The website's only. */
+export const getStaticPaths = async () => {
+    const pages = await guideEntries();
+    const nav = pages.map(({ slug, title, group, order }) => ({ slug, title, group, order }));
+    return pages.map(({ slug, entry, group }) => ({
+        params: { slug: slug || undefined },
+        props: { slug, entry, group, pages: nav },
+    }));
+};
+
+const { slug, entry, group, pages } = Astro.props;
+const { Content, headings } = await render(entry);
+---
+
+<GuideLayout slug={slug} group={group} page={entry.data} pages={pages} headings={headings}>
+    <Content components={guideComponents} />
+</GuideLayout>

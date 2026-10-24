@@ -1,0 +1,29 @@
+---
+import FeedbackButton from "../ui/FeedbackButton.astro";
+import InlineMessage from "../ui/InlineMessage.astro";
+import LinkField from "../ui/LinkField.astro";
+import SettingRow from "../ui/SettingRow.astro";
+
+/*
+ * Paste a mix link from another computer or phone, and use it here (controller.ts finds every
+ * [data-mix-paste]). On the welcome panel and in Settings › Your mix.
+ */
+interface Props {
+    /** Prefix for its IDs: the field is `<id>-input`, its message `message-<id>`. */
+    id: string;
+    name: string;
+    description: string;
+}
+
+const { id, name, description } = Astro.props;
+const describedBy = `${id}-description message-${id}`;
+---
+
+<form data-mix-paste>
+    <SettingRow id={id} name={name} description={description} for={`${id}-input`} isStacked>
+        <LinkField id={`${id}-input`} type="url" required aria-describedby={describedBy} data-mix-link-input>
+            <FeedbackButton type="submit">Use</FeedbackButton>
+        </LinkField>
+        <InlineMessage name={id} />
+    </SettingRow>
+</form>

@@ -1,4 +1,4 @@
-import { notice } from "./app-state.ts";
+import { notice } from "./notices.ts";
 import { desktopApp, type IDesktopSettings, type IDesktopState } from "./desktop.ts";
 import { refreshPhone, wirePhone } from "./phone-settings.ts";
 

@@ -1,7 +1,5 @@
 ---
-import Icon from "../ui/Icon.astro";
-import InlineMessage from "../ui/InlineMessage.astro";
-import LinkField from "../ui/LinkField.astro";
+import MixPasteForm from "./MixPasteForm.astro";
 import Reveal from "../ui/Reveal.astro";
 ---
 
@@ -10,9 +8,9 @@ import Reveal from "../ui/Reveal.astro";
     The Volt can't report its fader positions, so the page needs a mix of its own before it sends
     any level (as Console does). Starting fresh is the one big choice; bringing a mix folds away.
 -->
-<section class="setup" aria-labelledby="setup-heading" data-mix-setup hidden>
+<section class="setup message-box message-box--panel" aria-labelledby="setup-heading" data-mix-setup hidden>
     <h2 id="setup-heading">Welcome to Volt Mixer on this computer</h2>
-    <p>Your Volt is connected. Choose a mix to start from, and the faders unlock.</p>
+    <p>Your Volt is connected. Choose a mix to start from, and the faders start working.</p>
     <div class="start">
         <button
             class="button button--primary"
@@ -26,31 +24,21 @@ import Reveal from "../ui/Reveal.astro";
         </span>
     </div>
     <Reveal summary="Bring my mix from another computer or phone">
-        <form class="paste" data-mix-paste>
-            <label for="mix-link">Paste its mix link. Opening the link on this computer works too.</label>
-            <LinkField id="mix-link" type="url" required aria-describedby="message-mix-setup-paste" data-mix-link-input>
-                <button class="button button--feedback" type="submit">
-                    <span class="face">Use</span>
-                    <Icon name="check" class="feedback feedback--success" />
-                    <Icon name="close" class="feedback feedback--error" />
-                </button>
-            </LinkField>
-            <InlineMessage name="mix-setup-paste" />
-        </form>
+        <div class="paste">
+            <MixPasteForm
+                id="mix-setup-paste"
+                name="Paste its mix link"
+                description="Opening the link on this computer works too."
+            />
+        </div>
     </Reveal>
     <p class="hint">This shows on each new computer, and after Forget mix.</p>
 </section>
 
 <style>
     .setup:not([hidden]) {
-        display: grid;
-        gap: var(--space-between-content);
-        margin: var(--space-between-blocks) var(--space-page-inline) 0;
-        padding: var(--space-padding-container);
-        border: var(--border-width-default) solid var(--color-border-subtle);
-        border-inline-start: var(--border-width-highlight) solid var(--color-background-accent);
-        border-radius: 0 var(--radius-large) var(--radius-large) 0;
-        background-color: var(--color-background-surface);
+        margin-block-start: var(--space-between-blocks);
+        margin-inline: var(--space-page-inline);
     }
 
     .start {
@@ -60,16 +48,10 @@ import Reveal from "../ui/Reveal.astro";
         gap: var(--space-between-text) var(--space-between-content);
     }
 
+    /* As wide as a link needs, and in body text, though the fold-out's own text is small. */
     .paste {
-        display: grid;
-        gap: var(--space-between-lines);
         max-inline-size: 40rem;
         color: var(--color-text-primary);
         font-size: var(--font-size-body);
-    }
-
-    .hint {
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
     }
 </style>

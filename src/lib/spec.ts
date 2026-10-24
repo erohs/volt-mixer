@@ -24,6 +24,13 @@ export type CommandName = (typeof commandNames)[number];
 export const muteFields = ["direct", "monitorMute", "monitorLevel"] as const;
 export type MuteField = (typeof muteFields)[number];
 
+/** The Volt's digital input formats, as spec.digitalFormat names them. */
+export const digitalFormats = ["adat", "spdif"] as const;
+export type DigitalFormat = (typeof digitalFormats)[number];
+
+/** Console's scale for the monitor and headphone levels: 0 to this. The spec maps it to raw values. */
+export const outputLevelMax = 100;
+
 /** The stereo buses each channel feeds. */
 export const busNames = ["monitor", "cue1", "cue2"] as const;
 export type BusName = (typeof busNames)[number];
@@ -83,6 +90,8 @@ export interface IProtocol {
     device: string;
     vendorId: number;
     productId: number;
+    /** The vendor usage page of the HID interface that takes commands. */
+    controlUsagePage: number;
     /** Every Volt's name by decimal USB product ID, so an unsupported one can be named. */
     models: Record<string, string>;
     firmware: Record<string, ISpec>;
@@ -110,22 +119,85 @@ export const compareVersions = (a: string, b: string): number => {
     return 0;
 };
 
-const isNumber = (value: unknown): boolean => typeof value === "number" && Number.isInteger(value);
-const isPair = (value: unknown): boolean => Array.isArray(value) && value.length === 2 && value.every(isNumber);
+type Check = (value: unknown) => boolean;
+/** A check for each field of `T`: the compiler insists on one per field, so none is left unchecked. */
+type Shape<T> = { [K in keyof T]-?: Check | Shape<T[K]> };
+
+const isNumber: Check = (value) => typeof value === "number" && Number.isFinite(value);
+const isInteger: Check = (value) => Number.isInteger(value);
+const listOf =
+    (check: Check, length?: number): Check =>
+    (value) =>
+        Array.isArray(value) && (length === undefined || value.length === length) && value.every(check);
+const isPair = listOf(isInteger, 2);
+const recordOf =
+    (check: Check): Check =>
+    (value) =>
+        typeof value === "object" && value !== null && Object.values(value).every(check);
+const isString: Check = (value) => typeof value === "string";
+const including =
+    (...names: string[]): Check =>
+    (value) =>
+        listOf(isString)(value) && names.every((name) => (value as string[]).includes(name));
+const fields = <T extends string>(names: readonly T[], check: Check): Record<T, Check> =>
+    Object.fromEntries(names.map((name) => [name, check])) as Record<T, Check>;
+
+const specShape: Shape<ISpec> = {
+    reports: {
+        command: { id: isInteger, bytes: isInteger },
+        identify: { id: isInteger, bytes: isInteger, payload: listOf(isInteger) },
+        identifyReply: { id: isInteger },
+        stateReply: { id: isInteger, cmd: isInteger },
+        meters: { id: isInteger, fullScale: isInteger, offsets: recordOf(isInteger) },
+    },
+    end: isInteger,
+    commands: fields(commandNames, isInteger),
+    gainUnity: isInteger,
+    faderMaxDb: isNumber,
+    preampGainStepsPerDb: isNumber,
+    preampGainMaxDb: isNumber,
+    headphoneLevelScale: isNumber,
+    headphoneLevelMax: isInteger,
+    monitorLevelMax: isInteger,
+    monitorLevelPerUnit: isNumber,
+    autoGainSeconds: { min: isInteger, max: isInteger, default: isInteger },
+    sources: recordOf(isInteger),
+    mixBuses: fields(busNames, isPair),
+    routeDestinations: recordOf(isPair),
+    routeSources: recordOf(isPair),
+    muteWordFields: fields(muteFields, isInteger),
+    muteWordOffsets: fields(muteFields, isInteger),
+    linkState: { field: isInteger, hostFlag: isInteger },
+    stateLayout: {
+        phantomMask: isInteger,
+        digitalFormat: isInteger,
+        linkMask: isInteger,
+        directMask: isInteger,
+        monitorMute: isInteger,
+        monitorLevel: isInteger,
+        preampGainU16: listOf(isInteger, 2),
+        monitorMono: isInteger,
+        headphoneLevelU16: isInteger,
+        clipProtection: isInteger,
+        brightness: isInteger,
+        toneNibbles: listOf(isInteger, 2),
+        headphoneMute: isInteger,
+    },
+    tone: listOf(isString),
+    digitalFormat: including(...digitalFormats),
+};
+
+/** The paths in `value` that `shape` finds missing or malformed ("commands.tone", …). */
+const missingFrom = (shape: Shape<unknown> | Check, value: unknown, path: string): string[] => {
+    if (typeof shape === "function") return shape(value) ? [] : [path];
+    const record = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
+    return Object.entries(shape).flatMap(([key, inner]) =>
+        missingFrom(inner as Shape<unknown> | Check, record[key], path ? `${path}.${key}` : key),
+    );
+};
 
 /** What a firmware's spec lacks of what the page needs ("commands.tone", …); empty when it's complete. */
-export const missingFromSpec = (spec: ISpec): string[] => {
-    const lacking = <T extends string>(group: string, names: readonly T[], record: unknown, check = isNumber) =>
-        names
-            .filter((name) => !check((record as Record<string, unknown> | undefined)?.[name]))
-            .map((name) => `${group}.${name}`);
-    return [
-        ...lacking("commands", commandNames, spec.commands),
-        ...lacking("muteWordFields", muteFields, spec.muteWordFields),
-        ...lacking("muteWordOffsets", muteFields, spec.muteWordOffsets),
-        ...lacking("mixBuses", busNames, spec.mixBuses, isPair),
-    ];
-};
+export const missingFromSpec = (spec: ISpec): string[] => missingFrom(specShape as Shape<unknown>, spec, "");
 
 /**
  * The spec for a firmware version, or the newest known one when the version isn't recorded. A
@@ -136,7 +208,8 @@ export const specFor = (version: string, source: IProtocol = protocol): ISpecCho
         .filter((known) => missingFromSpec(source.firmware[known] as ISpec).length === 0)
         .sort(compareVersions);
     const isExact = complete.includes(version);
-    const chosen = isExact ? version : (complete.at(-1) ?? "");
+    const chosen = isExact ? version : complete.at(-1);
+    if (chosen === undefined) throw new Error("No firmware in the protocol data is complete (see missingFromSpec).");
     return { version: chosen, isExact, spec: source.firmware[chosen] as ISpec };
 };
 

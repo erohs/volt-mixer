@@ -19,26 +19,29 @@ const levelTicks = [0, 25, 50, 75, 100].map((level) => ({ label: `${level}`, pos
         <span class="side">R</span>
         <Meter name="monitorR" orientation="horizontal" />
     </div>
+    <!-- Each button is named with its output ("Mute Monitor"), so the two Mutes can be told apart. -->
     <div class="cards">
         <article class="output" data-output="monitor" aria-labelledby="monitor-heading">
             <div class="head">
-                <h3 id="monitor-heading">
+                <h3 class="output-title" id="monitor-heading">
                     <Icon name="speaker" />
                     Monitor
                 </h3>
                 <button
+                    id="monitor-mute"
                     class="button button--mute"
                     type="button"
                     aria-pressed="false"
-                    aria-describedby="monitor-heading"
+                    aria-labelledby="monitor-mute monitor-heading"
                     data-action="monitor-mute">
                     Mute
                 </button>
                 <button
+                    id="monitor-mono"
                     class="button"
                     type="button"
                     aria-pressed="false"
-                    aria-describedby="monitor-heading"
+                    aria-labelledby="monitor-mono monitor-heading"
                     data-action="monitor-mono">
                     Mono
                 </button>
@@ -47,15 +50,16 @@ const levelTicks = [0, 25, 50, 75, 100].map((level) => ({ label: `${level}`, pos
         </article>
         <article class="output" data-output="headphone" aria-labelledby="headphone-heading">
             <div class="head">
-                <h3 id="headphone-heading">
+                <h3 class="output-title" id="headphone-heading">
                     <Icon name="headphones" />
                     Headphones
                 </h3>
                 <button
+                    id="headphone-mute"
                     class="button button--mute"
                     type="button"
                     aria-pressed="false"
-                    aria-describedby="headphone-heading"
+                    aria-labelledby="headphone-mute headphone-heading"
                     data-action="headphone-mute">
                     Mute
                 </button>
@@ -94,21 +98,21 @@ const levelTicks = [0, 25, 50, 75, 100].map((level) => ({ label: `${level}`, pos
         flex-wrap: wrap;
         align-items: center;
         gap: var(--space-between-text);
-
-        & h3 {
-            display: flex;
-            flex-grow: 1;
-            align-items: center;
-            gap: var(--space-between-text);
-        }
     }
 
-    /* The Volt's Monitor/Headphone button: green for monitors, amber for headphones. */
-    .output[data-output="monitor"] :global(.icon) {
+    .output-title {
+        display: flex;
+        flex-grow: 1;
+        align-items: center;
+        gap: var(--space-between-text);
+    }
+
+    /* The Volt's Monitor/Headphone button: green for monitors, amber for headphones (the title's Icon). */
+    .output[data-output="monitor"] .output-title > :global(.icon) {
         color: var(--color-monitor);
     }
 
-    .output[data-output="headphone"] :global(.icon) {
+    .output[data-output="headphone"] .output-title > :global(.icon) {
         color: var(--color-headphone);
     }
 
@@ -117,7 +121,7 @@ const levelTicks = [0, 25, 50, 75, 100].map((level) => ({ label: `${level}`, pos
         display: grid;
         grid-template-columns: auto auto minmax(0, 1fr);
         align-items: center;
-        gap: 3px var(--space-between-text);
+        gap: var(--space-between-meters) var(--space-between-text);
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
     }

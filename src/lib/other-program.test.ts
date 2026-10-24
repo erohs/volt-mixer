@@ -32,7 +32,7 @@ describe("Using createOtherProgram, when the readings stop", () => {
 });
 
 describe("Using createOtherProgram, when it's told to forget", () => {
-    test("then earlier readings should no longer count", () => {
+    test("then it should stop counting earlier readings", () => {
         const other = withReadings(1000, 2500);
         other.forget();
         expect(other.isOpen(2500)).toBe(false);

@@ -2,6 +2,8 @@
     "device": "Volt 4 Gen 2",
     "vendorId": 11098,
     "productId": 46,
+    "_controlUsagePage": "The vendor usage page (0xff01) of the HID interface that takes commands.",
+    "controlUsagePage": 65281,
     "firmware": {
         "1.0.3": {
             "verifiedFrom": "reference/decoded: 1.0.3.0 (sweep), 1.0.3.0-startup, 1.0.3.0-manual (front panel), 1.0.3-state (state dump), meters.jsonl, 1.0.3.0-routing (cue routing), 1.0.3.0-autogain (Auto-Gain start)",

@@ -1,0 +1,22 @@
+/*
+ * The Volt's TONE colours, for anything marked with a TONE (data-tone): a strip, a tray row, a
+ * tone choice. Its sliders take the deeper fader colour; --tone-colour and --tone-text are the
+ * ring's own colour and the text on it. Off sets nothing, so each falls back to its own default.
+ */
+[data-tone="warmth"] {
+    --slider-colour: var(--color-fader-warmth);
+    --tone-colour: var(--color-tone-warmth);
+    --tone-text: var(--color-text-on-tone);
+}
+
+[data-tone="focus"] {
+    --slider-colour: var(--color-fader-focus);
+    --tone-colour: var(--color-tone-focus);
+    --tone-text: var(--color-text-on-tone);
+}
+
+[data-tone="shine"] {
+    --slider-colour: var(--color-fader-shine);
+    --tone-colour: var(--color-tone-shine);
+    --tone-text: var(--color-text-on-tone);
+}

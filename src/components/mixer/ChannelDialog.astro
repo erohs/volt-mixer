@@ -31,7 +31,7 @@ const cues = [
                     <Slider kind="gain" name="gain" labelledBy="gain-name" ticks={gainTicks} />
                 </SettingRow>
             </div>
-            <p class="note" data-channel-section="fixed-gain">
+            <p class="hint" data-channel-section="fixed-gain">
                 Line inputs have fixed gain.
             </p>
             <div data-channel-section="phantom">
@@ -51,7 +51,7 @@ const cues = [
                 <legend class="tones-legend">Tone</legend>
                 <div class="tone-choices">
                     {tones.map((tone, index) => (
-                        <label class="tone" data-tone={tone.toLowerCase()}>
+                        <label class="choice choice--segment tone" data-tone={tone.toLowerCase()}>
                             <input type="radio" name="tone" value={index} data-channel-field="tone" />
                             <span>{tone}</span>
                         </label>
@@ -78,7 +78,7 @@ const cues = [
                         Start
                     </button>
                 </SettingRow>
-                <p class="note" role="status" data-auto-gain-status></p>
+                <p class="hint" role="status" data-auto-gain-status></p>
             </div>
         </SettingGroup>
     </div>
@@ -131,22 +131,13 @@ const cues = [
 </Dialog>
 
 <style>
-    .note {
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
-    }
-
     .tones {
         display: grid;
         gap: var(--space-between-text);
-        margin: 0;
-        padding: 0;
-        border: 0;
     }
 
     .tones-legend {
         margin-block-end: var(--space-between-text);
-        padding: 0;
         font-weight: var(--font-weight-semi-bold);
     }
 
@@ -156,65 +147,10 @@ const cues = [
         gap: var(--space-between-text);
     }
 
-    /* A native radio drawn as a segment; the checked one takes its TONE ring colour. */
+    /* A segment (src/styles/choice.css); the checked one takes its TONE ring colour (tone.css). */
     .tone {
-        --tone-fill: var(--color-background-surface);
-        --tone-text: var(--color-text-primary);
-
-        position: relative;
-        display: grid;
-        place-items: center;
-        min-block-size: var(--size-action-minimum);
-        border: var(--border-width-default) solid var(--color-border);
-        border-radius: var(--radius-small);
-        background-color: var(--color-background-surface);
-        font-size: var(--font-size-small);
-        font-weight: var(--font-weight-semi-bold);
-        cursor: pointer;
-
-        & input {
-            position: absolute;
-            inset: 0;
-            margin: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        &:has(:checked) {
-            border: var(--border-width-standout) solid var(--color-text-primary);
-            background-color: var(--tone-fill);
-            color: var(--tone-text);
-        }
-
-        &:has(:focus-visible) {
-            outline: var(--border-width-highlight) solid var(--color-focus);
-            outline-offset: 2px;
-        }
-
-        &:has(:disabled) {
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-    }
-
-    .tone[data-tone="warmth"] {
-        --tone-fill: var(--color-tone-warmth);
-        --tone-text: var(--color-text-on-tone);
-    }
-
-    .tone[data-tone="focus"] {
-        --tone-fill: var(--color-tone-focus);
-        --tone-text: var(--color-text-on-tone);
-    }
-
-    .tone[data-tone="shine"] {
-        --tone-fill: var(--color-tone-shine);
-        --tone-text: var(--color-text-on-tone);
-    }
-
-    @media (forced-colors: active) {
-        .tone:has(:checked) {
-            outline: var(--border-width-standout) solid Highlight;
-        }
+        --choice-edge: var(--color-text-primary);
+        --choice-fill: var(--tone-colour, var(--color-background-surface));
+        --choice-text: var(--tone-text, var(--color-text-primary));
     }
 </style>

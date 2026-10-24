@@ -33,35 +33,25 @@
 }
 
 /*
- * Empty, or for screen readers only, it stays in the page (a live region must exist before it
- * speaks) but takes no space.
- */
-.message:empty,
-.message[data-quiet] {
-    position: absolute;
-    inline-size: 1px;
-    block-size: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-}
-
-/*
  * A message in a box: the mixer's notice bar (Notice.astro) and the guide's tips and notes
  * (src/components/guide/Callout.astro) look the same. The kind's colour runs down the leading
- * edge, squared off; a warning also tints the box.
+ * edge, squared off; a warning also tints the box. As a panel (the welcome and carry panels) it
+ * holds a whole section, stacked.
  */
 .message-box {
     --message-colour: var(--color-text-accent);
     --message-background: var(--color-background-surface);
+    --message-radius: var(--radius-medium);
 
     display: flex;
     align-items: center;
     gap: var(--space-between-content);
-    padding: var(--space-between-text) var(--space-between-text) var(--space-between-text)
-        var(--space-padding-container);
+    padding-block: var(--space-between-text);
+    padding-inline: var(--space-padding-container) var(--space-between-text);
     border: var(--border-width-default) solid var(--color-border-subtle);
     border-inline-start: var(--border-width-highlight) solid var(--message-colour);
-    border-radius: 0 var(--radius-medium) var(--radius-medium) 0;
+    border-start-end-radius: var(--message-radius);
+    border-end-end-radius: var(--message-radius);
     background-color: var(--message-background);
 
     &[data-kind="success"] {
@@ -76,8 +66,12 @@
     &[data-kind="error"] {
         --message-colour: var(--color-background-danger);
     }
+}
 
-    &:empty {
-        display: none;
-    }
+.message-box--panel {
+    --message-radius: var(--radius-large);
+
+    display: grid;
+    align-items: normal;
+    padding: var(--space-padding-container);
 }

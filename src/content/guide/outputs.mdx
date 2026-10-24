@@ -2,11 +2,9 @@
 title: Outputs and cues
 description: Speaker and headphone levels, Mono, the mix meter, and how cues feed the headphones and Line Out 3/4 in Volt Mixer.
 lead: The outputs panel sets how loud your speakers and headphones are. Cues decide what the headphones and the rear Line Out 3/4 play.
+group: The mixer
+order: 3
 ---
-
-import Callout from "../../components/guide/Callout.astro";
-import Parts from "../../components/guide/Parts.astro";
-import Shot from "../../components/guide/Shot.astro";
 
 ## The outputs panel
 
@@ -37,25 +35,13 @@ import Shot from "../../components/guide/Shot.astro";
 
 ## Where the sound goes
 
-<div
-    class="flow"
-    role="img"
-    aria-label="Channel faders and pans make the monitor mix, which goes to the monitors. Each cue plays the monitor mix or its own sends, and feeds the headphones or Line Out 3/4.">
-    <p>
-        <span>Channel faders and pans</span>
-        <b>→</b>
-        <span>Monitor mix</span>
-        <b>→</b>
-        <span>Monitors</span>
-    </p>
-    <p>
-        <span>Mix or own sends</span>
-        <b>→</b>
-        <span>Cue 1, Cue 2</span>
-        <b>→</b>
-        <span>Headphones, Line Out 3/4</span>
-    </p>
-</div>
+<Flow
+    label="Channel faders and pans make the monitor mix, which goes to the monitors. Each cue plays the monitor mix or its own sends, and feeds the headphones or Line Out 3/4."
+    paths={[
+        ["Channel faders and pans", "Monitor mix", "Monitors"],
+        ["Mix or own sends", "Cue 1, Cue 2", "Headphones, Line Out 3/4"],
+    ]}
+/>
 
 | Output       | Plays                                                   | Set in                         |
 | ------------ | ------------------------------------------------------- | ------------------------------ |

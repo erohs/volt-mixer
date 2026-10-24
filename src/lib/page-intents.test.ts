@@ -20,7 +20,7 @@ const after = (intent: Intent, state = ownedState()): IMixerState => {
 };
 
 describe("Using applyIntent, when a linked pair's cue send moves", () => {
-    test("then both sides should take the level and keep their own pans", () => {
+    test("then it should give both sides the level and keep their own pans", () => {
         const { channels } = after({ type: "cueSend", ids: ["in3", "in4"], cue: "cue1", db: -6 });
         expect([channels.in3.cue1, channels.in4.cue1].map((send) => [send.db, send.pan])).toEqual([
             [-6, -1],
@@ -60,7 +60,7 @@ describe("Using applyIntent, when the brightness is asked for above the maximum"
 });
 
 describe("Using applyIntent, when Line Out 3/4 goes back to computer playback", () => {
-    test("then no cue should be mirrored to it", () => {
+    test("then it should mirror no cue to it", () => {
         const state = after({ type: "mirror", cue: "cue2" });
         applyIntent(state, { type: "mirror", cue: null }, spec);
         expect([state.cues.cue1.isMirroredToLine34, state.cues.cue2.isMirroredToLine34]).toEqual([false, false]);
@@ -68,7 +68,7 @@ describe("Using applyIntent, when Line Out 3/4 goes back to computer playback", 
 });
 
 describe("Using applyIntent, when a name is cleared", () => {
-    test("then the channel should go back to its own name", () => {
+    test("then it should give the channel back its own name", () => {
         const state = after({ type: "rename", ids: ["in1"], name: "Vocal" });
         applyIntent(state, { type: "rename", ids: ["in1"], name: "   " }, spec);
         expect(state.names.in1).toBeUndefined();
@@ -82,7 +82,7 @@ describe("Using applyIntent, when an icon that isn't in the list is asked for", 
 });
 
 describe("Using changesLayout, when a channel is renamed", () => {
-    test("then the strips should be rebuilt", () => {
-        expect(changesLayout({ type: "rename", ids: ["in1"], name: "Vocal" })).toBe(true);
+    test("then it should leave the strips to be refreshed in place", () => {
+        expect(changesLayout({ type: "rename", ids: ["in1"], name: "Vocal" })).toBe(false);
     });
 });

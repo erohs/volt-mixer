@@ -9,6 +9,7 @@ interface Props {
 const { id, title } = Astro.props;
 ---
 
+<!-- As wide as --dialog-size, which a dialog's own stylesheet can set (default --size-dialog). -->
 <dialog id={id} class="dialog" aria-labelledby={`${id}-title`}>
     <div class="head">
         <h2 id={`${id}-title`} data-dialog-title>
@@ -28,7 +29,7 @@ const { id, title } = Astro.props;
 
 <style>
     .dialog {
-        inline-size: var(--size-dialog);
+        inline-size: var(--dialog-size, var(--size-dialog));
     }
 
     /* Only the body scrolls, so the scrollbar starts below the header instead of beside it. */
@@ -44,8 +45,8 @@ const { id, title } = Astro.props;
         align-items: center;
         justify-content: space-between;
         gap: var(--space-between-content);
-        padding: var(--space-between-text) var(--space-between-text) var(--space-between-text)
-            var(--space-padding-container);
+        padding-block: var(--space-between-text);
+        padding-inline: var(--space-padding-container) var(--space-between-text);
         border-block-end: var(--border-width-default) solid var(--color-border-subtle);
         background-color: var(--color-background-surface);
     }

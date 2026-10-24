@@ -20,13 +20,15 @@ export interface IConnectionInfo {
 /** "connected" (IConnectionInfo), "disconnected", "report" ({ reportId, data }), "error" and "sendfailed" ({ message }). */
 export const connectionEvents = new EventTarget();
 
-const vendorPage = 0xff01;
+/** The connected Volt: set only once it has identified itself, so no report is handled before. */
 let device: HIDDevice | null = null;
 let currentSpec: ISpec | null = null;
-let adopting: Promise<boolean> | null = null;
+/** Adopts run one after another, so connect events, reconnect() and pair() can't open a device twice. */
+let adopting: Promise<boolean> = Promise.resolve(false);
 /** Set by disconnect(): the page stays disconnected (no automatic reconnect) until pair(). */
 let isHeldOff = false;
-let queue = Promise.resolve();
+/** Each device's own queue, so a slow send to one never holds up another. */
+const queues = new WeakMap<HIDDevice, Promise<void>>();
 
 const emit = (type: string, detail?: unknown): boolean =>
     connectionEvents.dispatchEvent(new CustomEvent(type, { detail }));
@@ -45,15 +47,16 @@ const declaresCommandReport = (collection: HIDCollectionInfo): boolean =>
 const isVoltControl = (candidate: HIDDevice): boolean =>
     candidate.vendorId === protocol.vendorId &&
     candidate.productId === protocol.productId &&
-    candidate.collections.some((c) => c.usagePage === vendorPage && declaresCommandReport(c));
+    candidate.collections.some((c) => c.usagePage === protocol.controlUsagePage && declaresCommandReport(c));
 
 const onInput = (event: HIDInputReportEvent): void => {
     if (event.device === device) emit("report", { reportId: event.reportId, data: bytesOf(event) });
 };
 
-const sendNow = async (target: HIDDevice, reports: IReport[]): Promise<void> => {
+/** Sends to `target` while it's the device being identified or the one connected. */
+const sendNow = async (target: HIDDevice, reports: IReport[], isCurrent: () => boolean): Promise<void> => {
     for (const [i, report] of reports.entries()) {
-        if (device !== target) return;
+        if (!isCurrent()) return;
         try {
             await target.sendReport(report.reportId, report.data as Uint8Array<ArrayBuffer>);
         } catch (error) {
@@ -66,22 +69,27 @@ const sendNow = async (target: HIDDevice, reports: IReport[]): Promise<void> => 
     }
 };
 
+const enqueue = (target: HIDDevice, reports: IReport[], isCurrent: () => boolean): void => {
+    if (reports.length === 0) return;
+    queues.set(
+        target,
+        (queues.get(target) ?? Promise.resolve()).then(() => sendNow(target, reports, isCurrent)),
+    );
+};
+
 /** Sends in order, bound to the device connected when queued, so nothing crosses a KVM switch. */
 export const send = (reports: IReport[]): void => {
     const target = device;
-    if (!target || reports.length === 0) return;
-    queue = queue.then(() => sendNow(target, reports));
+    if (target) enqueue(target, reports, () => device === target);
 };
 
 export const requestState = (): void => {
     if (currentSpec) send([stateRequest(currentSpec)]);
 };
 
-/** Sends one report and resolves with the first input report whose ID matches, or null. */
-const request = (report: IReport, reportId: number, timeoutMs: number): Promise<Uint8Array | null> => {
-    const target = device;
-    if (!target) return Promise.resolve(null);
-    return new Promise((resolve) => {
+/** Sends one report to `target` and resolves with the first input report whose ID matches, or null. */
+const request = (target: HIDDevice, report: IReport, reportId: number, timeoutMs: number): Promise<Uint8Array | null> =>
+    new Promise((resolve) => {
         const finish = (data: Uint8Array | null): void => {
             clearTimeout(timer);
             target.removeEventListener("inputreport", onReport);
@@ -91,13 +99,12 @@ const request = (report: IReport, reportId: number, timeoutMs: number): Promise<
             void (event.reportId === reportId && finish(bytesOf(event)));
         const timer = setTimeout(() => finish(null), timeoutMs);
         target.addEventListener("inputreport", onReport);
-        send([report]);
+        enqueue(target, [report], () => target.opened);
     });
-};
 
-const identifyDevice = async (): Promise<IConnectionInfo> => {
+const identifyDevice = async (candidate: HIDDevice): Promise<IConnectionInfo> => {
     const spec = newestSpec();
-    const reply = await request(identify(spec), spec.reports.identifyReply.id, 1500);
+    const reply = await request(candidate, identify(spec), spec.reports.identifyReply.id, 1500);
     const identity = reply ? parseIdentify(reply) : null;
     const isIdentified = identity?.vendorId === protocol.vendorId && identity.productId === protocol.productId;
     const choice = specFor(isIdentified ? identity.version : "");
@@ -125,7 +132,9 @@ const openWithRetry = async (candidate: HIDDevice): Promise<Error | null> => {
     return candidate.opened ? null : (lastError ?? new Error("unknown error"));
 };
 
+/** Opens and identifies `candidate`; it becomes the device, and its reports count, only then. */
 const doAdopt = async (candidate: HIDDevice): Promise<boolean> => {
+    if (device || isHeldOff) return false;
     const openError = await openWithRetry(candidate);
     if (openError) {
         emit("error", {
@@ -133,26 +142,27 @@ const doAdopt = async (candidate: HIDDevice): Promise<boolean> => {
         });
         return false;
     }
-    if (device) return false;
+    const info = await identifyDevice(candidate);
+    if (!candidate.opened || isHeldOff) return false;
     device = candidate;
     candidate.addEventListener("inputreport", onInput);
-    const info = await identifyDevice();
-    if (device !== candidate) return false;
     emit("connected", info);
     requestState();
     return true;
 };
 
-/** One adopt at a time, so connect events and reconnect() can't open the device twice. */
+/** Adopts after any adopt already under way; one that finds a device already connected does nothing. */
 const adopt = (candidate: HIDDevice): Promise<boolean> => {
-    if (device || isHeldOff || !isVoltControl(candidate)) return Promise.resolve(false);
-    adopting ??= doAdopt(candidate).finally(() => (adopting = null));
-    return adopting;
+    if (!isVoltControl(candidate)) return Promise.resolve(false);
+    const next = adopting.then(() => doAdopt(candidate));
+    adopting = next.catch(() => false);
+    return next;
 };
 
 const drop = (): void => {
     device?.removeEventListener("inputreport", onInput);
     device = null;
+    currentSpec = null;
     emit("disconnected", { isByUser: isHeldOff });
 };
 

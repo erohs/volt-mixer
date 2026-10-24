@@ -1,14 +1,14 @@
 import { channelById, isChannelId, isLinked } from "../lib/mixer.ts";
 import type { ChannelId, IMixerState } from "../lib/mixer.ts";
 import { iconOf } from "../lib/channel-icons.ts";
-import { toneOf, type IStripGroup, type StripIds } from "../lib/strip-groups.ts";
+import { stripGroups, toneOf, type IStripGroup, type IStripView, type StripIds } from "../lib/strip-groups.ts";
 import { setText } from "./dom.ts";
 import { cloneIcon } from "./icons.ts";
 import { initSliders, setSliderValue } from "./slider.ts";
 
 /*
  * Channel strips: cloned from #strip-template (StripTemplate.astro) when the layout changes, and
- * refreshed in place otherwise, so a drag or focus is never interrupted by a rebuild.
+ * refreshed in place otherwise (a rename too), so a drag or focus is never interrupted by a rebuild.
  */
 
 const stripsList = (): HTMLElement => document.querySelector<HTMLElement>("[data-strips]")!;
@@ -44,21 +44,31 @@ const label = (strip: HTMLElement, selector: string, text: string): void => {
 const isAnalog = (id: ChannelId): boolean => channelById[id].kind === "analog";
 const hasPreamp = (ids: readonly ChannelId[]): boolean => ids.some((id) => channelById[id].preampIndex !== undefined);
 
-/** Analog inputs show their TONE and their 48V. */
-const buildInputTags = (strip: HTMLElement, group: IStripGroup): void => {
-    strip.querySelector<HTMLElement>("[data-strip-tags]")!.hidden = !isAnalog(group.ids[0]);
-    label(strip, '[data-strip-action="phantom"]', `48V phantom power, ${group.name}`);
+/** The tone button says the tone and the channel: "Warmth tone, Vocal". */
+const labelTone = (strip: HTMLElement): void => {
+    const tone = strip.querySelector("[data-strip-tone]")?.textContent ?? "";
+    label(strip, '[data-strip-action="tone"]', `${tone} tone, ${strip.dataset["name"] ?? ""}`);
+};
+
+/** The strip's name and every label that says it; only when it changes (a rename). */
+const nameStrip = (strip: HTMLElement, name: string): void => {
+    if (strip.dataset["name"] === name) return;
+    strip.dataset["name"] = name;
+    setText(strip.querySelector("[data-strip-name]"), name);
+    setText(strip.querySelector("[data-strip-settings-label]"), `${name} settings`);
+    label(strip, "[data-slider]", `${name} level`);
+    label(strip, '[data-strip-action="mute"]', `Mute ${name}`);
+    label(strip, '[data-strip-action="solo"]', `Solo ${name}`);
+    label(strip, '[data-strip-action="phantom"]', `48V phantom power, ${name}`);
+    labelTone(strip);
 };
 
 const buildStrip = (group: IStripGroup, meterNames: Set<string>): HTMLElement => {
     const strip = (template().content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
     strip.dataset["ids"] = group.ids.join(",");
-    strip.querySelector("[data-strip-name]")!.textContent = group.name;
-    strip.querySelector("[data-strip-settings-label]")!.textContent = `${group.name} settings`;
-    label(strip, "[data-slider]", `${group.name} level`);
-    label(strip, '[data-strip-action="mute"]', `Mute ${group.name}`);
-    label(strip, '[data-strip-action="solo"]', `Solo ${group.name}`);
-    buildInputTags(strip, group);
+    nameStrip(strip, group.name);
+    // Analog inputs show their TONE and their 48V.
+    strip.querySelector<HTMLElement>("[data-strip-tags]")!.hidden = !isAnalog(group.ids[0]);
     const meters = [...strip.querySelectorAll<HTMLElement>("[data-meter]")];
     group.ids.forEach((id: ChannelId, i) => meters[i] && meterNames.has(id) && (meters[i].dataset["meter"] = id));
     const link = strip.querySelector<HTMLElement>('[data-strip-action="link"]')!;
@@ -98,8 +108,7 @@ const refreshTone = (strip: HTMLElement, state: IMixerState, ids: StripIds): voi
     strip.dataset["tone"] = tone;
     const toneName = tone.charAt(0).toUpperCase() + tone.slice(1);
     setText(strip.querySelector("[data-strip-tone]"), toneName);
-    const name = strip.querySelector("[data-strip-name]")?.textContent ?? "";
-    label(strip, '[data-strip-action="tone"]', `${toneName} tone, ${name}`);
+    labelTone(strip);
 };
 
 /** 48V, the icon and the tone: what the Volt lights for these channels. */
@@ -111,15 +120,20 @@ const refreshIndicators = (strip: HTMLElement, state: IMixerState, ids: StripIds
     refreshTone(strip, state, ids);
 };
 
-/** Updates every strip's values from state. `isLive` false makes the controls read-only. */
-export const refreshStrips = (state: IMixerState, isLive: boolean): void => {
+/**
+ * Updates every strip's values from state. `isLive` false makes the controls read-only. A fader
+ * works even before this computer has the mix: the change is refused with a word why (runPageIntent).
+ */
+export const refreshStrips = (state: IMixerState, view: IStripView, isLive: boolean): void => {
+    const names = new Map(stripGroups(state, view).map((group) => [group.ids.join(","), group.name]));
     for (const strip of stripsList().querySelectorAll<HTMLElement>("[data-strip]")) {
         const ids = stripIds(strip);
         if (!ids) continue;
         const channel = state.channels[ids[0]];
+        nameStrip(strip, names.get(ids.join(",")) ?? strip.dataset["name"] ?? "");
         const fader = strip.querySelector<HTMLElement>("[data-slider]")!;
         setSliderValue(fader, channel.fader);
-        fader.setAttribute("aria-disabled", String(!isLive || !state.isMixOwned));
+        fader.setAttribute("aria-disabled", String(!isLive));
         press(strip, "mute", channel.isMuted);
         press(strip, "solo", channel.isSoloed);
         press(strip, "link", isLinked(state, ids[0]));

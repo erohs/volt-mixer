@@ -1,11 +1,10 @@
 import { isRouteKnown } from "../lib/commands.ts";
 import type { Intent } from "../lib/intents.ts";
-import type { CueName } from "../lib/mixer.ts";
-import { newestSpec } from "../lib/spec.ts";
-import { app, hooks, layout } from "./app-state.ts";
+import { cueNames, type CueName } from "../lib/mixer.ts";
+import { app, currentSpec, hooks, layout } from "./app-state.ts";
 import { runPageIntent } from "./run-intent.ts";
-import { initSliders, setSliderValue } from "./slider.ts";
-import { loadTheme, saveTheme, saveView } from "./store.ts";
+import { setSliderValue } from "./slider.ts";
+import { saveTheme, saveView } from "./store.ts";
 import { applyTheme, isTheme } from "./theme.ts";
 import { refreshMixLink, wireMixLink } from "./mix-link.ts";
 import { wireDesktopSettings } from "./desktop-settings.ts";
@@ -15,7 +14,6 @@ import { wireDesktopSettings } from "./desktop-settings.ts";
 const dialog = (): HTMLDialogElement => document.querySelector<HTMLDialogElement>("#settings-dialog")!;
 const inputs = (setting: string): NodeListOf<HTMLInputElement | HTMLSelectElement> =>
     dialog().querySelectorAll(`[data-setting="${setting}"]`);
-const cues: CueName[] = ["cue1", "cue2"];
 
 const check = (setting: string, value: string | boolean): void => {
     for (const input of inputs(setting)) {
@@ -24,18 +22,18 @@ const check = (setting: string, value: string | boolean): void => {
     }
 };
 
-const mirroredCue = (): string => cues.find((cue) => app.state.cues[cue].isMirroredToLine34) ?? "none";
+const mirroredCue = (): string => cueNames.find((cue) => app.state.cues[cue].isMirroredToLine34) ?? "none";
 
 /** "Own mix" can only be chosen once that cue's route is captured (src/data/volt4-gen2.json). */
 const markUncapturedRoutes = (): void => {
-    for (const cue of cues) {
+    for (const cue of cueNames) {
         const own = dialog().querySelector<HTMLOptionElement>(`[data-setting="${cue}-source"] option[value="own"]`);
-        if (own) own.disabled = !isRouteKnown(newestSpec(), `${cue}Mix`);
+        if (own) own.disabled = !isRouteKnown(currentSpec(), `${cue}Mix`);
     }
 };
 
 /** Settings that only change what this page shows, so they work without a Volt. */
-const viewSettings: Record<string, keyof typeof app.view> = {
+const viewSettings: Record<string, "isDigitalShown" | "isLoopbackShown"> = {
     "show-digital": "isDigitalShown",
     "show-loopback": "isLoopbackShown",
 };
@@ -46,11 +44,11 @@ export const refreshSettings = (isLive: boolean): void => {
     check("clip", device.isClipProtected);
     check("digital", device.digitalFormat);
     check("headphone-source", headphoneSource);
-    for (const cue of cues) check(`${cue}-source`, cueRouting[cue].isMix ? "mix" : "own");
+    for (const cue of cueNames) check(`${cue}-source`, cueRouting[cue].isMix ? "mix" : "own");
     check("mirror", mirroredCue());
     check("show-digital", app.view.isDigitalShown);
     check("show-loopback", app.view.isLoopbackShown);
-    check("theme", loadTheme());
+    check("theme", app.view.theme);
     refreshMixLink();
     markUncapturedRoutes();
     const brightness = dialog().querySelector<HTMLElement>("[data-slider='brightness']")!;
@@ -76,16 +74,20 @@ const settingIntents: Record<string, (input: HTMLInputElement | HTMLSelectElemen
     mirror: (input) => ({ type: "mirror", cue: input.value === "none" ? null : cueOf(input.value) }),
 };
 
+const changeView = (view: "isDigitalShown" | "isLoopbackShown", isShown: boolean): void => {
+    app.view[view] = isShown;
+    saveView({ isDigitalShown: app.view.isDigitalShown, isLoopbackShown: app.view.isLoopbackShown });
+    layout();
+};
+
 const onChange = (input: HTMLInputElement | HTMLSelectElement): void => {
     const setting = input.dataset["setting"] ?? "";
-    if (setting === "theme" && isTheme(input.value)) return (applyTheme(input.value), saveTheme(input.value));
-    const view = viewSettings[setting];
-    if (view) {
-        app.view[view] = (input as HTMLInputElement).checked;
-        saveView(app.view);
-        layout();
-        return hooks.refresh();
+    if (setting === "theme" && isTheme(input.value)) {
+        app.view.theme = input.value;
+        return (applyTheme(input.value), saveTheme(input.value));
     }
+    const view = viewSettings[setting];
+    if (view) return changeView(view, (input as HTMLInputElement).checked);
     const intent = settingIntents[setting]?.(input);
     if (intent) runPageIntent(intent);
 };
@@ -95,7 +97,6 @@ export const settingsActions: Record<string, () => void> = {
 };
 
 export const wireSettingsDialog = (): void => {
-    initSliders(dialog());
     wireMixLink();
     void wireDesktopSettings();
     dialog().addEventListener("change", (event) => {

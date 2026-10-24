@@ -4,41 +4,25 @@ import type { ITick } from "../../lib/taper.ts";
 interface Props {
     /** Which model in src/lib/slider-models.ts drives it. */
     kind: "fader" | "pan" | "level" | "gain" | "brightness";
-    label?: string;
-    /** IDs of elements that name and describe it (e.g. a setting row), instead of a label of its own. */
+    /** IDs of elements that name and describe it (e.g. a setting row); without them the script names it. */
     labelledBy?: string;
     describedBy?: string;
     orientation?: "vertical" | "horizontal";
     ticks?: ITick[];
     /** Names the slider for the script (data-slider). */
     name: string;
-    class?: string;
 }
 
-const {
-    kind,
-    label = "",
-    labelledBy,
-    describedBy,
-    orientation = "horizontal",
-    ticks = [],
-    name,
-    class: className,
-} = Astro.props;
-/* A horizontal slider shows its label; a vertical fader is named by its strip (set by the script). */
-const labelId = orientation === "horizontal" && label && !labelledBy ? `slider-${name}-label` : undefined;
+const { kind, labelledBy, describedBy, orientation = "horizontal", ticks = [], name } = Astro.props;
 ---
 
-<div class:list={["slider", className]} data-orientation={orientation}>
-    {labelId && (
-        <span class="label" id={labelId} data-slider-label={name}>
-            {label}
-        </span>
-    )}
+<div class="slider" data-orientation={orientation}>
     {ticks.length > 0 && (
         <ol class="scale" aria-hidden="true">
             {ticks.map((tick) => (
-                <li style={`--tick: ${tick.position}`}>{tick.label}</li>
+                <li class="tick" style={`--tick: ${tick.position}`}>
+                    {tick.label}
+                </li>
             ))}
         </ol>
     )}
@@ -46,8 +30,7 @@ const labelId = orientation === "horizontal" && label && !labelledBy ? `slider-$
         class="control"
         role="slider"
         tabindex="0"
-        aria-label={labelId || labelledBy ? undefined : label || undefined}
-        aria-labelledby={labelledBy ?? labelId}
+        aria-labelledby={labelledBy}
         aria-describedby={describedBy}
         aria-orientation={orientation}
         aria-valuemin="0"
@@ -75,25 +58,26 @@ const labelId = orientation === "horizontal" && label && !labelledBy ? `slider-$
         display: grid;
         gap: var(--space-between-lines);
         font-size: var(--font-size-meta);
-        touch-action: none;
         user-select: none;
     }
 
+    /*
+     * Only the control takes the pointer, and only along its own axis: a swipe across it still
+     * scrolls the page (the browser cancels the drag), which matters on a phone full of sliders.
+     */
     .control {
         position: relative;
-        touch-action: none;
-        user-select: none;
-        cursor: grab;
         border-radius: var(--radius-small);
+        cursor: grab;
+    }
 
-        &:active {
-            cursor: grabbing;
-        }
+    .control:active {
+        cursor: grabbing;
+    }
 
-        /* The ring goes on the handle, not the whole slider. */
-        &:focus-visible {
-            outline: none;
-        }
+    /* The ring goes on the handle, not the whole slider. */
+    .control:focus-visible {
+        outline: none;
     }
 
     /*
@@ -114,7 +98,7 @@ const labelId = orientation === "horizontal" && label && !labelledBy ? `slider-$
         background-color: var(--color-background-track);
     }
 
-    /* --slider-colour lets a parent tint it, as a strip does with its TONE colour. */
+    /* --slider-colour lets a parent tint it, as a strip does with its TONE colour (tone.css). */
     .fill {
         position: absolute;
         background-color: var(--slider-colour, var(--color-background-accent));
@@ -130,7 +114,7 @@ const labelId = orientation === "horizontal" && label && !labelledBy ? `slider-$
     }
 
     /* Pan rests at the centre, so a fill from one end would mislead. */
-    [data-kind="pan"] .fill {
+    .control[data-kind="pan"] .fill {
         display: none;
     }
 
@@ -148,105 +132,99 @@ const labelId = orientation === "horizontal" && label && !labelledBy ? `slider-$
         list-style: none;
         font-variant-numeric: tabular-nums;
         line-height: 1;
-
-        & li {
-            position: absolute;
-        }
     }
 
-    [data-orientation="vertical"] {
+    .tick {
+        position: absolute;
+    }
+
+    .slider:where([data-orientation="vertical"]) {
         grid-template: "scale control" var(--size-fader-length) "value value" auto / auto var(--size-slider-thumb);
         column-gap: var(--space-between-text);
         justify-content: center;
-
-        & .control {
-            grid-area: control;
-        }
-
-        & .track {
-            inset: calc(var(--size-slider-thumb) / 2) auto;
-            inset-inline-start: calc(50% - var(--size-slider-track) / 2);
-            inline-size: var(--size-slider-track);
-        }
-
-        & .fill {
-            inset: auto 0 0;
-            block-size: calc(var(--slider-position) * 100%);
-        }
-
-        & .thumb {
-            inset-block-end: calc(var(--slider-position) * var(--slider-travel));
-            inset-inline-start: 0;
-        }
-
-        & .scale {
-            grid-area: scale;
-            min-inline-size: 2.25rem;
-            text-align: end;
-
-            & li {
-                inset-inline-end: 0;
-                inset-block-end: calc(var(--tick) * var(--slider-travel) + var(--size-slider-thumb) / 2);
-                translate: 0 50%;
-            }
-        }
-
-        & .value {
-            grid-area: value;
-            text-align: center;
-        }
     }
 
-    .label {
-        grid-area: label;
-        font-size: var(--font-size-body);
+    .slider:where([data-orientation="vertical"]) > .control {
+        grid-area: control;
+        touch-action: pan-x;
     }
 
-    [data-orientation="horizontal"] {
-        grid-template: "label label" auto "control value" var(--size-slider-thumb) "scale ." auto / 1fr 4.5rem;
+    .slider:where([data-orientation="vertical"]) .track {
+        inset-block: calc(var(--size-slider-thumb) / 2);
+        inset-inline-start: calc(50% - var(--size-slider-track) / 2);
+        inline-size: var(--size-slider-track);
+    }
 
-        /* Named by its setting row instead, so no label row. */
-        &:not(:has(.label)) {
-            grid-template: "control value" var(--size-slider-thumb) "scale ." auto / 1fr 4rem;
-        }
+    .slider:where([data-orientation="vertical"]) .fill {
+        inset-block: auto 0;
+        inset-inline: 0;
+        block-size: calc(var(--slider-position) * 100%);
+    }
+
+    .slider:where([data-orientation="vertical"]) .thumb {
+        inset-block-end: calc(var(--slider-position) * var(--slider-travel));
+        inset-inline-start: 0;
+    }
+
+    .slider:where([data-orientation="vertical"]) > .scale {
+        grid-area: scale;
+        min-inline-size: 2.25rem;
+        text-align: end;
+    }
+
+    .slider:where([data-orientation="vertical"]) .tick {
+        inset-inline-end: 0;
+        inset-block-end: calc(var(--tick) * var(--slider-travel) + var(--size-slider-thumb) / 2);
+        translate: 0 50%;
+    }
+
+    .slider:where([data-orientation="vertical"]) > .value {
+        grid-area: value;
+        text-align: center;
+    }
+
+    .slider:where([data-orientation="horizontal"]) {
+        grid-template: "control value" var(--size-slider-thumb) "scale ." auto / 1fr 4rem;
         column-gap: var(--space-between-text);
         align-items: center;
+    }
 
-        & .control {
-            grid-area: control;
-            block-size: var(--size-slider-thumb);
-        }
+    .slider:where([data-orientation="horizontal"]) > .control {
+        grid-area: control;
+        block-size: var(--size-slider-thumb);
+        touch-action: pan-y;
+    }
 
-        & .track {
-            inset: auto calc(var(--size-slider-thumb) / 2);
-            inset-block-start: calc(50% - var(--size-slider-track) / 2);
-            block-size: var(--size-slider-track);
-        }
+    .slider:where([data-orientation="horizontal"]) .track {
+        inset-block-start: calc(50% - var(--size-slider-track) / 2);
+        inset-inline: calc(var(--size-slider-thumb) / 2);
+        block-size: var(--size-slider-track);
+    }
 
-        & .fill {
-            inset: 0 auto 0 0;
-            inline-size: calc(var(--slider-position) * 100%);
-        }
+    .slider:where([data-orientation="horizontal"]) .fill {
+        inset-block: 0;
+        inset-inline: 0 auto;
+        inline-size: calc(var(--slider-position) * 100%);
+    }
 
-        & .thumb {
-            inset-inline-start: calc(var(--slider-position) * var(--slider-travel));
-            inset-block-start: 0;
-        }
+    .slider:where([data-orientation="horizontal"]) .thumb {
+        inset-inline-start: calc(var(--slider-position) * var(--slider-travel));
+        inset-block-start: 0;
+    }
 
-        & .scale {
-            grid-area: scale;
-            block-size: 1em;
+    .slider:where([data-orientation="horizontal"]) > .scale {
+        grid-area: scale;
+        block-size: 1em;
+    }
 
-            & li {
-                inset-inline-start: calc(var(--tick) * var(--slider-travel) + var(--size-slider-thumb) / 2);
-                translate: -50% 0;
-            }
-        }
+    .slider:where([data-orientation="horizontal"]) .tick {
+        inset-inline-start: calc(var(--tick) * var(--slider-travel) + var(--size-slider-thumb) / 2);
+        translate: -50% 0;
+    }
 
-        & .value {
-            grid-area: value;
-            text-align: end;
-        }
+    .slider:where([data-orientation="horizontal"]) > .value {
+        grid-area: value;
+        text-align: end;
     }
 
     @media (forced-colors: active) {

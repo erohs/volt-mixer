@@ -1,0 +1,3 @@
+# Written by scripts/linux-scripts.mjs from electron-builder's templates.
+build/linux/after-install.sh
+build/linux/after-remove.sh

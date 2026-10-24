@@ -1,13 +1,13 @@
 import { app, session } from "electron";
-import { watchPower } from "./display-fade";
 import { allowVolt } from "./hid";
-import { answerPages, applyPhoneRemote } from "./ipc";
-import { stopPhoneRemote } from "./phone";
+import { answerPages } from "./ipc";
+import { watchLifecycle } from "./lifecycle";
 import { applyLoginItem, isStartedInTray } from "./login";
+import { reconcilePhoneRemote, tellPhoneStatus } from "./phone";
 import { registerAppScheme, serveSite } from "./protocol";
 import { loadSettings } from "./settings";
 import { createTray } from "./tray";
-import { createMainWindow, markQuitting, prepareTrayWindow, showMainWindow } from "./windows";
+import { createMainWindow, prepareTrayWindow, showMainWindow } from "./windows";
 
 /*
  * Volt Mixer's desktop app: the website (built into ./site) in a window, with WebHID allowed for
@@ -19,12 +19,6 @@ if (!app.requestSingleInstanceLock()) {
 } else {
     registerAppScheme();
     app.on("second-instance", showMainWindow);
-    app.on("before-quit", () => {
-        markQuitting();
-        stopPhoneRemote();
-        // The saved mix lives in the page's storage; make sure it reaches the disk.
-        session.defaultSession.flushStorageData();
-    });
     void app.whenReady().then(() => {
         const settings = loadSettings();
         serveSite();
@@ -32,8 +26,10 @@ if (!app.requestSingleInstanceLock()) {
         answerPages();
         applyLoginItem(settings.startAtLogin);
         createTray();
-        watchPower(createMainWindow(!isStartedInTray(settings)));
-        applyPhoneRemote(settings);
+        const mainWindow = createMainWindow(!isStartedInTray(settings));
+        watchLifecycle(mainWindow);
+        mainWindow.webContents.on("did-finish-load", tellPhoneStatus);
+        void reconcilePhoneRemote();
         prepareTrayWindow();
     });
 }

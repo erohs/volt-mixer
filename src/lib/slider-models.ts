@@ -1,5 +1,6 @@
 import { minDb } from "./gain.ts";
 import { clamp } from "./numbers.ts";
+import { outputLevelMax, type ISpec } from "./spec.ts";
 import { dbToPosition, formatDb, formatPan, positionToDb, snapPan, spokenDb, spokenPan, stepDb } from "./taper.ts";
 
 /** How a slider maps its value to travel (0–1), steps with the keyboard and reads out. */
@@ -36,8 +37,21 @@ const linear = (
     };
 };
 
-/** A channel fader in dB, with the console taper and a 0 dB detent. End goes to 0 dB, never +12. */
-export const faderModel = (maxDb = 12): ISliderModel => ({
+/**
+ * The value a drag that started at `start` reaches at `position`. A slider rounds to its steps
+ * (and a fader snaps to 0 dB), so a value the Volt reported between steps would move on the first
+ * pointer event even with no travel. The value only moves the way the pointer did: a still or
+ * jittering press changes nothing, and moving down never lands higher than where it started.
+ */
+export const dragValue = (model: ISliderModel, start: number, position: number): number => {
+    const from = model.toPosition(start);
+    if (position === from) return start;
+    const value = model.fromPosition(position);
+    return position > from ? Math.max(value, start) : Math.min(value, start);
+};
+
+/** A channel fader in dB, with the console taper and a 0 dB detent. End goes to 0 dB, never the maximum. */
+export const faderModel = (maxDb: number): ISliderModel => ({
     min: minDb,
     max: maxDb,
     rest: 0,
@@ -49,7 +63,7 @@ export const faderModel = (maxDb = 12): ISliderModel => ({
 });
 
 /** Pan from −100 (left) to +100 (right), with a centre detent. */
-export const panModel = (): ISliderModel => ({
+const panModel = (): ISliderModel => ({
     ...linear(-100, 100, 1, 10, formatPan),
     rest: 0,
     fromPosition: (position) => snapPan(-100 + position * 200),
@@ -57,11 +71,11 @@ export const panModel = (): ISliderModel => ({
 });
 
 /** Monitor and headphone level on Console's 0–100 scale. */
-export const levelModel = (): ISliderModel => linear(0, 100, 0.5, 5, (level) => level.toFixed(1));
+const levelModel = (): ISliderModel => linear(0, outputLevelMax, 0.5, 5, (level) => level.toFixed(1));
 
-/** Preamp gain, 0–60 dB in half-dB steps. */
-export const gainModel = (): ISliderModel => ({
-    ...linear(0, 60, 0.5, 3, (db) => `${db.toFixed(1)} dB`),
+/** Preamp gain in half-dB steps, up to the Volt's maximum. */
+const gainModel = (maxDb: number): ISliderModel => ({
+    ...linear(0, maxDb, 0.5, 3, (db) => `${db.toFixed(1)} dB`),
     speak: (db) => `${db.toFixed(1)} decibels`,
 });
 
@@ -112,11 +126,14 @@ export const brightnessModel = (): ISliderModel => {
     };
 };
 
-/** Every slider on the page, by the `data-kind` its markup carries. */
-export const sliderModels: Record<string, () => ISliderModel> = {
-    fader: () => faderModel(),
-    pan: panModel,
-    level: levelModel,
-    gain: gainModel,
-    brightness: brightnessModel,
+/** The model for a slider's `data-kind`, with the ranges `spec` gives; a level slider for any other kind. */
+export const sliderModel = (kind: string, spec: ISpec): ISliderModel => {
+    const models: Record<string, () => ISliderModel> = {
+        fader: () => faderModel(spec.faderMaxDb),
+        pan: panModel,
+        level: levelModel,
+        gain: () => gainModel(spec.preampGainMaxDb),
+        brightness: brightnessModel,
+    };
+    return (models[kind] ?? levelModel)();
 };

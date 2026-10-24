@@ -1,6 +1,7 @@
-import { minDb, panGains } from "./gain.ts";
+import { defaultBrightness } from "./display-fade.ts";
+import { minDb } from "./gain.ts";
 import type { IHardwareState } from "./reports.ts";
-import { busNames, type BusName, type ISpec } from "./spec.ts";
+import type { DigitalFormat } from "./spec.ts";
 
 /** Every channel of the Volt's mixer, in hardware order. */
 export const channelIds = [
@@ -24,9 +25,8 @@ export const channelIds = [
 export type ChannelId = (typeof channelIds)[number];
 export type Pair = [ChannelId, ChannelId];
 export type ChannelKind = "analog" | "digital" | "loopback";
-export type CueName = "cue1" | "cue2";
-export type DigitalFormat = "adat" | "spdif";
-export type { BusName };
+export const cueNames = ["cue1", "cue2"] as const;
+export type CueName = (typeof cueNames)[number];
 
 /** For IDs from outside the page's own code: storage, links, other windows, the DOM. */
 export const isChannelId = (value: unknown): value is ChannelId =>
@@ -81,24 +81,31 @@ export interface IMixerState {
     device: { isClipProtected: boolean; brightness: number; digitalFormat: DigitalFormat };
 }
 
-const adat = ([1, 2, 3, 4, 5, 6, 7, 8] as const).map((n): IChannelInfo => ({
-    id: `adat${n}`,
-    name: `ADAT ${n}`,
-    kind: "digital",
-    format: "adat",
-}));
+type ChannelDetails = Omit<IChannelInfo, "id">;
+const adat = (n: number): ChannelDetails => ({ name: `ADAT ${n}`, kind: "digital", format: "adat" });
 
-export const channels: IChannelInfo[] = [
-    { id: "in1", name: "Input 1", kind: "analog", preampIndex: 0, toneIndex: 0 },
-    { id: "in2", name: "Input 2", kind: "analog", preampIndex: 1, toneIndex: 1 },
-    { id: "in3", name: "Line 3", kind: "analog", toneIndex: 2 },
-    { id: "in4", name: "Line 4", kind: "analog", toneIndex: 3 },
-    { id: "spdifL", name: "S/PDIF L", kind: "digital", format: "spdif" },
-    { id: "spdifR", name: "S/PDIF R", kind: "digital", format: "spdif" },
-    ...adat,
-    { id: "loopbackL", name: "Loopback L", kind: "loopback" },
-    { id: "loopbackR", name: "Loopback R", kind: "loopback" },
-];
+/* A record, so the compiler insists every channel ID has its details. */
+const channelDetails: Record<ChannelId, ChannelDetails> = {
+    in1: { name: "Input 1", kind: "analog", preampIndex: 0, toneIndex: 0 },
+    in2: { name: "Input 2", kind: "analog", preampIndex: 1, toneIndex: 1 },
+    in3: { name: "Line 3", kind: "analog", toneIndex: 2 },
+    in4: { name: "Line 4", kind: "analog", toneIndex: 3 },
+    spdifL: { name: "S/PDIF L", kind: "digital", format: "spdif" },
+    spdifR: { name: "S/PDIF R", kind: "digital", format: "spdif" },
+    adat1: adat(1),
+    adat2: adat(2),
+    adat3: adat(3),
+    adat4: adat(4),
+    adat5: adat(5),
+    adat6: adat(6),
+    adat7: adat(7),
+    adat8: adat(8),
+    loopbackL: { name: "Loopback L", kind: "loopback" },
+    loopbackR: { name: "Loopback R", kind: "loopback" },
+};
+
+/** Every channel, in hardware order. */
+export const channels: IChannelInfo[] = channelIds.map((id) => ({ id, ...channelDetails[id] }));
 export const channelById = Object.fromEntries(channels.map((c) => [c.id, c])) as Record<ChannelId, IChannelInfo>;
 
 export const pairs: Pair[] = [
@@ -116,7 +123,6 @@ export const hardwarePairs: Pair[] = [
     ["in1", "in2"],
     ["in3", "in4"],
 ];
-export const buses: readonly BusName[] = busNames;
 /** Inputs 1–4: bits 0–3 of the Volt's Direct mask. */
 export const analogIds = channels.filter((c) => c.kind === "analog").map((c) => c.id);
 
@@ -126,6 +132,17 @@ export const isLinked = (state: IMixerState, id: ChannelId): boolean => {
     const pair = pairOf(id);
     return Boolean(pair && state.linked[pairKey(pair)]);
 };
+
+/** Loopback is the computer's own stereo playback: always linked, never split. */
+export const isAlwaysLinked = ([a]: Pair): boolean => channelById[a].kind === "loopback";
+
+/** The channels that move together with `ids`: each one's linked partner too. */
+export const linkGroup = (state: IMixerState, ids: readonly ChannelId[]): ChannelId[] => [
+    ...new Set(ids.flatMap((id) => (isLinked(state, id) ? (pairOf(id) ?? [id]) : [id]))),
+];
+
+/** Any solo silences every channel that isn't soloed, shown or not (src/scripts/hidden-solo.ts says so). */
+export const isSoloActive = (state: IMixerState): boolean => channelIds.some((id) => state.channels[id].isSoloed);
 
 /** Channel names are at most 24 UTF-16 units, like the name field's maxlength. */
 export const maxNameLength = 24;
@@ -165,7 +182,7 @@ export const defaultState = (): IMixerState => {
         tone: [0, 0, 0, 0],
         monitor: { isMuted: false, isMono: false, level: 0 },
         headphone: { level: 79.6, isMuted: false },
-        device: { isClipProtected: true, brightness: 217, digitalFormat: "adat" },
+        device: { isClipProtected: true, brightness: defaultBrightness, digitalFormat: "adat" },
     };
     panPair(state, ["loopbackL", "loopbackR"], true);
     return state;
@@ -186,9 +203,9 @@ const quieterSend = (a: ISend, b: ISend): ISend => ({
 });
 
 /**
- * Gives a linked pair's two sides the quieter side's mix, so a link can only turn things down:
- * the lower fader and sends, muted if either side is. Solo follows either side, so linking never
- * ends a solo (which would bring every other channel back).
+ * Gives a linked pair's two sides the quieter side's mix, so a link never turns a fader or send
+ * up: the lower fader and sends, muted if either side is. Solo follows either side, so linking
+ * never ends a solo (which would bring every other channel back).
  */
 export const matchQuieterMix = (state: IMixerState, [a, b]: Pair): void => {
     const [left, right] = [state.channels[a], state.channels[b]];
@@ -213,6 +230,8 @@ export const matchQuieterGain = (state: IMixerState, [a, b]: Pair): void => {
 /**
  * Links or unlinks a pair. Linking gives both sides the quieter side's mix (preamp gain is matched
  * separately, by matchQuieterGain); tone is never shared, as In 2 could be a different source.
+ * The pans go hard left and right, as in Console: the same power as two centred legs, but a
+ * source on one side alone now plays from one speaker only, louder there.
  */
 export const setLinked = (state: IMixerState, pair: Pair, isOn: boolean): void => {
     state.linked[pairKey(pair)] = isOn;
@@ -230,8 +249,9 @@ export const applyHardwareState = (state: IMixerState, hardware: IHardwareState)
         (pair, i) => Boolean(state.linked[pairKey(pair)]) !== Boolean(hardware.linkMask & (1 << i)),
     );
     for (const pair of changed) setLinked(state, pair, !state.linked[pairKey(pair)]);
-    analogIds.forEach((id, i) => (state.channels[id].isMuted = !(hardware.directMask & (1 << i))));
-    state.preamp = { gain: [...hardware.preampGain], phantom: [...hardware.phantom] };
+    setDirectMask(state, hardware.directMask);
+    state.preamp.gain = [...hardware.preampGain];
+    setPhantomMask(state, hardware.phantomMask);
     state.tone = [...hardware.tone];
     state.monitor = { ...hardware.monitor };
     state.headphone = { ...hardware.headphone };
@@ -243,55 +263,26 @@ export const applyHardwareState = (state: IMixerState, hardware: IHardwareState)
     return changed;
 };
 
-const monitorSend = (info: IChannelInfo, channel: IChannel, isSoloActive: boolean): ISend => {
-    // Analog mute is the Volt's Direct flag; digital and loopback mutes are a silent crosspoint.
-    const isOff = (info.kind !== "analog" && channel.isMuted) || (isSoloActive && !channel.isSoloed);
-    return { db: channel.fader, pan: channel.pan, isMuted: isOff };
-};
-
-/** Linear gain of every channel leg into every bus ("source:destination"); empty until the mix is owned. */
-export const crosspointTable = (state: IMixerState, spec: ISpec): Map<string, number> => {
-    const table = new Map<string, number>();
-    if (!state.isMixOwned) return table;
-    const isSoloActive = channels.some((c) => state.channels[c.id].isSoloed);
-    for (const info of channels) {
-        const channel = state.channels[info.id];
-        const source = spec.sources[info.id];
-        if (source === undefined) continue;
-        for (const bus of buses) {
-            const send = bus === "monitor" ? monitorSend(info, channel, isSoloActive) : channel[bus];
-            const [gainLeft, gainRight] = panGains(send.isMuted ? minDb : Math.min(send.db, spec.faderMaxDb), send.pan);
-            const [left, right] = spec.mixBuses[bus];
-            table.set(`${source}:${left}`, gainLeft);
-            table.set(`${source}:${right}`, gainRight);
-        }
-    }
-    return table;
-};
-
-/** What the Volt reports about itself, as page state: compared to tell whether a reading changed anything. */
-export const voltSettings = (state: IMixerState): unknown => ({
-    links: hardwareLinkMask(state),
-    direct: directMask(state),
-    preamp: state.preamp,
-    tone: state.tone,
-    monitor: state.monitor,
-    headphone: state.headphone,
-    device: state.device,
-});
-
 export const hardwareLinkMask = (state: IMixerState): number =>
     hardwarePairs.reduce((mask, pair, i) => mask | (state.linked[pairKey(pair)] ? 1 << i : 0), 0);
 
 export const directMask = (state: IMixerState): number =>
     analogIds.reduce((mask, id, i) => mask | (state.channels[id].isMuted ? 0 : 1 << i), 0);
 
+/** Bit i set: analog input i is on Direct (unmuted). The inverse of directMask. */
+export const setDirectMask = (state: IMixerState, mask: number): void =>
+    analogIds.forEach((id, i) => (state.channels[id].isMuted = !(mask & (1 << i))));
+
 export const phantomMask = (state: IMixerState): number =>
     state.preamp.phantom.reduce((mask, isOn, i) => mask | (isOn ? 1 << i : 0), 0);
+
+/** Bit i set: preamp i has 48V. The inverse of phantomMask. */
+export const setPhantomMask = (state: IMixerState, mask: number): void =>
+    void (state.preamp.phantom = [Boolean(mask & 1), Boolean(mask & 2)]);
 
 /** What feeds the headphones and Line Out 3/4, from the cue routing. Keys are spec.routeSources names. */
 export const routeSources = (state: IMixerState): { headphone: string; line34: string } => {
     const sourceOf = (cue: CueName): string => (state.cues[cue].isMix ? "monitorMix" : `${cue}Mix`);
-    const mirrored = (["cue1", "cue2"] as const).find((cue) => state.cues[cue].isMirroredToLine34);
+    const mirrored = cueNames.find((cue) => state.cues[cue].isMirroredToLine34);
     return { headphone: sourceOf(state.headphoneSource), line34: mirrored ? sourceOf(mirrored) : "playback34" };
 };

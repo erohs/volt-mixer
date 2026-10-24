@@ -1,0 +1,23 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import Icon from "./Icon.astro";
+
+/*
+ * A button that answers for a moment with a tick or a cross in place of what it shows
+ * (.button--feedback in src/styles/button.css, flashButton in src/scripts/button-feedback.ts).
+ * The slot is what it shows; the other attributes go to the button.
+ */
+interface Props extends HTMLAttributes<"button"> {
+    variant?: "primary" | "icon";
+}
+
+const { variant, type = "button", ...attributes } = Astro.props;
+---
+
+<button class:list={["button", "button--feedback", variant && `button--${variant}`]} type={type} {...attributes}>
+    <span class="face">
+        <slot />
+    </span>
+    <Icon name="check" class="feedback feedback--success" />
+    <Icon name="close" class="feedback feedback--error" />
+</button>

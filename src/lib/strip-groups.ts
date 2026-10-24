@@ -1,4 +1,5 @@
-import { channelById, pairKey, pairs } from "./mixer.ts";
+import { channelById, isAlwaysLinked, pairKey, pairs } from "./mixer.ts";
+import { newestSpec } from "./spec.ts";
 import type { ChannelId, IMixerState, Pair } from "./mixer.ts";
 
 /** One channel, or a linked pair shown as one stereo strip. */
@@ -46,7 +47,7 @@ export const stripGroups = (state: IMixerState, view: IStripView): IStripGroup[]
     pairs
         .filter((pair) => isPairShown(state, pair, view))
         .flatMap((pair): IStripGroup[] => {
-            const linkPair = channelById[pair[0]].kind === "loopback" ? undefined : pair;
+            const linkPair = isAlwaysLinked(pair) ? undefined : pair;
             // The hardware names, not custom ones: a renamed pair shares one name, which would read twice.
             const link = linkPair && {
                 linkPair,
@@ -64,7 +65,8 @@ export const stripGroups = (state: IMixerState, view: IStripView): IStripGroup[]
         });
 
 export type ToneName = "off" | "warmth" | "focus" | "shine";
-const toneNames: ToneName[] = ["off", "warmth", "focus", "shine"];
+/** The TONE settings by their number on the wire, as the protocol data names them. */
+const toneNames = newestSpec().tone as ToneName[];
 
 /** The TONE a strip's first channel has, which colours its fader like the Volt's TONE ring. */
 export const toneOf = (state: IMixerState, ids: StripIds): ToneName => {

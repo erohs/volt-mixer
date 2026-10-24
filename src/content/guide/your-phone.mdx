@@ -2,10 +2,9 @@
 title: Your phone
 description: Use your phone with Volt Mixer, to carry your mix to another computer or, with the desktop app, as a remote for levels and mutes.
 lead: Your phone can't connect to a Volt itself, but it can do two jobs. Each has its own QR code, in its own place.
+group: Beyond this computer
+order: 3
 ---
-
-import Callout from "../../components/guide/Callout.astro";
-import Shot from "../../components/guide/Shot.astro";
 
 ## Two jobs, two QR codes
 
@@ -30,6 +29,8 @@ Take your latest mix from one computer to another, with no app and no account.
     name="carry"
     alt="Volt Mixer on a phone: “Your mix is on this device”, a QR code, and Send the link, Copy the link and Forget it buttons."
 />
+
+The same happens in Firefox or Safari on a computer, since they can't talk to USB devices either: Volt Mixer keeps the mix there and says to open it in Microsoft Edge or Google Chrome on the computer the Volt is plugged into.
 
 The phone keeps the mix until you choose **Forget it**, so you can carry the same mix to any computer. Opened with nothing to carry, Volt Mixer on the phone explains both jobs and where their QR codes are:
 
@@ -65,18 +66,21 @@ Everything else, like 48V, gain and headphone routing, stays on the computer, so
 
 Above the remote's QR code, the app shows how it's doing.
 
-| It says             | It means                                   |
-| ------------------- | ------------------------------------------ |
-| Starting…           | The remote is starting up.                 |
-| Waiting for a phone | Ready. Scan the code.                      |
-| 1 phone connected   | Shown in green while phones are in.        |
-| Anything in amber   | Something is wrong. The message says what. |
+| It says                                         | It means                                   |
+| ----------------------------------------------- | ------------------------------------------ |
+| Starting…                                       | The remote is starting up.                 |
+| Waiting for a phone                             | Ready. Scan the code.                      |
+| 1 phone connected                               | Shown in green while phones are in.        |
+| Isn't on the network Phone remote was set up on | The remote stays off away from home.       |
+| Anything in amber                               | Something is wrong. The message says what. |
 
-If the computer is on more than one network, an **Address** list appears: choose the one your phone can reach, usually your home Wi-Fi.
+The remote only answers on the network you turned it on in, usually your home Wi-Fi. Take the laptop to a café and it stays off; back home, it starts again by itself. To use it on another network, choose that network's address in the **Address** list, which appears whenever the computer is away from the remote's network or on more than one.
 
 ### Unpair phones
 
 **New code** makes a new QR code and unpairs every phone. Each one has to scan again. Use it if you've shared the code by mistake, or a phone has gone missing.
+
+Phones paired with version 0.5.0 or earlier need to scan the code once more after the update, as the app now checks them a safer way.
 
 ### If the phone can't connect
 
@@ -86,6 +90,7 @@ If the computer is on more than one network, an **Address** list appears: choose
 4. Allow Volt Mixer through **Windows Firewall** on private networks.
 
 <Callout kind="caution" title="Home networks only">
-    The remote's connection isn't encrypted, like most home gadgets. Someone who can watch your home network could use
-    it, so turn Phone remote off on a network you don't trust.
+    The remote's connection isn't encrypted, like most home gadgets, so someone watching your network could see your
+    levels. They can't change them: the QR code's pairing code never travels over the network, and every change your
+    phone sends is signed with it. Turn Phone remote off on a network you don't trust.
 </Callout>

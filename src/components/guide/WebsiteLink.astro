@@ -1,0 +1,9 @@
+---
+import { site } from "../../lib/site.ts";
+
+/* A link to the mixer on the website, wherever the guide is read: its address is in src/lib/site.ts. */
+---
+
+<a href={site.websiteUrl}>
+    <slot />
+</a>

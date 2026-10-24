@@ -1,5 +1,5 @@
 import { encodeMixCode } from "../lib/mix-code.ts";
-import { toSavedMix } from "../lib/saved-mix.ts";
+import { toSavedMix, type ISavedMix } from "../lib/saved-mix.ts";
 import { site } from "../lib/site.ts";
 import { app } from "./app-state.ts";
 import { desktopApp } from "./desktop.ts";
@@ -10,23 +10,28 @@ import { showMessage } from "./messages.ts";
 /* Settings › Your mix › Mix link: the link in a box that copies itself, and its QR code below. */
 
 /** The mix as a link to the website. In the desktop app the page is app://volt/, which opens nowhere else. */
-export const mixLink = (): string => {
+export const mixLink = (mix: ISavedMix = toSavedMix(app.state)): string => {
     const url = desktopApp() ? new URL(site.websiteUrl) : new URL(import.meta.env.BASE_URL, location.origin);
-    url.hash = `m=${encodeMixCode(toSavedMix(app.state))}`;
+    url.hash = `m=${encodeMixCode(mix)}`;
     return url.href;
 };
 
 const box = (): HTMLInputElement | null => document.querySelector<HTMLInputElement>("[data-mix-link]");
 const code = (): HTMLDetailsElement | null => document.querySelector<HTMLDetailsElement>("[data-mix-qr]");
 
+/** The mix the box shows, so a refresh that changed nothing in it doesn't encode it again. */
+let shownMix = "";
+
 /** Keeps the link and its QR code current while Settings is open. */
 export const refreshMixLink = (): void => {
     const input = box();
     if (!input?.closest("dialog")?.open) return;
-    const link = mixLink();
-    if (input.value === link) return;
-    input.value = link;
-    if (code()?.open) drawQr("mix", link);
+    const mix = toSavedMix(app.state);
+    const text = JSON.stringify(mix);
+    if (text === shownMix && input.value) return;
+    shownMix = text;
+    input.value = mixLink(mix);
+    if (code()?.open) drawQr("mix", input.value);
 };
 
 const copy = async (input: HTMLInputElement): Promise<void> => {

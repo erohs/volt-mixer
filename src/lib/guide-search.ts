@@ -27,14 +27,22 @@ export const textOf = (html: string): string =>
         .replace(/ ([,.;:!?)])/g, "$1")
         .trim();
 
-/** A page's sections, split at its h2 headings, which carry ids to link to. */
+/**
+ * A page's sections, split at its h2 headings, which carry ids to link to. Split with the heading's
+ * two groups, the HTML comes apart as [before, then id, heading and body for each heading].
+ */
 export const sectionsOf = (page: string, url: string, html: string): IGuideSection[] => {
-    const parts = html.split(/<h2 id="([^"]+)"[^>]*>(.*?)<\/h2>/);
-    const sections: IGuideSection[] = [{ page, heading: page, url, text: textOf(parts[0] ?? "") }];
-    for (let i = 1; i + 2 <= parts.length; i += 3) {
-        const [id = "", heading = "", body = ""] = parts.slice(i, i + 3);
-        sections.push({ page, heading: textOf(heading), url: `${url}#${id}`, text: textOf(body) });
-    }
+    const [before = "", ...rest] = html.split(/<h2 id="([^"]+)"[^>]*>(.*?)<\/h2>/);
+    const headed = Array.from({ length: rest.length / 3 }, (_, n) => rest.slice(n * 3, n * 3 + 3));
+    const sections: IGuideSection[] = [
+        { page, heading: page, url, text: textOf(before) },
+        ...headed.map(([id = "", heading = "", body = ""]) => ({
+            page,
+            heading: textOf(heading),
+            url: `${url}#${id}`,
+            text: textOf(body),
+        })),
+    ];
     return sections.filter((section) => section.text || section.heading !== page);
 };
 
@@ -61,13 +69,28 @@ const scoreOf = (section: IGuideSection, terms: string[]): number => {
     return scores.every((score) => score > 0) ? scores.reduce((sum, score) => sum + score, 0) : 0;
 };
 
-/** A short piece of the text around the first term it has, cut between words, with … where it's cut. */
+/** Where to start a piece cut at `from`: after the next space, if there's one before the match at `at`. */
+const startOf = (text: string, from: number, at: number): number => {
+    const space = text.indexOf(" ", from);
+    return space === -1 || space >= at ? from : space + 1;
+};
+
+/** Where to end a piece cut at `to`: at the space before it, if there's one after the match at `at`. */
+const endOf = (text: string, to: number, at: number): number => {
+    const space = text.lastIndexOf(" ", to);
+    return space <= at ? to : space;
+};
+
+/**
+ * A short piece of the text around the first term it has, with … where it's cut. It's cut between
+ * words where it can, and mid-word where a word runs further than the piece.
+ */
 export const snippetOf = (text: string, terms: string[], radius = 70): string => {
-    const at = text.search(termPattern(terms));
+    const at = Math.max(0, text.search(termPattern(terms)));
     const from = Math.max(0, at - radius);
-    const start = from === 0 ? 0 : text.indexOf(" ", from) + 1;
-    const to = Math.min(text.length, Math.max(at, 0) + radius * 2);
-    const end = to === text.length ? to : text.lastIndexOf(" ", to);
+    const to = Math.min(text.length, at + radius * 2);
+    const start = from === 0 ? 0 : startOf(text, from, at);
+    const end = to === text.length ? to : endOf(text, to, at);
     return `${start > 0 ? "…" : ""}${text.slice(start, end).trim()}${end < text.length ? "…" : ""}`;
 };
 

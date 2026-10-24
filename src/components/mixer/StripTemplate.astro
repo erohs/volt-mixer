@@ -25,10 +25,14 @@ import Slider from "../ui/Slider.astro";
             </button>
             <!-- Analog inputs only: the TONE (a press steps to the next one) and the 48V. -->
             <div class="tags" data-strip-tags hidden>
-                <button class="tag tag--tone" type="button" data-strip-action="tone">
+                <button class="button button--tag button--tone" type="button" data-strip-action="tone">
                     <span data-strip-tone>Off</span>
                 </button>
-                <button class="tag tag--phantom" type="button" aria-pressed="false" data-strip-action="phantom">
+                <button
+                    class="button button--tag button--phantom"
+                    type="button"
+                    aria-pressed="false"
+                    data-strip-action="phantom">
                     48V
                 </button>
             </div>
@@ -43,17 +47,17 @@ import Slider from "../ui/Slider.astro";
         <div class="actions">
             <!-- A speaker, struck through while muted. On Inputs 1-4 this is the Volt's DIRECT. -->
             <button
-                class="button button--icon button--mute"
+                class="button button--icon button--mute action"
                 type="button"
                 aria-pressed="false"
                 data-strip-action="mute">
                 <Icon name="volume-2" class="unmuted" />
                 <Icon name="volume-x" class="muted" />
             </button>
-            <button class="button button--solo" type="button" aria-pressed="false" data-strip-action="solo">
+            <button class="button button--solo action" type="button" aria-pressed="false" data-strip-action="solo">
                 S
             </button>
-            <button class="button button--icon" type="button" aria-pressed="false" data-strip-action="link">
+            <button class="button button--icon action" type="button" aria-pressed="false" data-strip-action="link">
                 <Icon name="link" />
             </button>
         </div>
@@ -63,7 +67,8 @@ import Slider from "../ui/Slider.astro";
 <style>
     /*
      * Each strip spans three rows of the strip list's grid in src/pages/index.astro (head, fader,
-     * buttons) as a subgrid, so they line up across strips even when a name wraps.
+     * buttons) as a subgrid, so they line up across strips even when a name wraps. With TONE on
+     * (data-tone, set by the script) its fader takes the TONE ring's colour (src/styles/tone.css).
      */
     .strip {
         position: relative;
@@ -92,94 +97,27 @@ import Slider from "../ui/Slider.astro";
         overflow-wrap: anywhere;
     }
 
-    /* With TONE on, the fader takes the colour of the Volt's TONE ring; off, it keeps the accent. */
-    [data-tone="warmth"] {
-        --slider-colour: var(--color-fader-warmth);
-    }
-
-    [data-tone="focus"] {
-        --slider-colour: var(--color-fader-focus);
-    }
-
-    [data-tone="shine"] {
-        --slider-colour: var(--color-fader-shine);
-    }
-
-    /* The channel's icon, quiet beside its name. */
+    /* The channel's icon (cloned in by the script), quiet beside its name. */
     .strip-icon {
         display: inline-grid;
         color: var(--color-text-secondary);
-
-        & :global(.icon) {
-            inline-size: 1.125rem;
-            block-size: 1.125rem;
-        }
     }
 
-    /* Small and quiet, so they never compete with the fader. */
-    /* Below the name everything is centred on the strip, so the tags reach under the gear too. */
+    .strip-icon > :global(.icon) {
+        inline-size: 1.125rem;
+        block-size: 1.125rem;
+    }
+
+    /*
+     * TONE and 48V (.button--tag): small and quiet, so they never compete with the fader. Below the
+     * name everything is centred on the strip, so the tags reach under the gear too.
+     */
     .tags:not([hidden]) {
         display: flex;
         justify-content: center;
         gap: var(--space-between-lines);
         margin-block-start: var(--space-between-text);
         margin-inline-end: calc(-1 * (var(--size-icon) + var(--space-between-lines)));
-    }
-
-    .tag {
-        min-inline-size: 2.25rem;
-        padding: 0 0.25rem;
-        border: var(--border-width-default) solid var(--color-border-subtle);
-        border-radius: 4px;
-        background-color: transparent;
-        font-size: var(--font-size-meta);
-        font-weight: var(--font-weight-semi-bold);
-        line-height: 1.125rem;
-        text-align: center;
-        text-transform: uppercase;
-        color: var(--color-text-secondary);
-        cursor: pointer;
-
-        &:disabled {
-            cursor: default;
-            opacity: 0.5;
-        }
-
-        &:focus-visible {
-            outline-offset: 1px;
-        }
-    }
-
-    /* 48V: dim while off, lit red like the Volt's 48V label while on; line inputs have none. */
-    .tag--phantom[aria-pressed="true"] {
-        border-color: var(--color-background-danger);
-        background-color: var(--color-background-danger);
-        color: var(--color-text-on-danger);
-    }
-
-    /* TONE: dim while off, lit in the Volt's TONE ring colour otherwise; wide enough for "Warmth". */
-    .tag--tone {
-        --tone-fill: transparent;
-
-        min-inline-size: 3.75rem;
-
-        [data-tone="warmth"] & {
-            --tone-fill: var(--color-tone-warmth);
-        }
-
-        [data-tone="focus"] & {
-            --tone-fill: var(--color-tone-focus);
-        }
-
-        [data-tone="shine"] & {
-            --tone-fill: var(--color-tone-shine);
-        }
-
-        [data-tone]:not([data-tone="off"]) & {
-            border-color: var(--tone-fill);
-            background-color: var(--tone-fill);
-            color: var(--color-text-on-tone);
-        }
     }
 
     /* A quiet gear in the corner, partly in the padding, so the name keeps the width. */
@@ -193,15 +131,16 @@ import Slider from "../ui/Slider.astro";
         border-color: transparent;
         background-color: transparent;
         color: var(--color-text-secondary);
+    }
 
-        &:hover {
-            color: var(--color-text-primary);
-        }
+    .gear:hover {
+        color: var(--color-text-primary);
     }
 
     /*
-     * The fader, its scale and the meters are one centred block. The dB readout is centred under
-     * that whole block, not just the slider, so it lines up with the tags and buttons.
+     * The fader, its scale and the meters are one centred block. The dB readout (the Slider's
+     * own) is centred under that whole block, not just the slider, so it lines up with the tags
+     * and buttons.
      */
     .fader {
         position: relative;
@@ -209,29 +148,30 @@ import Slider from "../ui/Slider.astro";
         justify-content: center;
         gap: var(--space-between-text);
         padding-block-end: calc(var(--font-size-small) * var(--line-height-body) + var(--space-between-lines));
+    }
 
-        & :global(.value) {
-            position: absolute;
-            inset-inline: 0;
-            inset-block-end: 0;
-            text-align: center;
-        }
+    .fader > :global(.slider) > :global(.value) {
+        position: absolute;
+        inset-inline: 0;
+        inset-block-end: 0;
+        text-align: center;
     }
 
     .meters {
         display: flex;
-        gap: 3px;
+        gap: var(--space-between-meters);
         block-size: var(--size-fader-length);
         padding-block: calc(var(--size-slider-thumb) / 2);
+    }
 
-        & :global([data-meter=""]) {
-            display: none;
-        }
+    /* A mono strip has no name for its second meter, so it isn't shown. */
+    .meters > :global([data-meter=""]) {
+        display: none;
+    }
 
-        /* No meters at all (the Volt has none for this channel): no gap beside the fader either. */
-        &:not(:has(:global([data-meter]:not([data-meter=""])))) {
-            display: none;
-        }
+    /* No meters at all (the Volt has none for this channel): no gap beside the fader either. */
+    .meters:not(:has(> :global([data-meter]:not([data-meter=""])))) {
+        display: none;
     }
 
     /* M, S and Link are equal squares on one line, so every strip's button row matches. */
@@ -239,19 +179,20 @@ import Slider from "../ui/Slider.astro";
         display: flex;
         justify-content: center;
         gap: var(--space-between-lines);
-
-        & .button {
-            inline-size: var(--size-action-minimum);
-            padding: 0;
-        }
     }
 
-    .button--mute :global(.muted),
-    .button--mute[aria-pressed="true"] :global(.unmuted) {
+    .action {
+        inline-size: var(--size-action-minimum);
+        padding: 0;
+    }
+
+    /* A speaker, struck through while muted. */
+    .button--mute > :global(.muted),
+    .button--mute[aria-pressed="true"] > :global(.unmuted) {
         display: none;
     }
 
-    .button--mute[aria-pressed="true"] :global(.muted) {
+    .button--mute[aria-pressed="true"] > :global(.muted) {
         display: inline-block;
     }
 </style>

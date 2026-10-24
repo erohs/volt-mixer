@@ -10,7 +10,7 @@ const { summary, ...attributes } = Astro.props;
 
 <!-- Something that folds out on demand (a QR code, help): small accent text with the native marker. -->
 <details class="reveal" {...attributes}>
-    <summary>{summary}</summary>
+    <summary class="reveal-summary">{summary}</summary>
     <slot />
 </details>
 
@@ -18,20 +18,21 @@ const { summary, ...attributes } = Astro.props;
     .reveal {
         color: var(--color-text-secondary);
         font-size: var(--font-size-small);
+    }
 
-        & summary {
-            color: var(--color-text-accent);
-            cursor: pointer;
-        }
+    .reveal-summary {
+        color: var(--color-text-accent);
+        cursor: pointer;
+    }
 
-        & > :global(:not(summary)) {
-            margin-block-start: var(--space-between-text);
-        }
+    /* What it folds out is slotted: spaced from the summary, and a list set out like the page's. */
+    .reveal > :global(:not(summary)) {
+        margin-block-start: var(--space-between-text);
+    }
 
-        & :global(ul) {
-            display: grid;
-            gap: var(--space-between-lines);
-            padding-inline-start: 1.25rem;
-        }
+    .reveal > :global(ul) {
+        display: grid;
+        gap: var(--space-between-lines);
+        padding-inline-start: 1.25rem;
     }
 </style>

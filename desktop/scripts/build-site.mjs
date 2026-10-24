@@ -1,27 +1,27 @@
-// Builds the Astro site at the repository root into desktop/site, served from the root of the
-// app's own app://volt scheme (so BASE_PATH is "/").
+// Builds the Astro site at the repository root into desktop/site, as the app's own copy:
+// VOLT_TARGET=desktop serves it from the root of the app://volt scheme and leaves out the pages the
+// app opens on the website instead (astro.config.ts).
 import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { desktopHid } from "../../src/lib/desktop-hid.ts";
 
 const desktop = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const root = path.join(desktop, "..");
+const site = path.join(desktop, "site");
+
 // Astro's own CLI through Node, so no shell is involved on any system.
 execFileSync(
     process.execPath,
-    [path.join(root, "node_modules", "astro", "bin", "astro.mjs"), "build", "--outDir", path.join(desktop, "site")],
+    [path.join(root, "node_modules", "astro", "bin", "astro.mjs"), "build", "--outDir", site],
     {
         cwd: root,
         stdio: "inherit",
-        // The real site as the canonical address; the app itself is served from app://volt/.
-        env: { ...process.env, BASE_PATH: "/", SITE_ORIGIN: "https://naovixen.github.io" },
+        env: { ...process.env, VOLT_TARGET: "desktop" },
     },
 );
-// The app opens the guide on the website (desktop/src/windows.ts), so it doesn't carry a copy:
-// not its pages, nor their stylesheets and script (GuideLayout.astro).
-const site = path.join(desktop, "site");
-fs.rmSync(path.join(site, "guide"), { recursive: true, force: true });
-for (const file of fs.readdirSync(path.join(site, "_astro"))) {
-    if (/^(guide|GuideLayout)/.test(file)) fs.rmSync(path.join(site, "_astro", file));
-}
+
+// What main needs from the protocol (the Volts it may open, the report that dims them), from
+// src/lib, since main can't import it (src/lib/desktop-hid.ts, read by desktop/src/volt-hid.ts).
+fs.writeFileSync(path.join(site, "desktop-hid.json"), JSON.stringify(desktopHid()));

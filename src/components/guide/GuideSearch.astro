@@ -6,20 +6,22 @@ const indexUrl = `${import.meta.env.BASE_URL}guide/search.json`;
 
 <!-- Opened from the top bar, or with / or Ctrl+K; src/scripts/guide-search.ts fills in the results. -->
 <Dialog id="guide-search" title="Search the guide">
-    <form class="guide-search-form" role="search" data-guide-search-form data-index={indexUrl}>
-        <label class="visually-hidden" for="guide-search-input">
-            Search the guide
-        </label>
-        <input
-            id="guide-search-input"
-            type="search"
-            autocomplete="off"
-            spellcheck="false"
-            placeholder="Try link, 48V or headphones"
-            aria-describedby="guide-search-status"
-            data-guide-search-input
-        />
-    </form>
-    <p id="guide-search-status" class="guide-search-status" role="status" data-guide-search-status></p>
-    <ul class="guide-results" data-guide-search-results></ul>
+    <div class="guide-search">
+        <form class="guide-search-form" role="search" data-guide-search-form data-index={indexUrl}>
+            <label class="visually-hidden" for="guide-search-input">
+                Search the guide
+            </label>
+            <input
+                id="guide-search-input"
+                type="search"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Try link, 48V or headphones"
+                aria-describedby="guide-search-status"
+                data-guide-search-input
+            />
+        </form>
+        <p id="guide-search-status" class="hint" role="status" data-guide-search-status></p>
+        <ul class="guide-results" data-guide-search-results></ul>
+    </div>
 </Dialog>

@@ -1,12 +1,11 @@
 ---
 title: Volt Mixer guide
+navTitle: Overview
 description: How to use Volt Mixer, the free mixer control for the Universal Audio Volt 4 Gen 2, in Edge, Chrome, the desktop app and on your phone.
 lead: Volt Mixer controls the mixer inside your Universal Audio Volt 4 Gen 2 from Edge or Chrome, with nothing to install. This guide shows what every control does, and how to use them for everyday jobs.
+group: Start here
+order: 1
 ---
-
-import Callout from "../../components/guide/Callout.astro";
-import Parts from "../../components/guide/Parts.astro";
-import Shot from "../../components/guide/Shot.astro";
 
 <Shot
     name="overview"
@@ -33,24 +32,22 @@ The main parts of the page:
 
 ## Where to start
 
-<div class="cards">
-    <a class="card" href="getting-started/">
-        <strong>Getting started</strong>
-        Connect your Volt and choose a mix.
-    </a>
-    <a class="card" href="channels/">
-        <strong>Channels</strong>
-        Every part of a channel strip, from tone to link.
-    </a>
-    <a class="card" href="other-computers/">
-        <strong>Other computers</strong>
-        Take your mix to another computer, with a link or your phone.
-    </a>
-    <a class="card" href="use-cases/">
-        <strong>Use cases</strong>
-        Step by step: podcasts, headphone mixes, games consoles and more.
-    </a>
-</div>
+<Cards
+    cards={[
+        { href: "getting-started/", title: "Getting started", text: "Connect your Volt and choose a mix." },
+        { href: "channels/", title: "Channels", text: "Every part of a channel strip, from tone to link." },
+        {
+            href: "other-computers/",
+            title: "Other computers",
+            text: "Take your mix to another computer, with a link or your phone.",
+        },
+        {
+            href: "use-cases/",
+            title: "Use cases",
+            text: "Step by step: podcasts, headphone mixes, games consoles and more.",
+        },
+    ]}
+/>
 
 ## Find what you need
 

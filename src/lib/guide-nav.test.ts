@@ -1,15 +1,58 @@
 import { describe, expect, test } from "vitest";
-import { guideHref, guidePages, neighboursOf, slugOf } from "./guide-nav.ts";
+import { groupGuide, guideHref, neighboursOf, orderGuide, slugOfEntry, type IGuidePage } from "./guide-nav.ts";
 
-describe("Using guidePages, when the guide is listed", () => {
-    test("then it should start with the overview", () => {
-        expect(guidePages[0]?.slug).toBe("");
+/* Out of order on purpose, as a collection may list them. */
+const pages: IGuidePage[] = [
+    { slug: "troubleshooting", title: "Troubleshooting", group: "Help", order: 1 },
+    { slug: "getting-started", title: "Getting started", group: "Start here", order: 2 },
+    { slug: "channels", title: "Channels", group: "The mixer", order: 1 },
+    { slug: "", title: "Overview", group: "Start here", order: 1 },
+];
+
+describe("Using orderGuide, when the pages come in any order", () => {
+    test("then it should put them in reading order, group by group", () => {
+        expect(orderGuide(pages).map((page) => page.slug)).toEqual([
+            "",
+            "getting-started",
+            "channels",
+            "troubleshooting",
+        ]);
     });
 });
 
-describe("Using guidePages, when every page is listed", () => {
-    test("then no two pages should share a folder", () => {
-        expect(new Set(guidePages.map((page) => page.slug)).size).toBe(guidePages.length);
+describe("Using orderGuide, when the overview isn't first", () => {
+    test("then it should refuse the guide", () => {
+        expect(() => orderGuide(pages.filter((page) => page.slug !== ""))).toThrow(/overview/);
+    });
+});
+
+describe("Using orderGuide, when two pages claim one place", () => {
+    test("then it should refuse the guide", () => {
+        expect(() => orderGuide([...pages, { slug: "faq", title: "FAQ", group: "Help", order: 1 }])).toThrow(/"Help"/);
+    });
+});
+
+describe("Using groupGuide, when a group has no pages", () => {
+    test("then it should leave that group out", () => {
+        expect(groupGuide(pages).map((group) => group.title)).toEqual(["Start here", "The mixer", "Help"]);
+    });
+});
+
+describe("Using groupGuide, when a group has pages", () => {
+    test("then it should list them in order", () => {
+        expect(groupGuide(pages)[0]?.pages.map((page) => page.slug)).toEqual(["", "getting-started"]);
+    });
+});
+
+describe("Using slugOfEntry, when the file is the overview", () => {
+    test("then it should give the guide's own folder", () => {
+        expect(slugOfEntry("index")).toBe("");
+    });
+});
+
+describe("Using slugOfEntry, when the file is any other page", () => {
+    test("then it should give its own name", () => {
+        expect(slugOfEntry("channels")).toBe("channels");
     });
 });
 
@@ -25,33 +68,21 @@ describe("Using guideHref, when the page is the overview", () => {
     });
 });
 
-describe("Using slugOf, when the address is a page under a base folder", () => {
-    test("then it should give the page's folder", () => {
-        expect(slugOf("/volt-mixer/guide/channels/")).toBe("channels");
-    });
-});
-
-describe("Using slugOf, when the address is the overview", () => {
-    test("then it should give the overview's empty slug", () => {
-        expect(slugOf("/guide/")).toBe("");
-    });
-});
-
 describe("Using neighboursOf, when the page is the first", () => {
     test("then it should have nothing before it", () => {
-        expect(neighboursOf("").previous).toBeUndefined();
+        expect(neighboursOf(pages, "").previous).toBeUndefined();
     });
 });
 
 describe("Using neighboursOf, when the page is in the middle", () => {
-    test("then it should link the pages either side", () => {
-        const { previous, next } = neighboursOf("your-mix");
-        expect([previous?.slug, next?.slug]).toEqual(["getting-started", "channels"]);
+    test("then it should link the pages either side, across groups", () => {
+        const { previous, next } = neighboursOf(pages, "channels");
+        expect([previous?.slug, next?.slug]).toEqual(["getting-started", "troubleshooting"]);
     });
 });
 
 describe("Using neighboursOf, when the page isn't in the guide", () => {
     test("then it should have no neighbours", () => {
-        expect(neighboursOf("nowhere")).toEqual({});
+        expect(neighboursOf(pages, "nowhere")).toEqual({});
     });
 });

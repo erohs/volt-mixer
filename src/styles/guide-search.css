@@ -3,27 +3,20 @@
 /* Search: a field at the top of the dialog, its results as a list of links below. */
 
 #guide-search {
-    inline-size: min(40rem, 100% - 2 * var(--space-padding-page));
+    --dialog-size: 40rem;
+
     max-block-size: min(40rem, 100dvh - 4rem);
     margin-block-start: 8dvh;
+}
 
-    & .body {
-        gap: var(--space-between-content);
-    }
+.guide-search {
+    display: grid;
+    gap: var(--space-between-content);
 }
 
 .guide-search-form input {
     inline-size: 100%;
     font-size: var(--font-size-body);
-}
-
-.guide-search-status {
-    color: var(--color-text-secondary);
-    font-size: var(--font-size-small);
-
-    &:empty {
-        display: none;
-    }
 }
 
 .guide-results {
@@ -49,7 +42,6 @@
     }
 
     & mark {
-        border-radius: 2px;
         background-color: transparent;
         color: var(--color-text-accent);
         font-weight: var(--font-weight-semi-bold);

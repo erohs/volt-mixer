@@ -2,10 +2,12 @@ import { desktopApp, type IPhoneInfo } from "./desktop.ts";
 import { setText } from "./dom.ts";
 import { drawQr } from "./qr.ts";
 
-/* Settings › Desktop app › Phone remote: the pairing QR code, the address and New code. */
+/*
+ * Settings › Desktop app › Phone remote: the pairing QR code, the address and New code. The app
+ * tells the page each time the remote's state changes (desktop/src/phone.ts).
+ */
 
 const panel = (): HTMLElement | null => document.querySelector<HTMLElement>("[data-phone]");
-const pollMs = 3000;
 
 /** The pill above the code: green once a phone is in, amber for a problem. */
 const status = (info: IPhoneInfo): { text: string; state: string } => {
@@ -18,10 +20,16 @@ const status = (info: IPhoneInfo): { text: string; state: string } => {
 let shownLink = "";
 let shownAddresses = "";
 
-/** The address choice, rebuilt only when the list changes, so it never changes under the user. */
+/**
+ * The address choice, rebuilt only when the list changes, so it never changes under the user.
+ * It's shown when there's a choice to make, or when the remote's address isn't one of this
+ * computer's (another network): then nothing is chosen, so picking the only one still counts.
+ */
 const renderAddresses = (element: HTMLElement, info: IPhoneInfo): void => {
     const select = element.querySelector<HTMLSelectElement>("[data-phone-address]")!;
-    element.querySelector<HTMLElement>("[data-phone-address-row]")!.hidden = info.addresses.length < 2;
+    const isHere = info.addresses.some(({ address }) => address === info.address);
+    const row = element.querySelector<HTMLElement>("[data-phone-address-row]")!;
+    row.hidden = info.addresses.length === 0 || (isHere && info.addresses.length < 2);
     const addresses = JSON.stringify(info.addresses);
     if (addresses !== shownAddresses) {
         shownAddresses = addresses;
@@ -29,10 +37,11 @@ const renderAddresses = (element: HTMLElement, info: IPhoneInfo): void => {
             ...info.addresses.map(({ address, name }) => new Option(`${address} (${name})`, address)),
         );
     }
-    if (select.value !== info.address) select.value = info.address;
+    if (!isHere) select.selectedIndex = -1;
+    else if (select.value !== info.address) select.value = info.address;
 };
 
-/* Polled every few seconds, so only what changed is written (the status is a live region). */
+/* Only what changed is written (the status is a live region). */
 const render = (info: IPhoneInfo | null): void => {
     const element = panel();
     if (!element || !info) return;
@@ -46,12 +55,10 @@ const render = (info: IPhoneInfo | null): void => {
     renderAddresses(element, info);
 };
 
-/** Shows the panel while Phone remote is on; the server may take a moment to start. */
+/** Shows the panel while Phone remote is on. */
 export const refreshPhone = (isOn: boolean): void => {
     const element = panel();
-    if (!element) return;
-    element.hidden = !isOn;
-    if (isOn) window.setTimeout(() => void desktopApp()?.phoneInfo().then(render), 300);
+    if (element) element.hidden = !isOn;
 };
 
 export const wirePhone = (): void => {
@@ -60,13 +67,8 @@ export const wirePhone = (): void => {
     if (!element || !app) return;
     element.querySelector("[data-phone-rotate]")!.addEventListener("click", () => void app.rotatePhone().then(render));
     element.querySelector("[data-phone-address]")!.addEventListener("change", (event) => {
-        void app
-            .setSettings({ phoneAddress: (event.target as HTMLSelectElement).value })
-            .then(() => refreshPhone(true));
+        void app.setSettings({ phoneAddress: (event.target as HTMLSelectElement).value });
     });
-    // While Settings is open, keep the phone count and any error current.
-    window.setInterval(() => {
-        const isShown = !element.hidden && element.closest("dialog")?.open === true;
-        if (isShown) void app.phoneInfo().then(render);
-    }, pollMs);
+    app.onPhoneStatus(render);
+    void app.phoneInfo().then(render);
 };

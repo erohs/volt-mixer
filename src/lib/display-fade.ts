@@ -8,7 +8,7 @@ import { brightnessModel } from "./slider-models.ts";
  */
 
 export const dimmedBrightness = 1;
-/** What a page fades back to when it remembers nothing else: UA's default. */
+/** UA's default (raw), as a new Volt has it; what a page fades back to when it remembers nothing else. */
 export const defaultBrightness = 217;
 
 export const isDimmed = (raw: number): boolean => raw === dimmedBrightness;

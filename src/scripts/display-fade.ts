@@ -1,10 +1,8 @@
-import { brightness } from "../lib/commands.ts";
 import { defaultBrightness, dimmedBrightness, fadeLevels, isDimmed } from "../lib/display-fade.ts";
 import { app, isLive } from "./app-state.ts";
 import { desktopApp } from "./desktop.ts";
 import { runIntent } from "./run-intent.ts";
 import { loadBrightness, saveBrightness } from "./store.ts";
-import { connectedSpec } from "./volt-connection.ts";
 
 /*
  * The desktop app dims the Volt's display as its computer sleeps or shuts down, and whichever page
@@ -35,7 +33,7 @@ const fadeTo = async (target: number): Promise<void> => {
 };
 
 /** Remembers the brightness and dims straight away (stopping a fade); false when there's nothing to dim. */
-export const dimDisplay = (): boolean => {
+const dimDisplay = (): boolean => {
     const raw = brightnessNow();
     if (!isLive() || raw <= dimmedBrightness) return false;
     saveBrightness(app.serial, raw);
@@ -50,17 +48,21 @@ export const rememberBrightness = (raw: number): void => {
     if (!isDimmed(raw)) saveBrightness(app.serial, raw);
 };
 
-/** Gives the desktop app the report that dims this Volt, which it sends itself at shutdown. */
-const handOverDimReport = (): void => {
-    const spec = connectedSpec();
-    if (!spec || !isLive()) return;
-    const { reportId, data } = brightness(spec, dimmedBrightness);
-    desktopApp()?.setDimReport([reportId, ...data]);
+let reportedLive: boolean | null = null;
+
+/**
+ * Tells the desktop app whether this page drives a Volt, which it then dims itself at shutdown;
+ * called on every refresh, it says so only when that changes (connecting, Use anyway, disconnecting).
+ */
+export const reportVoltLive = (): void => {
+    const live = isLive();
+    if (live === reportedLive) return;
+    reportedLive = live;
+    desktopApp()?.setVoltLive(live);
 };
 
 /** Once the Volt's state is known: fades back up if Volt Mixer dimmed it, or remembers the brightness. */
 export const undimDisplay = (): void => {
-    handOverDimReport();
     const raw = brightnessNow();
     if (!isDimmed(raw)) return rememberBrightness(raw);
     if (isLive()) void fadeTo(loadBrightness(app.serial) ?? defaultBrightness);

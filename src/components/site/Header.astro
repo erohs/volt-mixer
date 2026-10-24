@@ -34,25 +34,12 @@ import Icon from "../ui/Icon.astro";
         background-color: var(--color-background-surface);
     }
 
-    /* On one baseline, so the smaller status text lines up with the title. */
+    /* On one baseline, so the smaller status text (.status, shared with the tray) lines up with the title. */
     .title {
         display: flex;
         flex-grow: 1;
         flex-wrap: wrap;
         align-items: baseline;
         gap: 0 var(--space-between-content);
-    }
-
-    .status {
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
-
-        &[data-status="on"] {
-            color: var(--color-text-success);
-        }
-
-        &[data-status="away"] {
-            color: var(--color-text-warning);
-        }
     }
 </style>

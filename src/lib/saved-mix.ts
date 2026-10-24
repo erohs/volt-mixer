@@ -1,14 +1,12 @@
 import { isChannelIcon } from "./channel-icons.ts";
-import { bytesToBase64Url, base64UrlToBytes } from "./base64url.ts";
 import { minDb } from "./gain.ts";
-import { decodeMixCode } from "./mix-code.ts";
 import { clamp, isFiniteNumber } from "./numbers.ts";
 import {
     channels,
     defaultChannel,
     hardwarePairs,
+    isAlwaysLinked,
     isChannelId,
-    matchQuieterMix,
     pairs,
     pairKey,
     setLinked,
@@ -82,9 +80,10 @@ export const applySavedMix = (state: IMixerState, value: unknown, maxDb: number)
     }
     const linked = record(saved["linked"]);
     for (const pair of pairs) {
-        state.linked[pairKey(pair)] = flag(linked[pairKey(pair)], Boolean(state.linked[pairKey(pair)]));
-        // A saved pair's sides should match; if they don't, the quieter one wins.
-        if (state.linked[pairKey(pair)]) matchQuieterMix(state, pair);
+        const isOn = isAlwaysLinked(pair) || flag(linked[pairKey(pair)], Boolean(state.linked[pairKey(pair)]));
+        // Linking evens out a saved pair whose sides differ (the quieter wins) and sets its pans.
+        if (isOn) setLinked(state, pair, true);
+        else state.linked[pairKey(pair)] = false;
     }
     const cues = record(saved["cues"]);
     state.cues = { cue1: readCue(cues["cue1"]), cue2: readCue(cues["cue2"]) };
@@ -127,27 +126,4 @@ export const adoptSavedMix = (state: IMixerState, value: unknown, maxDb: number)
         if (channel && isMuted !== undefined) channel.isMuted = isMuted;
     }
     state.isMixOwned = true;
-};
-
-/** A mix as a URL-safe code, for the `#mix=` link that carries it to another computer. */
-export const encodeMix = (mix: ISavedMix): string => bytesToBase64Url(new TextEncoder().encode(JSON.stringify(mix)));
-
-/** Decodes a mix code; null when it isn't one. */
-export const decodeMix = (code: string): unknown => {
-    try {
-        return JSON.parse(new TextDecoder().decode(base64UrlToBytes(code)));
-    } catch {
-        return null;
-    }
-};
-
-/** Whether an address carries a mix: `#m=` (short) or `#mix=` (older links). */
-export const isMixHash = (hash: string): boolean => /^#(m|mix)=/.test(hash);
-
-/** The mix in a link's address: `#m=` (short) or `#mix=` (older links); null when there's none. */
-export const mixFromHash = (hash: string): unknown => {
-    const short = hash.match(/^#m=([\w-]+)$/)?.[1];
-    if (short) return decodeMixCode(short);
-    const long = hash.match(/^#mix=([\w-]+)$/)?.[1];
-    return long ? decodeMix(long) : null;
 };

@@ -1,12 +1,14 @@
 import type { RemoteIntent } from "../lib/intents.ts";
+import { site } from "../lib/site.ts";
+import { newestSpec } from "../lib/spec.ts";
 import type { ITrayRow } from "../lib/tray-rows.ts";
-import { desktopApp } from "./desktop.ts";
+import { trayApp } from "./desktop.ts";
 import { setText } from "./dom.ts";
 import { cloneIcon } from "./icons.ts";
 import { loadTheme } from "./store.ts";
 import { applyTheme } from "./theme.ts";
 import type { ITraySnapshot, RemoteMessage } from "./remote.ts";
-import { initSliders, setSliderValue } from "./slider.ts";
+import { initSliders, setSliderValue, useSliderSpec } from "./slider.ts";
 import { openTrayLink, type LinkStatus } from "./tray-link.ts";
 
 /*
@@ -16,6 +18,22 @@ import { openTrayLink, type LinkStatus } from "./tray-link.ts";
  */
 
 const link = openTrayLink();
+/**
+ * This window's name in hello and bye, kept for the window's life (a reload keeps it), so a tray
+ * that reloads is still the one that will say bye. Not crypto.randomUUID: a phone's plain-HTTP
+ * page lacks it.
+ */
+const trayId = ((): string => {
+    const key = "volt-mixer.tray-id";
+    const fresh = Math.random().toString(36).slice(2);
+    try {
+        const kept = sessionStorage.getItem(key) ?? fresh;
+        sessionStorage.setItem(key, kept);
+        return kept;
+    } catch {
+        return fresh;
+    }
+})();
 const list = (): HTMLElement => document.querySelector<HTMLElement>("[data-tray-rows]")!;
 const note = (): HTMLElement => document.querySelector<HTMLElement>("[data-tray-note]")!;
 let rows: ITrayRow[] = [];
@@ -26,9 +44,23 @@ const inputHoldMs = 400;
 
 const post = (message: RemoteMessage): void => link.send(message);
 
-const showNote = (text: string): void => {
+let linkStatus: LinkStatus = "connected";
+let lastSnapshot: ITraySnapshot | null = null;
+/** No snapshot came for a while: the main window isn't open. */
+let isUnanswered = false;
+
+/** What the note under the rows says, from the link and the last snapshot: one thing at a time. */
+const noteText = (): string => {
+    if (linkStatus !== "connected") return phoneStatus[linkStatus];
+    if (!lastSnapshot) return isUnanswered ? "Open Volt Mixer to connect to the Volt." : "";
+    const isMixMissing = lastSnapshot.isLive && !lastSnapshot.isMixOwned;
+    return isMixMissing ? "Set up your mix in the main window first: the faders work once this computer has it." : "";
+};
+
+const showNote = (): void => {
+    const text = noteText();
+    // Empty, it takes no space and says nothing; it stays in place, as a live region must.
     setText(note(), text);
-    note().hidden = !text;
 };
 
 const rowTemplate = (): Element =>
@@ -62,11 +94,17 @@ const updateRow = (item: HTMLElement, row: ITrayRow, snapshot: ITraySnapshot): v
     mute.disabled = !snapshot.isLive;
 };
 
-/** On a phone, a link that takes this computer's mix with it (to the website, which keeps it). */
+/** On a phone, a link that takes this computer's mix with it: to the website (which keeps it), and nowhere else. */
 const showKeepLink = (mixLink: string | null): void => {
     const keep = document.querySelector<HTMLAnchorElement>("[data-tray-keep]")!;
-    keep.hidden = !link.isPhone || !mixLink;
-    if (mixLink && keep.href !== mixLink) keep.href = mixLink;
+    const isWebsite = mixLink !== null && mixLink.startsWith(site.websiteUrl);
+    keep.hidden = !link.isPhone || !isWebsite;
+    if (isWebsite && keep.href !== mixLink) keep.href = mixLink;
+};
+
+/** The faders' range is the connected Volt's, as the main window says. */
+const useFaderRange = (maxDb: number): void => {
+    if (lastSnapshot?.maxDb !== maxDb) useSliderSpec({ ...newestSpec(), faderMaxDb: maxDb });
 };
 
 const render = (snapshot: ITraySnapshot): void => {
@@ -74,6 +112,7 @@ const render = (snapshot: ITraySnapshot): void => {
     // Just the connection: "Connected · firmware 1.0.3" is more than the tray needs.
     setText(status, snapshot.status.split(" · ")[0] ?? "");
     status.dataset["status"] = snapshot.statusKind;
+    useFaderRange(snapshot.maxDb);
     const key = snapshot.rows.map((row) => `${row.key}:${row.icon}:${row.name}`).join("|");
     if (key !== layoutKey) {
         list().replaceChildren(...snapshot.rows.map(buildRow));
@@ -84,7 +123,8 @@ const render = (snapshot: ITraySnapshot): void => {
     showKeepLink(snapshot.mixLink);
     const items = list().querySelectorAll<HTMLElement>("[data-tray-row]");
     snapshot.rows.forEach((row, i) => items[i] && updateRow(items[i], row, snapshot));
-    if (!note().textContent?.startsWith("Set up")) showNote("");
+    lastSnapshot = snapshot;
+    showNote();
 };
 
 const rowOf = (element: Element): ITrayRow | undefined => {
@@ -131,8 +171,6 @@ const restoreTip = (event: PointerEvent | FocusEvent): void => {
 
 const onMessage = (message: Partial<RemoteMessage> | null): void => {
     if (message?.kind === "snapshot" && message.snapshot) render(message.snapshot);
-    if (message?.kind === "result" && message.result === "needsMix")
-        showNote("Set up your mix in the main window first: the faders work once this computer has it.");
 };
 
 /**
@@ -146,7 +184,7 @@ const neededHeight = (): number => {
     return part(".head") + part("[data-tray-content]") + padding + part(".foot");
 };
 
-const fitWindow = (): void => desktopApp()?.fitTray(Math.ceil(neededHeight()));
+const fitWindow = (): void => trayApp()?.fitTray(Math.ceil(neededHeight()));
 
 const phoneStatus: Record<LinkStatus, string> = {
     connected: "",
@@ -157,7 +195,7 @@ const phoneStatus: Record<LinkStatus, string> = {
 
 /** In a browser there's no app: Open is a plain link to the page, and there's nothing to close. */
 const wireButtons = (): void => {
-    const desktop = desktopApp();
+    const desktop = trayApp();
     const close = document.querySelector<HTMLButtonElement>("[data-tray-close]")!;
     close.hidden = !desktop;
     // On a phone the computer's page can't be opened, so the footer goes.
@@ -178,16 +216,19 @@ export const startTray = (): void => {
     document.addEventListener("keydown", dismissTips);
     list().addEventListener("pointerout", restoreTip);
     list().addEventListener("focusout", restoreTip);
-    link.listen(onMessage, (status) => showNote(phoneStatus[status]));
-    window.addEventListener("pagehide", () => post({ kind: "bye" }));
+    link.listen(onMessage, (status) => ((linkStatus = status), showNote()));
+    window.addEventListener("pagehide", () => post({ kind: "bye", id: trayId }));
+    // Back from the back/forward cache, the page says hello again, as when it first opened.
+    window.addEventListener("pageshow", (event) => event.persisted && post({ kind: "hello", id: trayId }));
     wireButtons();
     new ResizeObserver(fitWindow).observe(document.querySelector("[data-tray-content]")!);
     // The theme is chosen in the main window's Settings; follow it live.
     window.addEventListener("storage", (event) => event.key === "volt-mixer.theme" && applyTheme(loadTheme()));
     // Hello now, so the window is sized while still hidden, then updates only while it's shown.
-    post({ kind: "hello" });
-    desktopApp()?.onTrayVisible((isVisible) => post({ kind: isVisible ? "hello" : "bye" }));
+    post({ kind: "hello", id: trayId });
+    trayApp()?.onTrayVisible((isVisible) => post({ kind: isVisible ? "hello" : "bye", id: trayId }));
     window.setTimeout(() => {
-        if (layoutKey === "" && rows.length === 0) showNote("Open Volt Mixer to connect to the Volt.");
+        isUnanswered = true;
+        showNote();
     }, 1500);
 };

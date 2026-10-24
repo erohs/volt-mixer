@@ -1,27 +1,30 @@
 ---
-import type { SvgComponent } from "astro/types";
-
 interface Props {
     name: string;
     class?: string;
 }
 
-const icons = import.meta.glob<{ default: SvgComponent }>("../../icons/*.svg", { eager: true });
+/*
+ * The icons as text, inlined where they're used: imported as components they'd also be emitted as
+ * files the page never loads.
+ */
+const icons = import.meta.glob<string>("../../icons/*.svg", { query: "?raw", import: "default", eager: true });
 const { name, class: className } = Astro.props;
-const icon = icons[`../../icons/${name}.svg`];
+const svg = icons[`../../icons/${name}.svg`];
 
-if (icon === undefined) {
+if (svg === undefined) {
     throw new Error(`No icon named "${name}" in src/icons.`);
 }
 
-const Svg = icon.default;
+const classes = ["icon", className].filter(Boolean).join(" ");
+const markup = svg.replace("<svg ", `<svg class="${classes}" width="24" height="24" aria-hidden="true" `);
 ---
 
-<Svg class:list={["icon", className]} width="24" height="24" aria-hidden="true" />
+<Fragment set:html={markup} />
 
 <style>
     /* Defaults only: no specificity, so a size or display set where the icon is placed always wins. */
-    :where(.icon) {
+    :global(:where(.icon)) {
         display: inline-block;
         flex-shrink: 0;
         inline-size: 1.1em;

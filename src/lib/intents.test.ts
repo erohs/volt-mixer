@@ -133,14 +133,36 @@ describe("Using isRemoteIntent, when a message names an inherited property as it
     });
 });
 
-describe("Using isRemoteIntent, when a monitor mute message arrives", () => {
+describe("Using isRemoteIntent, when a monitor mute message says where it goes", () => {
     test("then it should accept it", () => {
-        expect(isRemoteIntent({ type: "monitorMute" })).toBe(true);
+        expect(isRemoteIntent({ type: "monitorMute", to: true })).toBe(true);
+    });
+});
+
+describe("Using isRemoteIntent, when a monitor mute message would flip it", () => {
+    test("then it should reject it, as a repeated message would undo it", () => {
+        expect(isRemoteIntent({ type: "monitorMute" })).toBe(false);
+    });
+});
+
+describe("Using isRemoteIntent, when a channel mute message would flip it", () => {
+    test("then it should reject it", () => {
+        expect(isRemoteIntent({ type: "mute", ids: ["in1"] })).toBe(false);
+    });
+});
+
+describe.each([
+    { type: "solo", ids: ["in1"], to: true },
+    { type: "link", id: "in3" },
+    { type: "monitorMono", to: true },
+])("Using isRemoteIntent on a page-only change ($type)", (intent) => {
+    test("then it should reject it", () => {
+        expect(isRemoteIntent(intent)).toBe(false);
     });
 });
 
 describe("Using applyIntent, when a mute asks for a state rather than a flip", () => {
-    test("then sending it twice should leave the channel muted", () => {
+    test("then it should leave the channel muted when sent twice", () => {
         const state = after({ type: "mute", ids: ["loopbackL", "loopbackR"], to: true });
         expect(
             after({ type: "mute", ids: ["loopbackL", "loopbackR"], to: true }, state).channels["loopbackL"]?.isMuted,
@@ -157,5 +179,35 @@ describe("Using applyIntent, when headphone mute asks to be off and it already i
 describe("Using isRemoteIntent, when a switch's target isn't true or false", () => {
     test("then it should reject it", () => {
         expect(isRemoteIntent({ type: "monitorMute", to: "yes" })).toBe(false);
+    });
+});
+
+describe("Using applyIntent, when the link button is pressed on Loopback", () => {
+    test("then it should keep it linked, as it's always stereo", () => {
+        expect(after({ type: "link", id: "loopbackL" }).linked["loopbackL-loopbackR"]).toBe(true);
+    });
+});
+
+describe("Using applyIntent, when a view sends a fader move for one side of a linked pair", () => {
+    test("then it should move both sides", () => {
+        expect(after({ type: "fader", ids: ["in3"], db: -9 }).channels.in4.fader).toBe(-9);
+    });
+});
+
+describe("Using applyIntent, when a view sends a cue send for one side of a linked pair", () => {
+    test("then it should set both sides", () => {
+        expect(after({ type: "cueSend", ids: ["in3"], cue: "cue1", db: -9 }).channels.in4.cue1.db).toBe(-9);
+    });
+});
+
+describe("Using applyIntent, when a view sends a pan for one side of a linked pair", () => {
+    test("then it should leave the other side's pan alone", () => {
+        expect(after({ type: "pan", id: "in3", pan: -0.5 }).channels.in4.pan).toBe(1);
+    });
+});
+
+describe("Using applyIntent, when the monitor level asks for more than Console's scale", () => {
+    test("then it should stop at 100", () => {
+        expect(after({ type: "monitorLevel", level: 400 }).monitor.level).toBe(100);
     });
 });

@@ -6,18 +6,20 @@ interface Props {
     title: string;
     /** Folds away (a native <details>), for settings used now and then. */
     isCollapsible?: boolean;
+    /** data-* attributes for the scripts, e.g. data-channel-icon. */
+    [attribute: `data-${string}`]: string | boolean;
 }
 
-const { id, title, isCollapsible = false } = Astro.props;
+const { id, title, isCollapsible = false, ...attributes } = Astro.props;
 ---
 
 {isCollapsible ? (
-    <details class="group" data-group={id}>
+    <details class="group" data-group={id} {...attributes}>
         <summary class="head">
             <span class="title" id={`${id}-heading`}>
                 {title}
             </span>
-            <span class="state" data-group-state={id} />
+            <span class="state hint" data-group-state={id} />
             <Icon name="chevron-down" class="chevron" />
         </summary>
         <div class="rows">
@@ -25,7 +27,7 @@ const { id, title, isCollapsible = false } = Astro.props;
         </div>
     </details>
 ) : (
-    <section class="group" aria-labelledby={`${id}-heading`} data-group={id}>
+    <section class="group" aria-labelledby={`${id}-heading`} data-group={id} {...attributes}>
         <h3 class="head title" id={`${id}-heading`}>
             {title}
         </h3>
@@ -63,7 +65,7 @@ const { id, title, isCollapsible = false } = Astro.props;
         align-items: center;
         gap: var(--space-between-text);
         min-block-size: var(--size-action-minimum);
-        margin: calc(-1 * var(--space-between-text)) 0;
+        margin-block: calc(-1 * var(--space-between-text));
         cursor: pointer;
         list-style: none;
 
@@ -74,20 +76,18 @@ const { id, title, isCollapsible = false } = Astro.props;
 
     .state {
         flex-grow: 1;
-        color: var(--color-text-secondary);
-        font-size: var(--font-size-small);
         font-variant-numeric: tabular-nums;
         text-align: end;
     }
 
-    .head :global(.chevron) {
+    .head > :global(.chevron) {
         inline-size: var(--size-icon);
         block-size: var(--size-icon);
         color: var(--color-text-secondary);
         transition: rotate var(--duration-fast) var(--easing-standard);
     }
 
-    details[open] :global(.chevron) {
+    details[open] > .head > :global(.chevron) {
         rotate: 180deg;
     }
 

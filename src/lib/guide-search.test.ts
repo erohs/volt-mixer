@@ -109,3 +109,32 @@ describe("Using snippetOf, when the text is short", () => {
         expect(snippetOf("Plays only soloed channels.", ["solo"])).toBe("Plays only soloed channels.");
     });
 });
+
+describe("Using snippetOf, when the text before the match has no space to cut at", () => {
+    test("then it should cut mid-word and still mark the cut", () => {
+        expect(snippetOf(`${"a".repeat(100)}-solo`, ["solo"], 10)).toBe(`…${"a".repeat(9)}-solo`);
+    });
+});
+
+describe("Using snippetOf, when the text after the match has no space to cut at", () => {
+    test("then it should cut mid-word, not keep nearly all of it", () => {
+        expect(snippetOf(`solo-${"b".repeat(100)}`, ["solo"], 10)).toBe(`solo-${"b".repeat(15)}…`);
+    });
+});
+
+describe("Using snippetOf, when the text has no space at all", () => {
+    test("then it should keep the match, cut on both sides", () => {
+        expect(snippetOf(`${"a".repeat(50)}-solo-${"b".repeat(50)}`, ["solo"], 10)).toMatch(/^…a+-solo-b+…$/);
+    });
+});
+
+describe("Using sectionsOf, when a page has two headings", () => {
+    test("then it should give the text before them and each section", () => {
+        const html = '<p>Intro</p><h2 id="one">One</h2><p>First</p><h2 id="two">Two</h2><p>Second</p>';
+        expect(sectionsOf("Page", "/guide/", html).map((section) => section.text)).toEqual([
+            "Intro",
+            "First",
+            "Second",
+        ]);
+    });
+});

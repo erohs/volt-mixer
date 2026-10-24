@@ -1,0 +1,61 @@
+/*
+ * A choice drawn as a tile: a native radio laid invisibly over its label, so the label is what's
+ * seen and pressed while the radio keeps its keyboard and screen reader behaviour. Checked, it
+ * fills (--choice-fill, --choice-text and --choice-edge change the colours); in forced colours it
+ * also gets an outline, since the fill isn't drawn there. A segment has an edge at rest.
+ */
+.choice {
+    position: relative;
+    display: grid;
+    place-items: center;
+    border: var(--border-width-default) solid transparent;
+    border-radius: var(--radius-small);
+    color: var(--color-text-primary);
+    cursor: pointer;
+
+    & input {
+        position: absolute;
+        inset: 0;
+        margin: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    &:hover {
+        border-color: var(--color-border);
+    }
+
+    &:has(:checked) {
+        border-color: var(--choice-edge, var(--color-background-accent));
+        background-color: var(--choice-fill, var(--color-background-accent));
+        color: var(--choice-text, var(--color-text-on-accent));
+    }
+
+    &:has(:focus-visible) {
+        outline: var(--border-width-highlight) solid var(--color-focus);
+        outline-offset: 2px;
+    }
+
+    &:has(:disabled) {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+}
+
+.choice--segment {
+    min-block-size: var(--size-action-minimum);
+    border-color: var(--color-border);
+    background-color: var(--color-background-surface);
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-semi-bold);
+
+    &:has(:checked) {
+        border-width: var(--border-width-standout);
+    }
+}
+
+@media (forced-colors: active) {
+    .choice:has(:checked) {
+        outline: var(--border-width-standout) solid Highlight;
+    }
+}

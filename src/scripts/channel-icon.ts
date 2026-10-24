@@ -5,7 +5,7 @@ import { app, hooks } from "./app-state.ts";
 import { desktopApp } from "./desktop.ts";
 import { cloneIcon } from "./icons.ts";
 import { runPageIntent } from "./run-intent.ts";
-import { loadTrayHidden, saveTrayHidden } from "./store.ts";
+import { saveTrayHidden } from "./store.ts";
 
 /*
  * The channel dialog's card with the channel's icon and name, as its strip shows them. The icon
@@ -48,7 +48,7 @@ export const refreshChannelIcon = (ids: ChannelId[]): void => {
     if (!element || id === undefined) return;
     element.querySelector<HTMLElement>("[data-channel-tray-show]")!.hidden = desktopApp() === null;
     showCurrentIcon(iconOf(app.state.icons, id));
-    for (const input of fields("show")) input.checked = isShownInTray(ids, loadTrayHidden());
+    for (const input of fields("show")) input.checked = isShownInTray(ids, app.view.trayHidden);
     // Without a choice of its own, Default is ticked rather than the icon it falls back to.
     const chosen = isChannelIcon(app.state.icons[id]) ? app.state.icons[id] : "";
     for (const input of fields("icon")) input.checked = input.value === chosen;
@@ -57,8 +57,9 @@ export const refreshChannelIcon = (ids: ChannelId[]): void => {
 };
 
 const setShown = (ids: ChannelId[], isShown: boolean): void => {
-    const hidden = loadTrayHidden().filter((id) => !(ids as string[]).includes(id));
-    saveTrayHidden(isShown ? hidden : [...hidden, ...ids]);
+    const hidden = app.view.trayHidden.filter((id) => !(ids as string[]).includes(id));
+    app.view.trayHidden = isShown ? hidden : [...hidden, ...ids];
+    saveTrayHidden(app.view.trayHidden);
     hooks.refresh();
 };
 
