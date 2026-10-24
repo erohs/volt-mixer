@@ -49,6 +49,8 @@ export const saveMix = (serial: string, mix: ISavedMix | null): void => {
 /** A mix opened from a link before the Volt connected; applied once it does. */
 export const loadPendingMix = (): unknown => read(pendingKey);
 export const savePendingMix = (mix: unknown): void => write(pendingKey, mix);
+/** Another tab kept a mix from a link (a storage event; this tab's own writes don't fire one). */
+export const isPendingMixChange = (event: StorageEvent): boolean => event.key === pendingKey && event.newValue !== null;
 
 /** Digital inputs start hidden and the loopback channel shown, as in Console. */
 export const loadView = (): IStripView => {

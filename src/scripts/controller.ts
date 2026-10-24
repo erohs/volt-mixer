@@ -17,6 +17,7 @@ import {
     receiveMixLink,
     saveMixNow,
     takeOwnership,
+    takeLinksFromOtherTabs,
     takeSavedMix,
 } from "./mix-ownership.ts";
 import { restartMixPause, wireMixPause } from "./mix-pause.ts";
@@ -163,6 +164,7 @@ const wirePage = (): void => {
         if (receiveMixLink(input.value)) input.value = "";
     });
     window.addEventListener("hashchange", readMixFromAddress);
+    takeLinksFromOtherTabs();
     window.addEventListener("pagehide", saveMixNow);
 };
 

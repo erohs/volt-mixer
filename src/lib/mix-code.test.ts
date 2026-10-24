@@ -3,7 +3,7 @@ import { channelIcons } from "./channel-icons.ts";
 import { minDb } from "./gain.ts";
 import { decodeMixCode, encodeMixCode } from "./mix-code.ts";
 import { channels, defaultState, pairs, setLinked } from "./mixer.ts";
-import { applySavedMix, encodeMix, mixFromHash, toSavedMix, type ISavedMix } from "./saved-mix.ts";
+import { applySavedMix, encodeMix, isMixHash, mixFromHash, toSavedMix, type ISavedMix } from "./saved-mix.ts";
 
 /** A mix like a real one: a few channels moved, a pair linked, a name and an icon. */
 const typicalMix = (): ISavedMix => {
@@ -137,5 +137,16 @@ describe("Using the mix code's orders, when they're checked against the format",
 
     test("then the first icons should be in the order the code was written for", () => {
         expect(Object.keys(channelIcons).slice(0, 4).join(",")).toBe("mic,mic-vocal,headset,headphones");
+    });
+});
+
+describe.each([
+    ["#m=AgAAAA", true],
+    ["#mix=eyJ2ZXJzaW9uIjoxfQ", true],
+    ["#t=pairing-token", false],
+    ["#main", false],
+])("Using isMixHash on %s", (hash, isMix) => {
+    test(`then it should say ${isMix ? "it's" : "it isn't"} a mix link`, () => {
+        expect(isMixHash(hash)).toBe(isMix);
     });
 });
