@@ -40,6 +40,7 @@ Mixer `dst` IDs: `00/01` Monitor mix L/R, `02/03` Cue 1 L/R, `04/05` Cue 2 L/R.
 
 **Not over HID:** sample rate and clock source go as USB Audio Class control requests through the driver. The page can't set them; they're shown read-only or left out.
 
+**No control of the button lights (checked 2026-10-24):** UAMixerHelper's full list of commands it sends has display brightness and Identify, and nothing for the button lights, standby or a screensaver; UA Connect and the driver have none either. With no computer connected (a KVM switch on an off computer), the Volt shows its Host screen at the stored display brightness, but its button lights flash green regardless. The firmware can't be read back to look for more: UA Connect's `neo_dfu_utils.exe --upload` puts the Volt into its bootloader (reports version 0.4) and then fails with `0xEE000030`; `--reset_from_dfu` brings it back.
 
 ### Monitor level (field `10` of the `F0 15` mute word)
 

@@ -11,6 +11,7 @@ export interface IDesktopSettings {
     phoneRemote: boolean;
     phoneAddress: string;
     hasSeenTrayHint: boolean;
+    dimOnSleep: boolean;
 }
 
 export interface IDesktopState {
@@ -52,6 +53,10 @@ export interface IVoltDesktop {
     publishToPhones: (snapshot: unknown) => void;
     onPhoneCount: (listen: (count: number) => void) => void;
     onPhoneIntent: (answer: (intent: unknown) => unknown) => void;
+    /** Before sleep or shutdown ("dim") and on waking ("undim"); see display-fade.ts. */
+    onDisplayFade: (answer: (request: unknown) => unknown) => void;
+    /** The report that dims the connected Volt, which the app sends itself at shutdown. */
+    setDimReport: (report: number[]) => void;
     /** The tray window's content height in CSS px; the app sizes the window to it. */
     fitTray: (height: number) => void;
     /** The tray window being shown or hidden (the app tells it; the page can't tell by itself). */

@@ -1,4 +1,5 @@
 import { app, ipcMain, nativeTheme } from "electron";
+import { setDimReport } from "./display-fade";
 import { applyLoginItem, loginItemStatus } from "./login";
 import { phoneInfo, rotatePhoneToken, startPhoneRemote, stopPhoneRemote } from "./phone";
 import { isFromApp } from "./protocol";
@@ -51,6 +52,7 @@ export const answerPages = (): void => {
         return phoneInfo();
     });
     ipcMain.on("desktop:hide-tray", (event) => isFromApp(event) && hideTrayWindow());
+    ipcMain.on("desktop:dim-report", (event, report: unknown) => isFromApp(event) && setDimReport(report));
     ipcMain.on("desktop:fit-tray", (event, height: unknown) => {
         if (isFromApp(event) && typeof height === "number") fitTrayWindow(height);
     });

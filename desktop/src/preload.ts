@@ -21,6 +21,10 @@ contextBridge.exposeInMainWorld("voltDesktop", {
     hideTray: (): void => ipcRenderer.send("desktop:hide-tray"),
     /** A phone's intent (desktop/src/phone.ts); the answer is the intent's result. */
     onPhoneIntent: (answer: (request: unknown) => unknown): void => answerMain("phone-intent", answer),
+    /** Dim or undim the Volt's display (desktop/src/display-fade.ts). */
+    onDisplayFade: (answer: (request: unknown) => unknown): void => answerMain("display-fade", answer),
+    /** The report that dims the connected Volt, for the app to send itself at shutdown. */
+    setDimReport: (report: number[]): void => ipcRenderer.send("desktop:dim-report", report),
     fitTray: (height: number): void => ipcRenderer.send("desktop:fit-tray", height),
     /** The tray window being shown or hidden. */
     onTrayVisible: (listen: (isVisible: boolean) => void): void => {

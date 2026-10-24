@@ -1,4 +1,5 @@
 import { app, session } from "electron";
+import { watchPower } from "./display-fade";
 import { allowVolt } from "./hid";
 import { answerPages, applyPhoneRemote } from "./ipc";
 import { stopPhoneRemote } from "./phone";
@@ -31,7 +32,7 @@ if (!app.requestSingleInstanceLock()) {
         answerPages();
         applyLoginItem(settings.startAtLogin);
         createTray();
-        createMainWindow(!isStartedInTray(settings));
+        watchPower(createMainWindow(!isStartedInTray(settings)));
         applyPhoneRemote(settings);
         prepareTrayWindow();
     });

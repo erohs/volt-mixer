@@ -24,3 +24,9 @@ describe("Using clean, when the file isn't an object", () => {
         expect(clean(null, defaults)).toEqual(defaults);
     });
 });
+
+describe("Using clean, when dimming the display at sleep is switched on", () => {
+    test("then it should keep it on", () => {
+        expect(clean({ dimOnSleep: true }, defaults).dimOnSleep).toBe(true);
+    });
+});

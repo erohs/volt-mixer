@@ -113,3 +113,15 @@ Each change a user makes, from the page's controls, the tray window or a phone, 
 clamping, "this needs the mix first" and the linked-pair rules live in one place and the views
 never write page state. Another window or a phone may only send the remote intents
 (`isRemoteIntent`): levels, mutes, solo and links, not 48V, routing or names.
+
+## The app turns the display off itself at shutdown
+
+With its computer off, the Volt shows its Host screen at the stored display brightness (its
+button lights flash whatever we do, `docs/protocol.md`), so the desktop app can turn the display
+off at sleep and shutdown (Settings › Desktop app). Windows goes on with a shutdown as soon as the
+window answers `WM_QUERYENDSESSION`, too soon for a report sent from the page, and holding main
+doesn't help because the request to the page waits too. So main writes the report itself with
+node-hid (`desktop/src/display-fade.ts`), synchronously, before it answers: about 20 ms. The page
+hands main the report for its firmware, so the protocol stays in `src/data`. Off is raw 1, which
+nothing else sets, so whichever page connects next, on either computer, fades it back up. A
+Windows service or a shutdown script would also get time, but each needs installing per computer.

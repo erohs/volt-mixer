@@ -28,6 +28,7 @@ import { clearRetiredSettings, loadTheme, loadTrayHidden } from "./store.ts";
 import { refreshStrips, renderStrips } from "./strips.ts";
 import { applyTheme } from "./theme.ts";
 import { clearFeedback, flashButton, setInvalid } from "./button-feedback.ts";
+import { wireDisplayFade } from "./display-fade.ts";
 import { clearMessage, showMessage } from "./messages.ts";
 import * as volt from "./volt-connection.ts";
 import type { IConnectionInfo } from "./volt-connection.ts";
@@ -244,6 +245,7 @@ export const start = (): void => {
     readMixFromAddress();
     holdControlLock();
     answerOthers();
+    wireDisplayFade();
     wireConnection();
     volt.watchDevices();
     void volt.reconnect().then((isConnected) => isConnected || setStatus("Not connected", "off"));

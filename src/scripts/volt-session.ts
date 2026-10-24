@@ -7,6 +7,7 @@ import { newestSpec, type ISpec } from "../lib/spec.ts";
 import { app, hooks, isLive, layout, notice } from "./app-state.ts";
 import { showMeterLevels } from "./meters-view.ts";
 import { saveMixSoon } from "./mix-ownership.ts";
+import { rememberBrightness, undimDisplay } from "./display-fade.ts";
 import { checkOtherProgram, noteOtherReading, takeMixWhenFree } from "./mix-pause.ts";
 import * as volt from "./volt-connection.ts";
 
@@ -53,6 +54,7 @@ const sendBrightness = (spec: ISpec): void => {
     const reports = app.sync.diff(app.state, spec, { filter: isBrightness });
     if (reports.length === 0) return;
     brightnessSentAt = performance.now();
+    rememberBrightness(app.state.device.brightness);
     volt.send(reports);
     window.clearTimeout(settleTimer);
     settleTimer = window.setTimeout(() => volt.connectedSpec() && isLive() && volt.send(reports), brightnessSettleMs);
@@ -108,6 +110,7 @@ const onFirstState = (data: Uint8Array): void => {
     app.sync.prime(app.state, spec);
     if (app.isMixPaused) layout();
     takeMixWhenFree();
+    undimDisplay();
 };
 
 const onLaterState = (data: Uint8Array): void => {

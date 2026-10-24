@@ -9,6 +9,7 @@ import { isTheme, type Theme } from "./theme.ts";
 
 const prefix = "volt-mixer";
 const mixKey = (serial: string): string => `${prefix}.mix.${serial || "unknown"}`;
+const brightnessKey = (serial: string): string => `${prefix}.brightness.${serial || "unknown"}`;
 const pendingKey = `${prefix}.pending-mix`;
 const viewKey = `${prefix}.view`;
 const themeKey = `${prefix}.theme`;
@@ -75,5 +76,13 @@ export const loadTrayHidden = (): string[] => {
 };
 
 export const saveTrayHidden = (hidden: string[]): void => write(trayKey, hidden.length > 0 ? hidden : null);
+
+/** The display brightness last seen lit, to come back to after the desktop app dims it. */
+export const loadBrightness = (serial: string): number | null => {
+    const raw = read(brightnessKey(serial));
+    return Number.isInteger(raw) && (raw as number) >= 0 && (raw as number) <= 255 ? (raw as number) : null;
+};
+
+export const saveBrightness = (serial: string, raw: number): void => write(brightnessKey(serial), raw);
 
 export const clearRetiredSettings = (): void => retiredKeys.forEach((key) => write(key, null));

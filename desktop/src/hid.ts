@@ -9,8 +9,10 @@ import { appOrigin } from "./protocol";
  */
 
 /* Universal Audio, Volt 4 Gen 2 (src/data/volt4-gen2.json). Add product IDs with new models. */
-const voltVendorId = 0x2b5a;
-const voltProductIds = new Set([46]);
+export const voltVendorId = 0x2b5a;
+export const voltProductIds = new Set([46]);
+/** The vendor usage page of the Volt's control interface, the one that takes commands. */
+export const voltControlUsagePage = 0xff01;
 
 /* Serial devices report their IDs as strings; only HID devices (numbers) can be the Volt. */
 const isVolt = (device: { vendorId?: number | string | undefined; productId?: number | string | undefined }): boolean =>

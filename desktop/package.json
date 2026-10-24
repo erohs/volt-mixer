@@ -22,5 +22,8 @@
         "electron": "44.9.3",
         "electron-builder": "26.15.3",
         "typescript": "6.0.3"
+    },
+    "dependencies": {
+        "node-hid": "3.4.0"
     }
 }

@@ -8,6 +8,9 @@ directories:
 files:
   - out/**
   - package.json
+# node-hid's prebuilt binaries use Node-API, which Electron loads as they are; rebuilding them
+# would need a compiler on every release runner.
+npmRebuild: false
 # The site and the tray icons sit beside the app (see site and iconPath in src/).
 extraResources:
   - from: site

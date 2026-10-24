@@ -156,6 +156,19 @@ import Slider from "../ui/Slider.astro";
             />
         </SettingRow>
         <SettingRow
+            id="dim-on-sleep"
+            name="Volt display off at sleep"
+            description="And at shutdown. It turns back on when Volt Mixer next connects."
+            for="dim-on-sleep-input">
+            <input
+                id="dim-on-sleep-input"
+                type="checkbox"
+                role="switch"
+                aria-describedby="dim-on-sleep-description"
+                data-desktop="dimOnSleep"
+            />
+        </SettingRow>
+        <SettingRow
             id="phone-remote"
             name="Phone remote"
             description="The tray mixer on your phone, on the same Wi-Fi."

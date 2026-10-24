@@ -30,6 +30,9 @@ it:
 - **macOS:** open it, then go to **System Settings › Privacy & Security › Open Anyway**.
 - **Linux:** use the `.deb`. For the AppImage, see [Linux USB access](DEVELOPMENT.md#linux-usb-access).
 
+To keep the Volt's display dark overnight, turn on **Settings › Desktop app › Volt display off at sleep**.
+It turns off when the computer sleeps or shuts down, and back on when Volt Mixer next connects.
+
 ## On your phone
 
 In the desktop app, turn on **Settings › Desktop app › Phone remote** and scan the QR code. Your phone needs to

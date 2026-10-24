@@ -13,8 +13,8 @@ software.
 Conventions follow `../naovixen` (its `CLAUDE.md` and `.claude/rules/`), with the exceptions in
 `docs/decisions.md`. In short:
 
-- **As lean as possible.** Astro, TypeScript, Vitest and Prettier only (plus Electron and
-  electron-builder in `desktop/`); no UI or test frameworks beyond that, no jQuery. Ask before
+- **As lean as possible.** Astro, TypeScript, Vitest and Prettier only (plus Electron,
+  electron-builder and node-hid in `desktop/`); no UI or test frameworks beyond that, no jQuery. Ask before
   adding a dependency.
 - **Readability over cleverness.** Functions 25 lines, files 400. Comments only where the code
   cannot speak for itself.

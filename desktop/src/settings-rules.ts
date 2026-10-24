@@ -17,6 +17,8 @@ export interface IDesktopSettings {
     phoneAddress: string;
     /** The one-time hint on keeping the tray icon visible (Windows hides new ones). */
     hasSeenTrayHint: boolean;
+    /** Fade the Volt's display out as this computer sleeps or shuts down (display-fade.ts). */
+    dimOnSleep: boolean;
 }
 
 export const defaults: IDesktopSettings = {
@@ -27,9 +29,10 @@ export const defaults: IDesktopSettings = {
     phoneRemote: false,
     phoneAddress: "",
     hasSeenTrayHint: false,
+    dimOnSleep: false,
 };
 
-type Flag = "startAtLogin" | "minimiseToTray" | "closeToTray" | "phoneRemote" | "hasSeenTrayHint";
+type Flag = "startAtLogin" | "minimiseToTray" | "closeToTray" | "phoneRemote" | "hasSeenTrayHint" | "dimOnSleep";
 const isAddress = (value: unknown): value is string =>
     typeof value === "string" && /^(\d{1,3}\.){3}\d{1,3}$/.test(value);
 
@@ -46,5 +49,6 @@ export const clean = (value: unknown, base: IDesktopSettings): IDesktopSettings 
         phoneRemote: flag("phoneRemote"),
         phoneAddress: isAddress(input["phoneAddress"]) ? input["phoneAddress"] : base.phoneAddress,
         hasSeenTrayHint: flag("hasSeenTrayHint"),
+        dimOnSleep: flag("dimOnSleep"),
     };
 };
