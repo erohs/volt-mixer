@@ -10,7 +10,7 @@ import { loadSettings } from "./settings";
 
 const isLinux = process.platform === "linux";
 /** Where the site's other pages live (the app only serves the mixer and the tray). */
-const websiteUrl = "https://erohs.github.io/volt-mixer/";
+const websiteUrl = "https://naovixen.github.io/volt-mixer/";
 /* The tray's width; its height follows its rows (fitTrayWindow). */
 const trayWindowSize = { width: 340, height: 300 };
 let mainWindow: BrowserWindow | null = null;

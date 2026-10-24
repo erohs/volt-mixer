@@ -5,7 +5,7 @@
     "description": "Volt Mixer as a desktop app: the Volt 4 Gen 2's mixer in a window and the system tray.",
     "license": "MIT",
     "author": "Naomi",
-    "homepage": "https://github.com/erohs/volt-mixer",
+    "homepage": "https://github.com/naovixen/volt-mixer",
     "private": true,
     "main": "out/main.js",
     "packageManager": "pnpm@12.8.1",

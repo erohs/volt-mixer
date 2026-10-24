@@ -1,5 +1,5 @@
 # Unsigned builds, published as a draft GitHub Release by .github/workflows/release.yml.
-appId: io.github.erohs.voltmixer
+appId: io.github.naovixen.voltmixer
 productName: Volt Mixer
 copyright: Copyright © 2026 Naomi
 directories:
@@ -47,7 +47,7 @@ dmg:
 linux:
   target: [AppImage, deb]
   # A .deb must name a maintainer with an email: GitHub's no-reply address, as on the commits.
-  maintainer: Naomi <65184830+erohs@users.noreply.github.com>
+  maintainer: Naomi <65184830+naovixen@users.noreply.github.com>
   category: AudioVideo
   icon: build/icon.png
   artifactName: Volt-Mixer-${version}-${arch}.${ext}
@@ -56,6 +56,6 @@ deb:
   afterRemove: build/linux/after-remove.sh
 publish:
   provider: github
-  owner: erohs
+  owner: naovixen
   repo: volt-mixer
   releaseType: draft

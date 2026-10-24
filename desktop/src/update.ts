@@ -6,7 +6,7 @@ import { isNewer } from "./versions";
  * install: the page shows a notice with a link to the release.
  */
 
-const latestRelease = "https://api.github.com/repos/erohs/volt-mixer/releases/latest";
+const latestRelease = "https://api.github.com/repos/naovixen/volt-mixer/releases/latest";
 
 export interface IUpdate {
     isNewer: boolean;

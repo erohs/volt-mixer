@@ -40,7 +40,7 @@ describe("Using encodeMixCode and decodeMixCode, when a typical mix makes the ro
 
 describe("Using encodeMixCode, when the mix is a typical one", () => {
     test("then the whole link should stay under 160 characters", () => {
-        const link = `https://erohs.github.io/volt-mixer/#m=${encodeMixCode(typicalMix())}`;
+        const link = `https://naovixen.github.io/volt-mixer/#m=${encodeMixCode(typicalMix())}`;
         expect(link.length).toBeLessThan(160);
     });
 });

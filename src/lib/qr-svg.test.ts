@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { qrCode } from "./qr-svg.ts";
 
-const link = "https://erohs.github.io/volt-mixer/#m=AsAP_78AAAD_iAAAAf_i2PAZ-mDY8Ppg2PD_4icQGfpgJxD6YCcQ";
+const link = "https://naovixen.github.io/volt-mixer/#m=AsAP_78AAAD_iAAAAf_i2PAZ-mDY8Ppg2PD_4icQGfpgJxD6YCcQ";
 
 describe("Using qrCode, when given a mix link", () => {
     test("then the top-left finder pattern should start inside the quiet zone, as a run of 7", () => {

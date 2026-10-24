@@ -14,6 +14,6 @@ execFileSync(
         cwd: root,
         stdio: "inherit",
         // The real site as the canonical address; the app itself is served from app://volt/.
-        env: { ...process.env, BASE_PATH: "/", SITE_ORIGIN: "https://erohs.github.io" },
+        env: { ...process.env, BASE_PATH: "/", SITE_ORIGIN: "https://naovixen.github.io" },
     },
 );

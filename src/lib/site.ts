@@ -6,12 +6,12 @@ export const site = {
         "Free, open-source control for the Universal Audio Volt 4 Gen 2's built-in mixer: faders, cue mixes, 48V, " +
         "gain and meters in Edge or Chrome. Nothing to install.",
     imageAlt: "Volt Mixer: channel faders and meters for the UA Volt 4 Gen 2, in the browser.",
-    websiteUrl: "https://erohs.github.io/volt-mixer/",
-    repositoryUrl: "https://github.com/erohs/volt-mixer",
-    releasesUrl: "https://github.com/erohs/volt-mixer/releases",
-    licenceUrl: "https://github.com/erohs/volt-mixer/blob/main/LICENSE",
+    websiteUrl: "https://naovixen.github.io/volt-mixer/",
+    repositoryUrl: "https://github.com/naovixen/volt-mixer",
+    releasesUrl: "https://github.com/naovixen/volt-mixer/releases",
+    licenceUrl: "https://github.com/naovixen/volt-mixer/blob/main/LICENSE",
     privacyPath: "privacy/",
-    supportedModelsUrl: "https://github.com/erohs/volt-mixer#supported-models",
+    supportedModelsUrl: "https://github.com/naovixen/volt-mixer#other-interfaces",
     /* The header's surface colour in each scheme, for the browser bar and link-preview accents. */
     themeColor: { light: "#fffefc", dark: "#201f1d" },
 };
