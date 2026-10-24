@@ -2,9 +2,11 @@
 
 A static Astro page that controls a Universal Audio Volt 4 Gen 2's built-in mixer over WebHID,
 from Edge or Chrome, with nothing to install. Deployed to GitHub Pages by
-`.github/workflows/deploy.yml`. TypeScript, pnpm. `docs/decisions.md` records the choices code
-cannot explain; `docs/protocol.md` is the reverse-engineered HID protocol; `docs/maintaining.md`
-is the update loop for new UA firmware or software.
+`.github/workflows/deploy.yml`. TypeScript, pnpm. `README.md` is for users only (short,
+non-technical); `DEVELOPMENT.md` is the contributor guide, including adding a new interface.
+`docs/decisions.md` records the choices code cannot explain; `docs/protocol.md` is the
+reverse-engineered HID protocol; `docs/maintaining.md` is the update loop for new UA firmware or
+software.
 
 ## Working rules
 
