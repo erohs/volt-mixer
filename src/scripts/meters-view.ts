@@ -2,9 +2,10 @@ import { clipDb, meterFill, peakFallDbPerSecond } from "../lib/meters.ts";
 
 /*
  * Draws the meters from the Volt's 50-per-second meter reports, with a falling peak and clip hold.
- * The Volt sends them in silence too, so a frame is drawn only while something on a meter moves
- * (a level above the floor, a peak falling, a clip light to put out), and each meter is written
- * only when it changes. Nothing is drawn while no one can see the page (volt-session.ts).
+ * At most one frame per report, never one per screen refresh (a 240 Hz screen would draw five times
+ * as often for nothing), and none at all once every meter has settled: the Volt sends reports in
+ * silence too. Each meter is written only when it changes, and nothing is drawn while no one can
+ * see the page (volt-session.ts).
  */
 
 const clipHoldMs = 2000;
@@ -13,7 +14,9 @@ const clippedUntil = new Map<string, number>();
 /** What each meter element last showed, so an unchanged one isn't written again. */
 const written = new WeakMap<HTMLElement, string>();
 let frame = 0;
-let drawnAt = 0;
+let drawnAt = performance.now();
+/** Something on a meter was still lit at the last frame: a peak falling, or a clip light to put out. */
+let isLit = false;
 
 /** Writes one meter; true while it still has something to show (a level, or a clip light). */
 const drawMeter = (meter: HTMLElement, name: string, now: number): boolean => {
@@ -28,7 +31,7 @@ const drawMeter = (meter: HTMLElement, name: string, now: number): boolean => {
     return fill > 0 || isClipped;
 };
 
-/** The held peaks fall at the same speed on any screen, however many frames it draws. */
+/** The held peaks fall at the same speed however often frames are drawn. */
 const fallPeaks = (now: number): void => {
     const fall = (peakFallDbPerSecond * Math.min(now - drawnAt, 100)) / 1000;
     for (const [name, db] of shown) shown.set(name, db - fall);
@@ -37,31 +40,24 @@ const fallPeaks = (now: number): void => {
 
 const draw = (now: number): void => {
     frame = 0;
-    let isMoving = false;
+    isLit = false;
     for (const meter of document.querySelectorAll<HTMLElement>("[data-meter]")) {
         const name = meter.dataset["meter"] ?? "";
-        if (name && drawMeter(meter, name, now)) isMoving = true;
+        if (name && drawMeter(meter, name, now)) isLit = true;
     }
     fallPeaks(now);
-    if (isMoving) frame = requestAnimationFrame(draw);
 };
 
-const drawSoon = (): void => {
-    if (frame) return;
-    drawnAt = performance.now();
-    frame = requestAnimationFrame(draw);
-};
-
-/** New peak levels in dBFS, by meter name. */
+/** New peak levels in dBFS, by meter name: drawn in the next frame, if anything is (or was) lit. */
 export const showMeterLevels = (levels: Record<string, number>): void => {
     const now = performance.now();
-    let hasNews = false;
+    let hasLevel = isLit;
     for (const [name, db] of Object.entries(levels)) {
         if (db > (shown.get(name) ?? -Infinity)) shown.set(name, db);
         if (db >= clipDb) clippedUntil.set(name, now + clipHoldMs);
-        if (meterFill(db) > 0) hasNews = true;
+        if (meterFill(db) > 0) hasLevel = true;
     }
-    if (hasNews) drawSoon();
+    if (hasLevel) frame ||= requestAnimationFrame(draw);
 };
 
 /** Empties every meter (disconnected, or shown again after a while unseen). */
@@ -70,5 +66,6 @@ export const resetMeters = (): void => {
     clippedUntil.clear();
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
-    draw(performance.now());
+    drawnAt = performance.now();
+    draw(drawnAt);
 };

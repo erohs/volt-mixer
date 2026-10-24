@@ -22,6 +22,8 @@ const zones = `--meter-caution: ${zoneStops.caution * 100}%; --meter-danger: ${z
     /*
      * The bar is painted in its zone colours along its whole length and a cover hides what is above
      * the level (--meter-level, 0–1, set by the script), so colour follows position like Console.
+     * The cover shrinks by transform, which the compositor does alone: fifty changes a second need
+     * no layout and no repaint of the bar.
      */
     .meter {
         --meter-level: 0;
@@ -45,7 +47,9 @@ const zones = `--meter-caution: ${zoneStops.caution * 100}%; --meter-danger: ${z
 
     .cover {
         position: absolute;
+        inset: 0;
         background-color: var(--color-background-track);
+        will-change: transform;
     }
 
     .clip {
@@ -64,10 +68,10 @@ const zones = `--meter-caution: ${zoneStops.caution * 100}%; --meter-danger: ${z
         inline-size: var(--size-meter);
     }
 
+    /* The cover keeps its top edge and shrinks towards it as the level rises. */
     .meter:where([data-orientation="vertical"]) .cover {
-        inset-block: 0 auto;
-        inset-inline: 0;
-        block-size: calc((1 - var(--meter-level)) * 100%);
+        transform: scaleY(calc(1 - var(--meter-level)));
+        transform-origin: top;
     }
 
     /* Fills from the inline start, so it follows the text's direction; the clip light is at the end. */
@@ -92,10 +96,14 @@ const zones = `--meter-caution: ${zoneStops.caution * 100}%; --meter-danger: ${z
         grid-row: 1;
     }
 
+    /* The cover keeps its inline-end edge and shrinks towards it as the level rises. */
     .meter:where([data-orientation="horizontal"]) .cover {
-        inset-block: 0;
-        inset-inline: auto 0;
-        inline-size: calc((1 - var(--meter-level)) * 100%);
+        transform: scaleX(calc(1 - var(--meter-level)));
+        transform-origin: right;
+    }
+
+    .meter:where([data-orientation="horizontal"]:dir(rtl)) .cover {
+        transform-origin: left;
     }
 
     @media (forced-colors: active) {
@@ -103,9 +111,14 @@ const zones = `--meter-caution: ${zoneStops.caution * 100}%; --meter-danger: ${z
             background: CanvasText;
         }
 
-        .cover,
+        /* The border goes on the bar: a scaled cover would squash its own. */
+        .bar,
         .clip {
             border: var(--border-width-default) solid CanvasText;
+        }
+
+        .cover,
+        .clip {
             background-color: Canvas;
         }
     }
