@@ -30,12 +30,16 @@ const remove = [
     "udevadm control --reload-rules || true",
 ];
 
+// Generated, so not in git: a fresh checkout has no folder for them yet.
+const outDir = path.join(desktop, "build", "linux");
+fs.mkdirSync(outDir, { recursive: true });
+
 const write = (name, lines) => {
     const template = fs
         .readFileSync(path.join(templates, `${name}.tpl`), "utf8")
         .replace(/\r\n/g, "\n")
         .trimEnd();
-    fs.writeFileSync(path.join(desktop, "build", "linux", `${name}.sh`), `${template}\n\n${lines.join("\n")}\n`);
+    fs.writeFileSync(path.join(outDir, `${name}.sh`), `${template}\n\n${lines.join("\n")}\n`);
 };
 
 write("after-install", install);
