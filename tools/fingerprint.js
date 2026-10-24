@@ -71,6 +71,15 @@ function diff(a, b, prefix = "") {
     return changes;
 }
 
+function writeFingerprint(now) {
+    const file = path.join(
+        DIR,
+        new Date().toISOString().slice(0, 10) + (now.api.firmware ? `-fw${now.api.firmware}` : "") + ".json",
+    );
+    fs.writeFileSync(file, JSON.stringify({ taken: new Date().toISOString(), snapshot: now }, null, 1));
+    console.log("wrote", path.relative(process.cwd(), file));
+}
+
 (async () => {
     const now = { apps: installedApps(), files: fileVersions(), hid: hidCaps(), api: await apiInfo() };
     fs.mkdirSync(DIR, { recursive: true });
@@ -88,12 +97,5 @@ function diff(a, b, prefix = "") {
             : `No changes since ${previous}.`,
     );
     if (CHECK) process.exit(changes.length && prev ? 1 : 0);
-    if (!prev || changes.length) {
-        const file = path.join(
-            DIR,
-            new Date().toISOString().slice(0, 10) + (now.api.firmware ? `-fw${now.api.firmware}` : "") + ".json",
-        );
-        fs.writeFileSync(file, JSON.stringify({ taken: new Date().toISOString(), snapshot: now }, null, 1));
-        console.log("wrote", path.relative(process.cwd(), file));
-    }
+    if (!prev || changes.length) writeFingerprint(now);
 })();

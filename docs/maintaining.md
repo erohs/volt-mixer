@@ -17,15 +17,15 @@ node fetch-docs.js         # re-downloads the manuals; prints CHANGED if UA edit
 
 ## Full re-capture (about 15 minutes, mostly unattended)
 
-1. Take headphones off, turn speakers down, and unplug ribbon mics. 48V only toggles on empty XLR inputs, but be safe.
+1. Take headphones off, turn speakers down, and unplug ribbon mics. 48V only toggles on empty XLR inputs, but be safe. Unplug anything on Line Out 3/4 and set both cues' Mirror to None (Line Out 3/4 can't be muted, so a run refuses to start while a cue is mirrored).
 2. Make sure UAD Console is running (it starts the helper on `127.0.0.1:4720`).
 3. `node ua.js snapshot ../captures/snapshot-before.json`
-4. `powershell -File run-capture.ps1` (accept the admin prompt). It:
-    - starts USBPcap on the Volt's root hub,
-    - runs `capture-run.js`, which steps every setting through the API with timestamps,
-    - caches every touched value to `captures/pre-run-state.json` and restores it at the end (or on Ctrl+C).
+4. `powershell -File run-capture.ps1` (accept the admin prompt, which is only for USBPcap). It:
+    - starts USBPcap on the Volt's root hub, recording only the Volt's device address when USBPcap lists it,
+    - runs `capture-run.js` as you, which saves a full snapshot to `captures/snapshot-before-run.json`, mutes MONITOR and HEADPHONE for the whole run, and steps every setting through the API with timestamps (output levels only ever down, never below 0),
+    - restores the snapshot at the end (also after an error or Ctrl+C), compares every setting, and exits 1 with a list if anything differs.
       If anything is left wrong: `node ua.js restore`.
-5. `node ua.js snapshot ../captures/snapshot-after.json`, then diff it against the before snapshot. It should be identical.
+5. `node ua.js diff ../captures/snapshot-before.json` compares your own before snapshot with the Volt now. It should say `identical`.
 6. Hardware-only controls (knob, buttons, display menu): `powershell -File run-capture.ps1 -Mode manual`, do the actions in the order listed in `PROTOCOL.md`, then press Enter.
 7. Decode:
     ```bash
@@ -43,22 +43,24 @@ The page keeps the protocol as data in `src/data/volt4-gen2.json`, keyed by firm
 
 Run `pnpm test` in the repository root after any change. It runs the library tests (including re-encoding every decoded capture), and the colour-contrast check over `src/styles/tokens.css`.
 
-| Tool                         | What it does                                                                                                                              | Writes to the Volt?      |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `tools/ua.js`                | API CLI: `info`, `get`, `set`, `tree`, `controls`, `snapshot`, `restore`                                                                  | only `set` and `restore` |
-| `tools/lib/ua-api.js`        | shared API client; finds the Volt automatically                                                                                           | —                        |
-| `tools/capture-run.js`       | automated sweep with step log, cache and restore (`--dry-run` is read-only)                                                               | yes, restored afterwards |
-| `tools/run-capture.ps1`      | elevated USBPcap capture around the sweep, `-Mode startup` (Console start-up) or `-Mode manual` (user-paced prompts, `-From N` to resume) | via capture-run          |
-| `tools/manual-prompts.js`    | step-by-step front-panel prompts; waits for Enter after each                                                                              | no                       |
-| `tools/decode-capture.js`    | pcap + step log → per-parameter HID bytes (serial redacted)                                                                               | no                       |
-| `tools/state-probe.mjs`      | maps the state dump by changing one setting at a time (`--dump` = read-only)                                                              | yes, restored after each |
-| `tools/meter-probe.mjs`      | summarises the meter stream for one labelled test                                                                                         | no                       |
-| `tools/meter-raw.mjs`        | prints one meter's raw values over a few seconds, to spot odd flags or spikes                                                             | no                       |
-| `tools/brightness-probe.mjs` | user-paced runs of brightness changes; asks what the display shows, restores the brightness after                                         | yes, restored afterwards |
-| `tools/midi-probe.js`        | sends a SysEx message to the Volt's USB MIDI port (result: MIDI doesn't reach the mixer)                                                  | via MIDI                 |
-| `tools/fingerprint.js`       | version/HID fingerprint and diff (`--check` exits 1 on change)                                                                            | no                       |
-| `tools/fetch-docs.js`        | refresh UA manuals and flag changes                                                                                                       | no                       |
-| `tools/hid-caps.ps1`         | HID report sizes of the Volt's control interface                                                                                          | no                       |
+| Tool                         | What it does                                                                                                                     | Writes to the Volt?       |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `tools/ua.js`                | API CLI: `info`, `get`, `set`, `tree`, `controls`, `snapshot`, `diff`, `restore` (from a snapshot)                               | only `set` and `restore`  |
+| `tools/lib/ua-api.js`        | shared API client; finds the Volt automatically; every request fails on an error or timeout                                      | —                         |
+| `tools/lib/ua-snapshot.js`   | full snapshot of every API setting, diff, and restore (outputs last)                                                             | only restore              |
+| `tools/lib/safe-run.js`      | a run's rules: snapshot first, outputs muted throughout, levels only down, one restore and check at the end                      | —                         |
+| `tools/lib/volt-hid.mjs`     | opens the Volt's control interface by the ids in `src/data`, sends and awaits reports                                            | —                         |
+| `tools/capture-run.js`       | automated sweep with step log, snapshot, restore and check (`--dry-run` is read-only)                                            | yes, restored afterwards  |
+| `tools/run-capture.ps1`      | USBPcap capture around the sweep, `-Mode startup` (Console start-up) or `-Mode manual` (user-paced prompts, `-From N` to resume) | via capture-run           |
+| `tools/usbpcap.ps1`          | the only elevated part: starts and stops USBPcapCMD for run-capture                                                              | no                        |
+| `tools/manual-prompts.js`    | step-by-step front-panel prompts; waits for Enter after each                                                                     | no                        |
+| `tools/decode-capture.js`    | pcap + step log → per-parameter HID bytes (serial redacted)                                                                      | no                        |
+| `tools/state-probe.mjs`      | maps the state dump by changing one setting at a time, quieter where it can (`--dump` = read-only)                               | yes, restored and checked |
+| `tools/meter-probe.mjs`      | summarises the meter stream for one labelled test; `--raw <offset>` prints one meter's raw values, to spot odd flags or spikes   | no                        |
+| `tools/brightness-probe.mjs` | user-paced runs of brightness changes; asks what the display shows, restores the brightness after                                | yes, restored afterwards  |
+| `tools/fingerprint.js`       | version/HID fingerprint and diff (`--check` exits 1 on change)                                                                   | no                        |
+| `tools/fetch-docs.js`        | refresh UA manuals and flag changes                                                                                              | no                        |
+| `tools/hid-caps.ps1`         | HID report sizes of the Volt's control interface                                                                                 | no                        |
 
 ## Kept local, not in git
 

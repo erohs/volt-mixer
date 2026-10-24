@@ -1,74 +1,69 @@
-# Starts USBPcap on the root hub(s) carrying the Volt, runs capture-run.js, then stops the capture.
-# Self-elevates (USBPcap needs admin). Output: captures\volt-<timestamp>-<hub>.pcap + run-log.jsonl
-param([switch]$Elevated, [string]$Mode = 'auto', [int]$From = 1, [string]$Phases = '')
+# Records the Volt's USB traffic during a capture: the automated sweep (capture-run.js), UAD Console
+# starting up (-Mode startup) or user-paced front-panel prompts (-Mode manual, -From N to resume).
+# Only USBPcap runs as administrator (usbpcap.ps1, one prompt); node and UAD Console run as you.
+# Output: captures\volt-<timestamp>-<hub>.pcap + run-log.jsonl
+param([string]$Mode = 'auto', [int]$From = 1, [string]$Phases = '')
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $captures = Join-Path $root 'captures'
-$usbpcap = 'C:\Program Files\USBPcap\USBPcapCMD.exe'
-
-$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Start-Process powershell -Verb RunAs -Wait -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Elevated -Mode $Mode -From $From -Phases `"$Phases`""
-    exit
-}
-
 New-Item -ItemType Directory -Force $captures | Out-Null
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$transcript = Join-Path $captures "run-capture-$stamp.txt"
-Start-Transcript -Path $transcript | Out-Null
+$recorderBase = Join-Path $captures "usbpcap-$stamp"
+Start-Transcript -Path (Join-Path $captures "run-capture-$stamp.txt") | Out-Null
 
+# Waits for the elevated recorder to say it's capturing (after the admin prompt), or to fail.
+function Start-Recorder {
+    $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSScriptRoot\usbpcap.ps1`" " +
+        "-Captures `"$captures`" -Stamp $stamp -ParentId $PID"
+    $recorder = Start-Process powershell -Verb RunAs -PassThru -WindowStyle Hidden -ArgumentList $arguments
+    while (-not (Test-Path "$recorderBase.started")) {
+        if ($recorder.HasExited) { throw "USBPcap didn't start; see $recorderBase.txt" }
+        Start-Sleep -Milliseconds 250
+    }
+    Get-Content "$recorderBase.started" | Write-Host
+    $recorder
+}
+
+function Stop-Recorder($recorder) {
+    New-Item -ItemType File -Force "$recorderBase.stop" | Out-Null
+    $recorder.WaitForExit()
+    Remove-Item "$recorderBase.started", "$recorderBase.stop" -ErrorAction SilentlyContinue
+}
+
+# Capture UAD Console's start-up: the handshake and the full state it pushes to the Volt.
+function Invoke-Startup {
+    $log = Join-Path $captures "startup-log-$stamp.jsonl"
+    $mark = { param($phase) Add-Content $log ('{"t":' + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + ',"phase":"' + $phase + '"}') }
+    & $mark 'idle'
+    Start-Sleep -Seconds 5
+    & $mark 'console-launch'
+    Start-Process "C:\Program Files (x86)\Universal Audio\UAD Console\UAD Console.exe"
+    Start-Sleep -Seconds 45
+    & $mark 'settled'
+    Start-Sleep -Seconds 10
+}
+
+$recorder = $null
+Push-Location $PSScriptRoot
 try {
     if ($Mode -eq 'startup') {
         # Quit UA's mixer software first, so the capture sees it start from scratch.
         Get-Process 'UAD Console', 'UAMixerHelper' -ErrorAction SilentlyContinue | Stop-Process -Force
         Start-Sleep -Seconds 3
     }
-
-    # Find USBPcap root hubs; prefer the one whose attached-device list mentions the Volt.
-    $ifaces = & $usbpcap --extcap-interfaces | Select-String -Pattern 'value=(\\\\\.\\USBPcap\d+)' | ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique
-    if (-not $ifaces) { throw 'No USBPcap interfaces found. Reboot after installing USBPcap, then try again.' }
-    $voltIfaces = @()
-    foreach ($i in $ifaces) {
-        $cfg = (& $usbpcap --extcap-interface $i --extcap-config) -join "`n"
-        if ($cfg -match 'Volt|Universal Audio|2B5A') { $voltIfaces += $i }
-    }
-    if (-not $voltIfaces) { Write-Host 'Volt not identified on a specific hub; capturing all hubs.'; $voltIfaces = $ifaces }
-    Write-Host "Capturing on: $($voltIfaces -join ', ')"
-
-    $procs = @()
-    foreach ($i in $voltIfaces) {
-        $n = ($i -replace '.*USBPcap', 'hub')
-        $out = Join-Path $captures "volt-$stamp-$n.pcap"
-        $procs += Start-Process -FilePath $usbpcap -ArgumentList "-d `"$i`" -o `"$out`" -A -s 65535" -PassThru -WindowStyle Hidden
-    }
-    Start-Sleep -Seconds 2
-
-    if ($Mode -eq 'startup') {
-        # Capture UAD Console's start-up: the handshake and the full state it pushes to the Volt.
-        # Launched via explorer so Console runs as the normal user, not elevated.
-        $log = Join-Path $captures "startup-log-$stamp.jsonl"
-        $mark = { param($phase) Add-Content $log ('{"t":' + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() + ',"phase":"' + $phase + '"}') }
-        & $mark 'idle'
-        Start-Sleep -Seconds 5
-        & $mark 'console-launch'
-        Start-Process explorer.exe -ArgumentList "`"C:\Program Files (x86)\Universal Audio\UAD Console\UAD Console.exe`""
-        Start-Sleep -Seconds 45
-        & $mark 'settled'
-        Start-Sleep -Seconds 10
-    } elseif ($Mode -eq 'manual') {
-        Push-Location $PSScriptRoot
-        node manual-prompts.js $From
-        Pop-Location
-    } else {
-        Push-Location $PSScriptRoot
+    $recorder = Start-Recorder
+    if ($Mode -eq 'startup') { Invoke-Startup }
+    elseif ($Mode -eq 'manual') { node manual-prompts.js $From }
+    else {
         $env:MSYS_NO_PATHCONV = '1'
         if ($Phases) { $env:CAPTURE_PHASES = $Phases }
         node capture-run.js
-        Pop-Location
+        if ($LASTEXITCODE) { Write-Host 'capture-run.js reported a problem: check the messages above.' -ForegroundColor Red }
     }
 }
 finally {
-    foreach ($p in $procs) { if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force } }
+    Pop-Location
+    if ($recorder) { Stop-Recorder $recorder }
     Stop-Transcript | Out-Null
 }

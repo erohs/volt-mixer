@@ -2,7 +2,7 @@
 // headless Edge or Chrome. guide-stage.js sets each scene up; nothing here can reach the Volt.
 // Re-run after changing how the mixer looks:
 //   pnpm build && pnpm preview          then, in tools/:
-//   node guide-images.mjs [url]         default http://localhost:4321/; CHROME_PATH picks the browser
+//   node guide-images.mjs [url]         default http://localhost:4321/volt-mixer/; CHROME_PATH picks the browser
 import { spawn } from "child_process";
 import fs from "fs";
 import os from "os";
@@ -11,30 +11,31 @@ import { fileURLToPath } from "url";
 import { meterFill } from "../src/lib/meters.ts";
 import { defaultState, setLinked } from "../src/lib/mixer.ts";
 import { qrCode } from "../src/lib/qr-svg.ts";
+import { newestSpec } from "../src/lib/spec.ts";
 import { dbToPosition, formatDb, formatPan } from "../src/lib/taper.ts";
 import { trayRows } from "../src/lib/tray-rows.ts";
+import { findBrowser } from "./lib/browser.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(here, "..", "public", "guide", "images");
 const sizesFile = path.join(here, "..", "src", "data", "guide-images.json");
-const pageUrl = process.argv[2] ?? "http://localhost:4321/";
+const pageUrl = process.argv[2] ?? "http://localhost:4321/volt-mixer/";
 const port = 9339;
+const cdpTimeoutMs = 30000;
 
-const browser = [
-    process.env.CHROME_PATH,
-    "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-    "C:/Program Files/Google/Chrome/Application/chrome.exe",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-].find((candidate) => candidate && fs.existsSync(candidate));
-if (!browser) {
-    console.error("No Edge or Chrome found. Set CHROME_PATH.");
-    process.exit(1);
-}
-
+const browser = findBrowser();
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const fader = (db) => ({ position: dbToPosition(db), text: formatDb(db) });
+
+/** Rejects if `promise` takes longer than `ms`, so a browser that hangs can't stall the run. */
+const timeBox = (promise, what, ms = cdpTimeoutMs) => {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${what} took longer than ${ms / 1000} s.`)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
+const { faderMaxDb } = newestSpec();
+const fader = (db) => ({ position: dbToPosition(db, faderMaxDb), text: formatDb(db) });
 const level = (value) => ({ position: value / 100, text: value.toFixed(1) });
 
 /* The mix every scene starts from: a voice, a guitar, a console on Line 3/4 and music on Loopback. */
@@ -108,7 +109,7 @@ const trayState = (() => {
 })();
 const traySnapshot = {
     rows: trayRows(trayState, { isDigitalShown: false, isLoopbackShown: false }, []),
-    maxDb: 12,
+    maxDb: faderMaxDb,
     isLive: true,
     isMixOwned: true,
     status: "Connected",
@@ -156,8 +157,7 @@ const shots = {
     "settings-mix": { scene: "settings", data: { ...mixer, settings, groups: ["your-mix"] }, view: tall, zoom: 1.25 },
 };
 
-const launch = async () => {
-    const profile = fs.mkdtempSync(path.join(os.tmpdir(), "volt-guide-"));
+const launch = async (profile) => {
     const args = [
         "--headless",
         "--disable-gpu",
@@ -167,70 +167,96 @@ const launch = async () => {
         "about:blank",
     ];
     const child = spawn(browser, args, { stdio: "ignore" });
-    for (let tries = 0; tries < 50; tries += 1) {
+    for (let tries = 0; tries < 50 && child.exitCode === null; tries += 1) {
         try {
             const targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
             const page = targets.find((target) => target.type === "page");
-            if (page) return { child, profile, socketUrl: page.webSocketDebuggerUrl };
+            if (page) return { child, socketUrl: page.webSocketDebuggerUrl };
         } catch {
             /* Not listening yet. */
         }
         await wait(200);
     }
+    child.kill();
     throw new Error("The browser didn't start.");
 };
 
-/* A minimal DevTools protocol client: send a command, or wait for an event. */
-const connect = (socketUrl) =>
-    new Promise((resolve) => {
-        const socket = new WebSocket(socketUrl);
-        const pending = new Map();
-        const listeners = new Set();
-        let lastId = 0;
-        socket.onmessage = ({ data }) => {
-            const message = JSON.parse(data);
-            const call = pending.get(message.id);
-            if (call) {
-                pending.delete(message.id);
-                return message.error ? call.reject(new Error(message.error.message)) : call.resolve(message.result);
-            }
-            for (const listener of listeners) listener(message);
-        };
-        const send = (method, params = {}) =>
-            new Promise((resolveCall, reject) => {
-                lastId += 1;
-                pending.set(lastId, { resolve: resolveCall, reject });
-                socket.send(JSON.stringify({ id: lastId, method, params }));
-            });
-        const once = (method) =>
-            new Promise((resolveEvent) => {
-                const listener = (message) => message.method === method && (listeners.delete(listener), resolveEvent());
-                listeners.add(listener);
-            });
-        socket.onopen = () => resolve({ send, once, close: () => socket.close() });
+/* Answers a command's call, or resolves whoever waits for an event. */
+const onMessage =
+    (pending, waiters) =>
+    ({ data }) => {
+        const message = JSON.parse(data);
+        const call = pending.get(message.id);
+        pending.delete(message.id);
+        if (call) return message.error ? call.reject(new Error(message.error.message)) : call.resolve(message.result);
+        for (const waiter of [...waiters].filter((candidate) => candidate.method === message.method)) {
+            waiters.delete(waiter);
+            waiter.resolve();
+        }
+    };
+
+/* A minimal DevTools protocol client: send a command, or wait for an event. Both are time-boxed,
+   and both fail at once if the connection closes. */
+const createCdp = (socket) => {
+    const pending = new Map();
+    const waiters = new Set();
+    let lastId = 0;
+    const failAll = (error) => [...pending.values(), ...waiters].forEach((call) => call.reject(error));
+    socket.onclose = () => failAll(new Error("The browser closed the DevTools connection."));
+    socket.onerror = () => failAll(new Error("The DevTools connection failed."));
+    socket.onmessage = onMessage(pending, waiters);
+    const send = (method, params = {}) => {
+        lastId += 1;
+        const id = lastId;
+        const result = new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+        socket.send(JSON.stringify({ id, method, params }));
+        return timeBox(result, method).finally(() => pending.delete(id));
+    };
+    const once = (method) => {
+        const waiter = { method };
+        const event = new Promise((resolve, reject) => Object.assign(waiter, { resolve, reject }));
+        waiters.add(waiter);
+        return timeBox(event, `Waiting for ${method}`).finally(() => waiters.delete(waiter));
+    };
+    return { send, once, close: () => socket.close() };
+};
+
+const connect = (socketUrl) => {
+    const socket = new WebSocket(socketUrl);
+    const opened = new Promise((resolve, reject) => {
+        socket.onopen = () => resolve(createCdp(socket));
+        socket.onerror = () => reject(new Error("Couldn't connect to the browser's DevTools."));
     });
+    return timeBox(opened, "Connecting to the browser");
+};
 
 const evaluate = async (cdp, expression) => {
-    const { result, exceptionDetails } = await cdp.send("Runtime.evaluate", { expression, returnByValue: true });
+    const { result, exceptionDetails } = await cdp.send("Runtime.evaluate", {
+        expression,
+        returnByValue: true,
+        awaitPromise: true,
+    });
     if (exceptionDetails) throw new Error(exceptionDetails.exception?.description ?? exceptionDetails.text);
     return result.value;
 };
 
 const stage = fs.readFileSync(path.join(here, "guide-stage.js"), "utf8");
+const ready = fs.readFileSync(path.join(here, "guide-ready.js"), "utf8");
 
 /** Shoots one shot in one theme; returns the size the guide shows it at. */
 const shoot = async (cdp, file, { scene, data, view, zoom = 1, badge = 26, mobile = false, page = "" }, theme) => {
     const deviceScaleFactor = Math.max(2, Math.ceil(2 * zoom));
     await cdp.send("Emulation.setDeviceMetricsOverride", { ...view, deviceScaleFactor, mobile });
     await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: theme }] });
-    const loaded = cdp.once("Page.loadEventFired");
-    await cdp.send("Page.navigate", { url: new URL(page, pageUrl).href });
-    await loaded;
-    await wait(400);
+    await Promise.all([
+        cdp.once("Page.loadEventFired"),
+        cdp.send("Page.navigate", { url: new URL(page, pageUrl).href }),
+    ]);
+    await evaluate(cdp, "guideReady()");
     await evaluate(cdp, stage);
     await evaluate(cdp, `guideScenes.badge(${badge})`);
     const clip = await evaluate(cdp, `guideScenes[${JSON.stringify(scene)}](${JSON.stringify(data)})`);
-    await wait(250);
+    await evaluate(cdp, "guideReady()");
     const { data: image } = await cdp.send("Page.captureScreenshot", {
         format: "webp",
         quality: 88,
@@ -240,25 +266,42 @@ const shoot = async (cdp, file, { scene, data, view, zoom = 1, badge = 26, mobil
     return { width: Math.round(clip.width * zoom), height: Math.round(clip.height * zoom) };
 };
 
-fs.mkdirSync(outDir, { recursive: true });
-const { child, profile, socketUrl } = await launch();
-const cdp = await connect(socketUrl);
-try {
+const shootAll = async (cdp) => {
     await cdp.send("Page.enable");
+    await cdp.send("Page.addScriptToEvaluateOnNewDocument", { source: ready });
     const sizes = {};
     for (const theme of ["light", "dark"]) {
         for (const [file, shot] of Object.entries(shots)) sizes[file] = await shoot(cdp, file, shot, theme);
     }
     // What src/components/guide/Shot.astro shows each one at.
-    fs.writeFileSync(
-        sizesFile,
-        `${JSON.stringify(sizes, null, 4)}
-`,
-    );
+    fs.writeFileSync(sizesFile, `${JSON.stringify(sizes, null, 4)}\n`);
     for (const [file, { width, height }] of Object.entries(sizes)) console.log(`${file} ${width}×${height}`);
-} finally {
-    cdp.close();
+};
+
+const closeBrowser = async (child, profile) => {
+    const exited = new Promise((resolve) => (child.exitCode === null ? child.once("exit", resolve) : resolve()));
     child.kill();
-    await wait(500);
-    fs.rmSync(profile, { recursive: true, force: true });
-}
+    await timeBox(exited, "Closing the browser", 5000).catch(() => {});
+    fs.rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+};
+
+const main = async () => {
+    fs.mkdirSync(outDir, { recursive: true });
+    const profile = fs.mkdtempSync(path.join(os.tmpdir(), "volt-guide-"));
+    let child = null;
+    try {
+        const launched = await launch(profile);
+        child = launched.child;
+        const cdp = await connect(launched.socketUrl);
+        try {
+            await shootAll(cdp);
+        } finally {
+            cdp.close();
+        }
+    } finally {
+        if (child) await closeBrowser(child, profile);
+        else fs.rmSync(profile, { recursive: true, force: true });
+    }
+};
+
+await main();

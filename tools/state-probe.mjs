@@ -1,174 +1,212 @@
-// Maps the Volt's state dump (reply to F0 11) by changing one setting at a time and diffing dumps.
-// Settings are changed through UA's API (or HID where the API doesn't reach the hardware) and
-// every one is restored afterwards. Needs UAD Console running.
+// Maps the Volt's state dump (reply to F0 11) by changing one setting at a time and diffing the
+// dumps taken just before and after. Settings change through UA's API, or over HID where the API
+// doesn't reach the hardware. It runs like capture-run.js (lib/safe-run.js): MONITOR and HEADPHONE
+// muted throughout, levels only ever turned down, and the full API snapshot and the state dump
+// restored and checked at the end, also after an error or Ctrl+C. Needs UAD Console running.
 //   node state-probe.mjs            run all probes, write ../reference/decoded/<fw>-state/state-map.json
-//   node state-probe.mjs --dump     just print one dump
+//   node state-probe.mjs --dump     just print one dump (read-only)
 import fs from "fs";
 import path from "path";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
-import { identify, monitorLevel, stateRequest } from "../src/lib/commands.ts";
-import { parseIdentify } from "../src/lib/reports.ts";
-import { protocol, specFor } from "../src/lib/spec.ts";
+import { monitorLevel } from "../src/lib/commands.ts";
+import { closeVolt, openVolt, requestState, send } from "./lib/volt-hid.mjs";
 
 const require = createRequire(import.meta.url);
-const HID = require("node-hid");
 const ua = require("./lib/ua-api");
+const safe = require("./lib/safe-run");
 const here = path.dirname(fileURLToPath(import.meta.url));
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const snapshotFile = path.resolve(here, "../captures/snapshot-before-run.json");
+const settleMs = 900;
 
-// ---------- HID ----------
-const info = HID.devices().find(
-    (d) => d.vendorId === protocol.vendorId && d.productId === protocol.productId && d.usagePage === 0xff01,
-);
-if (!info) {
-    console.error("Volt control interface not found");
-    process.exit(1);
-}
-const dev = new HID.HID(info.path);
-let spec = specFor("").spec;
-const listeners = new Set();
-dev.on("data", (buf) => {
-    for (const l of listeners) l(buf);
-});
-dev.on("error", (e) => console.error("HID error", e.message));
+const dumpBytes = async (volt) => [...(await requestState(volt)).subarray(2)]; // after "F0 11"
+const changedBytes = (from, to) =>
+    to
+        .map((value, offset) => (value === from[offset] ? null : { offset, from: from[offset], to: value }))
+        .filter(Boolean);
+const log = (event) => {
+    if (event.step !== "set" && event.step !== "reply") console.log(JSON.stringify(event));
+};
 
-const send = (report) => dev.write([report.reportId, ...report.data]);
-function request(report, match, timeoutMs = 1500) {
-    return new Promise((resolve) => {
-        const l = (buf) => {
-            if (match(buf)) {
-                listeners.delete(l);
-                clearTimeout(t);
-                resolve(buf);
-            }
-        };
-        const t = setTimeout(() => {
-            listeners.delete(l);
-            resolve(null);
-        }, timeoutMs);
-        listeners.add(l);
-        send(report);
-    });
-}
-// node-hid includes the report ID as byte 0 on Windows.
-const isState = (b) => b[0] === spec.reports.stateReply.id && b[1] === spec.reports.stateReply.cmd;
-async function dump() {
-    const b = await request(stateRequest(spec), isState);
-    return b ? [...b.subarray(2)] : null; // bytes after "F0 11"
-}
+/** A step down, or up if down would pass `floor` (allowed only because the outputs are muted). */
+const stepAway = (value, step, floor = 0) => (value - step >= floor ? value - step : value + step);
+const toggle = (value) => (value ? 0 : 1);
 
-// ---------- probes ----------
-const API = await ua.connect();
-const volt = await ua.findVolt(API);
-const buses = await ua.buses(API, volt);
-const idReply = await request(identify(spec), (b) => b[0] === spec.reports.identifyReply.id);
-const id = idReply ? parseIdentify(idReply.subarray(1)) : { version: "unknown" };
-spec = specFor(id.version).spec;
-
-if (process.argv.includes("--dump")) {
-    console.log(Buffer.from(await dump()).toString("hex"));
-    process.exit(0);
-}
-
-const ctl = (bus, rest) => buses[bus] + rest;
-const apiProbe = (label, p, value) => ({ label, apply: () => API.set(p, value), path: p });
-const jack = async (bus) => (await API.get(buses[bus] + "/jack_detect"))?.properties?.jack_detect_mic?.value;
-
-const probes = [
-    apiProbe("tone In1 = Warmth", ctl("ANALOG 1", "/controls/preamp_tone"), 1),
-    apiProbe("tone In2 = Focus", ctl("ANALOG 2", "/controls/preamp_tone"), 2),
-    apiProbe("tone In3 = Shine", ctl("ANALOG 3", "/controls/preamp_tone"), 3),
-    apiProbe("tone In4 = Warmth", ctl("ANALOG 4", "/controls/preamp_tone"), 1),
-    apiProbe("gain In1 = 30 dB", ctl("ANALOG 1", "/controls/preamp_gain"), 30),
-    apiProbe("gain In2 = 45.5 dB", ctl("ANALOG 2", "/controls/preamp_gain"), 45.5),
-    apiProbe("direct In1 (unmute)", ctl("ANALOG 1", "/outputs/main/controls/mute"), 0),
-    apiProbe("direct In4 (unmute)", ctl("ANALOG 4", "/outputs/main/controls/mute"), 0),
-    apiProbe("monitor mute", ctl("MONITOR", "/outputs/main/controls/mute"), 1),
-    apiProbe("monitor mono", ctl("MONITOR", "/outputs/main/controls/mix_to_mono"), 1),
-    apiProbe("headphone level -10", ctl("HEADPHONE", "/outputs/main/controls/gain"), null), // value filled in below
-    apiProbe("headphone mute", ctl("HEADPHONE", "/outputs/main/controls/mute"), 1),
-    apiProbe("clip protection off", volt.path + "/no_clip", false),
-    apiProbe("brightness 100", volt.path + "/display_brightness", 100),
-    apiProbe("digital input S/PDIF", volt.path + "/tos_link", "S/PDIF"),
-    // The API doesn't reach the hardware monitor level, so this one goes over HID (quiet: 10).
-    // `original` is read from the baseline dump below, so this restores the real level, not 0.
-    {
-        label: "monitor level 10 (HID)",
-        hid: true,
-        apply: () => send(monitorLevel(spec, 5)),
-        restore: () => send(monitorLevel(spec, monitorOriginal / spec.monitorLevelPerUnit)),
-    },
-];
-if (!(await jack("ANALOG 1"))) probes.push(apiProbe("48V In1", ctl("ANALOG 1", "/controls/preamp_48v"), 1));
-if (!(await jack("ANALOG 2"))) probes.push(apiProbe("48V In2", ctl("ANALOG 2", "/controls/preamp_48v"), 1));
-
-const hp = probes.find((p) => p.label.startsWith("headphone level"));
-hp.value = (await API.getValue(hp.path)) - 10;
-hp.apply = () => API.set(hp.path, hp.value);
-
-// Link probes use the API command (restored by unlinking).
-const linkProbe = (label, a, b) => {
-    const body = (st) =>
-        JSON.stringify({
-            device_uid: volt.path.split("/").pop(),
-            channel_uid: [a, b].map((n) => buses[n].split("/").pop()),
-            stem_format: st,
-        });
+/** A probe that moves one API setting to `next(value now)`, by safe-run's rules, and back. */
+const apiProbe = async (run, label, path, next) => {
+    const original = await run.client.getValue(path);
+    const { targets, end, isQuietNeeded } = safe.planSweep(run, path, [next(original)], original);
     return {
         label,
-        apply: () => API.request("post", volt.path + "/link_channels", body("stereo")),
-        restore: () => API.request("post", volt.path + "/link_channels", body("mono")),
+        isQuietNeeded,
+        apply: () => safe.setValue(run, path, targets[0], label),
+        restore: async () => {
+            if (end !== null) await safe.setValue(run, path, end, `${label} (restore)`);
+        },
     };
 };
-probes.push(linkProbe("link 1-2", "ANALOG 1", "ANALOG 2"), linkProbe("link 3-4", "ANALOG 3", "ANALOG 4"));
 
-const baseline = await dump();
-if (!baseline) {
-    console.error("No state dump from the Volt; nothing was changed.");
-    process.exit(1);
-}
-console.log("baseline", Buffer.from(baseline).toString("hex"));
-const monitorOriginal = baseline[spec.stateLayout?.monitorLevel ?? 18];
-const results = [];
-for (const p of probes) {
-    const original = p.path ? await API.getValue(p.path) : undefined;
-    try {
-        await p.apply();
-        await sleep(900);
-        const d = await dump();
-        if (!d) {
-            console.log(`${p.label.padEnd(26)} (no dump; skipped)`);
-            continue;
-        }
-        const changed = d
-            .map((v, i) => (v !== baseline[i] ? { offset: i, from: baseline[i], to: v } : null))
-            .filter(Boolean);
-        results.push({ label: p.label, changed });
-        console.log(
-            `${p.label.padEnd(26)} ${changed.map((c) => `[${c.offset}] ${c.from.toString(16)}→${c.to.toString(16)}`).join("  ") || "(no change)"}`,
-        );
-    } finally {
-        // Always put the setting back, even if the dump failed.
-        if (p.restore) await p.restore();
-        else await API.set(p.path, original);
-        await sleep(900);
+// The API doesn't reach the hardware monitor level, so this one goes over HID, down only.
+const monitorLevelProbe = (volt, dump) => {
+    const original = dump[volt.spec.stateLayout.monitorLevel] / volt.spec.monitorLevelPerUnit;
+    return {
+        label: "monitor level halved (HID)",
+        isQuietNeeded: true,
+        apply: () => send(volt, monitorLevel(volt.spec, Math.floor(original / 2))),
+        restore: () => send(volt, monitorLevel(volt.spec, original)),
+    };
+};
+
+// Linking copies the left side to the right; the final restore puts the right side back.
+const linkProbe = async (run, label, pair, sides) => {
+    const isLinked = await run.client.getValue(`${run.buses[pair]}/enabled`);
+    const target = `${run.device.path}/link_channels`;
+    const body = (stemFormat) => ({
+        device_uid: ua.uidOf(run.device.path),
+        channel_uid: sides.map((name) => ua.uidOf(run.buses[name])),
+        stem_format: stemFormat,
+    });
+    return {
+        label,
+        isQuietNeeded: true,
+        apply: () => safe.postCommand(run, target, body(isLinked ? "mono" : "stereo"), label),
+        restore: () => safe.postCommand(run, target, body(isLinked ? "stereo" : "mono"), `${label} (restore)`),
+    };
+};
+
+const nextTone = (tone) => (tone + 1) % 4;
+const lowerGain = (db) => stepAway(db, 10.5);
+
+/** Probes on Inputs 1-4: [label, input number, control under the input's bus, next value]. */
+const inputSettings = [
+    ...[1, 2, 3, 4].map((n) => [`tone In${n} next`, n, "/controls/preamp_tone", nextTone]),
+    ...[1, 2].map((n) => [`gain In${n}`, n, "/controls/preamp_gain", lowerGain]),
+    ...[1, 4].map((n) => [`direct In${n}`, n, "/outputs/main/controls/mute", toggle]),
+];
+
+// 48V only on inputs with nothing plugged into the XLR.
+const phantomProbes = async (run) => {
+    const probes = [];
+    for (const n of [1, 2]) {
+        const bus = run.buses[`ANALOG ${n}`];
+        const jack = (await run.client.get(`${bus}/jack_detect`))?.properties;
+        if (!jack?.jack_detect_mic?.value)
+            probes.push(await apiProbe(run, `48V In${n}`, `${bus}/controls/preamp_48v`, toggle));
     }
-}
-const after = await dump();
-const drift = after.map((v, i) => (v !== baseline[i] ? i : null)).filter((i) => i !== null);
-console.log(
-    drift.length
-        ? `WARNING: dump differs from baseline at offsets ${drift.join(", ")}`
-        : "restored: final dump equals baseline",
-);
+    return probes;
+};
 
-const out = path.resolve(here, "../reference/decoded", `${id.version}-state`);
-fs.mkdirSync(out, { recursive: true });
-fs.writeFileSync(
-    path.join(out, "state-map.json"),
-    JSON.stringify({ firmware: id.version, baseline, results }, null, 1),
-);
-API.close();
-dev.close();
-process.exit(0);
+const inputProbes = async (run) => {
+    const probes = [];
+    for (const [label, n, control, next] of inputSettings)
+        probes.push(await apiProbe(run, label, `${run.buses[`ANALOG ${n}`]}${control}`, next));
+    return [...probes, ...(await phantomProbes(run))];
+};
+
+const outputProbes = async (run, volt, dump) => {
+    const master = (bus, control) => `${run.buses[bus]}/outputs/main/controls/${control}`;
+    return [
+        await apiProbe(run, "monitor unmute", master("MONITOR", "mute"), () => 0),
+        await apiProbe(run, "monitor mono", master("MONITOR", "mix_to_mono"), toggle),
+        await apiProbe(
+            run,
+            "headphone level halved",
+            master("HEADPHONE", "gain"),
+            (level) => Math.round(level * 5) / 10,
+        ),
+        await apiProbe(run, "headphone unmute", master("HEADPHONE", "mute"), () => 0),
+        monitorLevelProbe(volt, dump),
+    ];
+};
+
+const deviceProbes = async (run) => {
+    const setting = (name) => `${run.device.path}/${name}`;
+    return [
+        await apiProbe(run, "clip protection toggled", setting("no_clip"), (isOn) => !isOn),
+        await apiProbe(run, "brightness changed", setting("display_brightness"), (raw) => (raw === 100 ? 60 : 100)),
+        await apiProbe(run, "digital input toggled", setting("tos_link"), (f) => (f === "S/PDIF" ? "ADAT" : "S/PDIF")),
+        await linkProbe(run, "link 1-2", "ANALOG 1-2", ["ANALOG 1", "ANALOG 2"]),
+        await linkProbe(run, "link 3-4", "ANALOG 3-4", ["ANALOG 3", "ANALOG 4"]),
+    ];
+};
+
+const printResult = ({ label, changed }) => {
+    const bytes = changed.map((c) => `[${c.offset}] ${c.from.toString(16)}→${c.to.toString(16)}`).join("  ");
+    console.log(`${label.padEnd(26)} ${bytes || "(no change)"}`);
+};
+
+const runProbe = async (run, volt, probe) => {
+    if (probe.isQuietNeeded) await safe.assertQuiet(run, probe.label);
+    const before = await dumpBytes(volt);
+    try {
+        await probe.apply();
+        await safe.pause(run, settleMs);
+        return { label: probe.label, changed: changedBytes(before, await dumpBytes(volt)) };
+    } finally {
+        await probe.restore();
+        await safe.pause(run, settleMs);
+    }
+};
+
+const runProbes = async (run, volt, dump) => {
+    await safe.muteOutputs(run);
+    const probes = [
+        ...(await inputProbes(run)),
+        ...(await outputProbes(run, volt, dump)),
+        ...(await deviceProbes(run)),
+    ];
+    const results = [];
+    for (const probe of probes) {
+        results.push(await runProbe(run, volt, probe));
+        printResult(results.at(-1));
+    }
+    return results;
+};
+
+const isDumpRestored = async (volt, baseline) => {
+    const drift = changedBytes(baseline, await dumpBytes(volt));
+    if (drift.length)
+        console.error(`*** NOT RESTORED: the state dump differs at offsets ${drift.map((d) => d.offset)} ***`);
+    return drift.length === 0;
+};
+
+const writeMap = (firmware, baseline, results) => {
+    const out = path.resolve(here, "../reference/decoded", `${firmware}-state`);
+    fs.mkdirSync(out, { recursive: true });
+    fs.writeFileSync(path.join(out, "state-map.json"), JSON.stringify({ firmware, baseline, results }, null, 1));
+};
+
+const mapState = async (volt) => {
+    const client = await ua.connect();
+    const run = await safe.startRun({ client, device: await ua.findVolt(client), log, snapshotFile });
+    const baseline = await dumpBytes(volt);
+    console.log("baseline", Buffer.from(baseline).toString("hex"));
+    safe.stopOnInterrupt(run);
+    let results = null;
+    try {
+        results = await runProbes(run, volt, baseline);
+    } catch (error) {
+        console.error(`Stopped: ${error.message}`);
+    }
+    const isRestored = (await safe.finishRun(run, snapshotFile)) && (await isDumpRestored(volt, baseline));
+    if (results) writeMap(volt.version, baseline, results);
+    client.close();
+    return Boolean(results) && isRestored;
+};
+
+const main = async () => {
+    const volt = await openVolt();
+    try {
+        if (process.argv.includes("--dump")) console.log(Buffer.from(await dumpBytes(volt)).toString("hex"));
+        else process.exitCode = (await mapState(volt)) ? 0 : 1;
+    } finally {
+        closeVolt(volt);
+    }
+};
+
+main()
+    .catch((error) => {
+        console.error(error.message);
+        process.exitCode = 1;
+    })
+    .finally(() => process.exit());

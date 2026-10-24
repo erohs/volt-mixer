@@ -6,26 +6,13 @@ import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
+import { findBrowser } from "./lib/browser.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(here, "..", "public");
 const card = pathToFileURL(path.join(here, "og-card.html")).href;
 
-const candidates = [
-    process.env.CHROME_PATH,
-    "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-    "C:/Program Files/Google/Chrome/Application/chrome.exe",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-    "/usr/bin/microsoft-edge",
-];
-const browser = candidates.find((candidate) => candidate && fs.existsSync(candidate));
-if (!browser) {
-    console.error("No Edge or Chrome found. Set CHROME_PATH.");
-    process.exit(1);
-}
+const browser = findBrowser();
 
 const shoot = (file, width, height, query = "", dir = publicDir) => {
     const out = path.join(dir, file);

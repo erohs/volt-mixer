@@ -1,48 +1,14 @@
 // Finds what makes the Volt's display miss a brightness change. Each case sets the display bright,
 // sends a run of F0 21 commands (and state requests, as the page's re-reads do), reads back what
 // the Volt stored, and asks you what the display shows. Anything else the Volt sends back during
-// a run is printed. Restores the starting brightness at the end. Quit Volt Mixer and UAD Console.
+// a run is printed. Restores the starting brightness at the end, also after an error. Quit Volt
+// Mixer and UAD Console.
 //   node brightness-probe.mjs
 import readline from "readline/promises";
-import { createRequire } from "module";
-import { brightness, identify, stateRequest } from "../src/lib/commands.ts";
-import { parseIdentify, parseState } from "../src/lib/reports.ts";
-import { protocol, specFor } from "../src/lib/spec.ts";
-
-const require = createRequire(import.meta.url);
-const HID = require("node-hid");
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-const info = HID.devices().find(
-    (d) => d.vendorId === protocol.vendorId && d.productId === protocol.productId && d.usagePage === 0xff01,
-);
-if (!info) {
-    console.error("Volt control interface not found");
-    process.exit(1);
-}
-const dev = new HID.HID(info.path);
-let spec = specFor("").spec;
-let onData = () => {};
-let isLogging = false;
-// node-hid includes the report ID as byte 0 on Windows.
-const isState = (b) => b[0] === spec.reports.stateReply.id && b[1] === spec.reports.stateReply.cmd;
-const isMeters = (b) => b[0] === spec.reports.meters.id;
-dev.on("data", (buf) => {
-    if (isLogging && !isMeters(buf) && !isState(buf)) console.log(`  Volt sent: ${buf.subarray(0, 8).toString("hex")}`);
-    onData(buf);
-});
-
-const send = (report) => dev.write([report.reportId, ...report.data]);
-const request = (report, match) =>
-    new Promise((resolve) => {
-        const timer = setTimeout(() => resolve(null), 1500);
-        onData = (buf) => match(buf) && (clearTimeout(timer), resolve(buf));
-        send(report);
-    });
-const storedBrightness = async () => {
-    const b = await request(stateRequest(spec), isState);
-    return b ? parseState(spec, b.subarray(1)).brightness : null;
-};
+import { setTimeout as sleep } from "timers/promises";
+import { brightness, stateRequest } from "../src/lib/commands.ts";
+import { parseState } from "../src/lib/reports.ts";
+import { closeVolt, isStateReply, onReport, openVolt, requestState, send } from "./lib/volt-hid.mjs";
 
 /* Steps are raw brightness levels, or "state" for a state request. All start from raw 145. */
 const bright = 145;
@@ -55,36 +21,57 @@ const cases = [
     { label: "state request, then a jump to 0 1 ms later", steps: ["state", 0], gapMs: 1 },
 ];
 
-const runCase = async ({ steps, gapMs = 16 }) => {
-    send(brightness(spec, bright));
+const storedBrightness = async (volt) => parseState(volt.spec, (await requestState(volt)).subarray(1)).brightness;
+
+/** Prints what else the Volt sends during a case (not meters or state replies). */
+const logOtherReports = (volt) =>
+    onReport(volt, (buffer) => {
+        const isMeters = buffer[0] === volt.spec.reports.meters.id;
+        if (!isMeters && !isStateReply(volt.spec, buffer))
+            console.log(`  Volt sent: ${buffer.subarray(0, 8).toString("hex")}`);
+    });
+
+const runCase = async (volt, { steps, gapMs = 16 }) => {
+    send(volt, brightness(volt.spec, bright));
     await sleep(1500);
-    isLogging = true;
+    const stopLogging = logOtherReports(volt);
     for (const step of steps) {
-        send(step === "state" ? stateRequest(spec) : brightness(spec, step));
+        send(volt, step === "state" ? stateRequest(volt.spec) : brightness(volt.spec, step));
         await sleep(gapMs);
     }
     await sleep(1000);
-    isLogging = false;
-    return storedBrightness();
+    stopLogging();
+    return storedBrightness(volt);
 };
 
-const idReply = await request(identify(spec), (b) => b[0] === spec.reports.identifyReply.id);
-spec = specFor(idReply ? parseIdentify(idReply.subarray(1)).version : "").spec;
-const start = await storedBrightness();
-console.log(`Starting brightness: raw ${start}. Each case starts bright and should end dark; watch the display.\n`);
+const askCases = async (volt, rl) => {
+    const results = [];
+    for (const [i, c] of cases.entries()) {
+        await rl.question(`Case ${i + 1}/${cases.length} (${c.label}). Press Enter to run it.`);
+        const stored = await runCase(volt, c);
+        const seen = await rl.question(`  Volt stored raw ${stored}. Is the display now dark (d) or still lit (l)? `);
+        results.push({ case: c.label, stored, display: seen.trim().toLowerCase().startsWith("d") ? "dark" : "lit" });
+    }
+    return results;
+};
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const results = [];
-for (const [i, c] of cases.entries()) {
-    await rl.question(`Case ${i + 1}/${cases.length} (${c.label}). Press Enter to run it.`);
-    const stored = await runCase(c);
-    const seen = await rl.question(`  Volt stored raw ${stored}. Is the display now dark (d) or still lit (l)? `);
-    results.push({ case: c.label, stored, display: seen.trim().toLowerCase().startsWith("d") ? "dark" : "lit" });
-}
-rl.close();
+const main = async () => {
+    const volt = await openVolt();
+    const start = await storedBrightness(volt);
+    console.log(`Starting brightness: raw ${start}. Each case starts bright and should end dark; watch the display.\n`);
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    try {
+        console.table(await askCases(volt, rl));
+    } finally {
+        rl.close();
+        send(volt, brightness(volt.spec, start));
+        await sleep(300);
+        console.log(`\nRestored brightness to raw ${await storedBrightness(volt)} (was ${start}).`);
+        closeVolt(volt);
+    }
+};
 
-send(brightness(spec, start ?? 217));
-await sleep(300);
-console.log(`\nRestored brightness to raw ${await storedBrightness()} (was ${start}).`);
-console.table(results);
-dev.close();
+main().catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+});

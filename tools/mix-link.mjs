@@ -1,13 +1,13 @@
 // Builds a Volt Mixer mix link from UAD Console's current mix (read-only), so the page's first
 // push at home changes nothing. Needs UAD Console running.
-//   node mix-link.mjs [page-url]      default page-url: http://localhost:4321/
+//   node mix-link.mjs [page-url]      default page-url: http://localhost:4321/volt-mixer/
 import { createRequire } from "module";
 import { channels, pairs } from "../src/lib/mixer.ts";
 import { encodeMixCode } from "../src/lib/mix-code.ts";
 
 const require = createRequire(import.meta.url);
 const ua = require("./lib/ua-api");
-const pageUrl = process.argv[2] ?? "http://localhost:4321/";
+const pageUrl = process.argv[2] ?? "http://localhost:4321/volt-mixer/";
 
 /** Console's bus name for a channel ("in3" -> "ANALOG 3") or a linked pair ("ANALOG 3-4"). */
 const busName = (id) => {

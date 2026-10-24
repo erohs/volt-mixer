@@ -1,0 +1,6 @@
+# Its own pnpm root (the site at the repository root is a separate project).
+
+# pnpm refuses to run a dependency's install scripts unless it is listed here. node-hid ships
+# prebuilt for every platform, and its script only checks for them (or compiles), so it's skipped.
+allowBuilds:
+  node-hid: false

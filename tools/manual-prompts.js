@@ -50,47 +50,52 @@ const rl = readline.createInterface({ input: process.stdin, output: process.stdo
 const ask = (q) => new Promise((res) => rl.question(q, res));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Live monitor level from UA's API while the user sets the knob (the API mirrors the hardware knob).
-async function setupStep() {
-    let client = null,
-        monitor = null,
-        timer = null;
+// The live monitor level from UA's API while the user sets the knob (the API mirrors the hardware
+// knob), or null when the API isn't available and only the instructions are shown.
+const connectMonitor = async () => {
     try {
         const ua = require("./lib/ua-api");
-        client = await ua.connect();
+        const client = await ua.connect();
         const dev = await ua.findVolt(client);
-        monitor = (await ua.buses(client, dev)).MONITOR + "/outputs/main/controls/gain";
+        return { client, path: (await ua.buses(client, dev)).MONITOR + "/outputs/main/controls/gain" };
     } catch {
-        /* API unavailable: just show the instructions */
+        return null;
     }
+};
+
+// One read at a time until Enter, so slow replies can't pile up.
+const showLevelUntil = async (monitor, isDone) => {
+    while (!isDone()) {
+        const level = await monitor.client.getValue(monitor.path).catch(() => "?");
+        const text = typeof level === "number" ? level.toFixed(1) : level;
+        process.stdout.write(`\r  Monitor level: ${text}   (press Enter when ready)   `);
+        await sleep(300);
+    }
+};
+
+const printSetup = (hasMonitor) => {
     console.log(
         "\nSETUP: press MONITOR/HEADPHONE until it is GREEN, and make sure the display is in Input View (not Meter View).",
     );
-    if (monitor) {
-        console.log('"Monitor level" below should show 0 (your setting). If it does, leave the knob alone.');
-        console.log(
-            "If not: turn the KNOB DOWN slowly and STOP as soon as it shows 0. Turning past 0 makes the Volt jump to loud.",
-        );
-        timer = setInterval(async () => {
-            const v = await client.getValue(monitor);
-            process.stdout.write(
-                `\r  Monitor level: ${typeof v === "number" ? v.toFixed(1) : v}   (press Enter when ready)   `,
-            );
-        }, 300);
-    } else {
-        process.stdout.write("  Press Enter when ready > ");
-    }
-    await new Promise((res) => rl.once("line", res));
-    clearInterval(timer);
-    if (client) client.close();
-}
+    if (!hasMonitor) return process.stdout.write("  Press Enter when ready > ");
+    console.log('"Monitor level" below should show 0 (your setting). If it does, leave the knob alone.');
+    console.log(
+        "If not: turn the KNOB DOWN slowly and STOP as soon as it shows 0. Turning past 0 makes the Volt jump to loud.",
+    );
+};
 
-(async () => {
-    await setupStep();
-    console.log(`\n${PROMPTS.length} steps. Do each one, then press Enter. Type "s" + Enter to skip a step.\n`);
-    log({ step: "set", label: "idle" });
-    await sleep(3000);
-    const start = Math.max(1, +(process.argv[2] || 1)) - 1;
+const setupStep = async () => {
+    const monitor = await connectMonitor();
+    printSetup(Boolean(monitor));
+    let isReady = false;
+    const showing = monitor ? showLevelUntil(monitor, () => isReady) : Promise.resolve();
+    await new Promise((resolve) => rl.once("line", resolve));
+    isReady = true;
+    await showing;
+    monitor?.client.close();
+};
+
+const runPrompts = async (start) => {
     for (let i = start; i < PROMPTS.length; i++) {
         const [label, text] = PROMPTS[i];
         log({ step: "set", label, prompt: text });
@@ -100,7 +105,17 @@ async function setupStep() {
         await sleep(1500);
         log({ step: "set", label: "idle" });
     }
+};
+
+const main = async () => {
+    await setupStep();
+    console.log(`\n${PROMPTS.length} steps. Do each one, then press Enter. Type "s" + Enter to skip a step.\n`);
+    log({ step: "set", label: "idle" });
+    await sleep(3000);
+    await runPrompts(Math.max(1, +(process.argv[2] || 1)) - 1);
     log({ phase: "done" });
     rl.close();
     console.log(`\nAll done, thank you. You can close this window. Log: ${LOG}`);
-})();
+};
+
+main();

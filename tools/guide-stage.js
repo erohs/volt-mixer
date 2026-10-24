@@ -206,13 +206,13 @@
          * The tray page (src/pages/tray), sent a snapshot the way the main window sends one. As a
          * phone it has no footer and offers to keep the mix.
          */
-        tray: (data) => {
+        tray: async (data) => {
             new BroadcastChannel("volt-mixer").postMessage({ kind: "snapshot", snapshot: data.snapshot });
-            if (data.isPhone)
-                setTimeout(() => {
-                    $(".foot").hidden = true;
-                    Object.assign($("[data-tray-keep]"), { hidden: false, href: data.snapshot.mixLink });
-                }, 100);
+            while (!$("[data-tray-rows]").children.length) await new Promise(requestAnimationFrame);
+            if (data.isPhone) {
+                $(".foot").hidden = true;
+                Object.assign($("[data-tray-keep]"), { hidden: false, href: data.snapshot.mixLink });
+            }
             return { x: 0, y: 0, width: innerWidth, height: innerHeight };
         },
         /* A phone that opened a mix link: the QR code is drawn here from `data.qr` (src/lib/qr-svg.ts). */
