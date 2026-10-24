@@ -43,21 +43,22 @@ The page keeps the protocol as data in `src/data/volt4-gen2.json`, keyed by firm
 
 Run `pnpm test` in the repository root after any change. It runs the library tests (including re-encoding every decoded capture), and the colour-contrast check over `src/styles/tokens.css`.
 
-| Tool                      | What it does                                                                                                                              | Writes to the Volt?      |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `tools/ua.js`             | API CLI: `info`, `get`, `set`, `tree`, `controls`, `snapshot`, `restore`                                                                  | only `set` and `restore` |
-| `tools/lib/ua-api.js`     | shared API client; finds the Volt automatically                                                                                           | —                        |
-| `tools/capture-run.js`    | automated sweep with step log, cache and restore (`--dry-run` is read-only)                                                               | yes, restored afterwards |
-| `tools/run-capture.ps1`   | elevated USBPcap capture around the sweep, `-Mode startup` (Console start-up) or `-Mode manual` (user-paced prompts, `-From N` to resume) | via capture-run          |
-| `tools/manual-prompts.js` | step-by-step front-panel prompts; waits for Enter after each                                                                              | no                       |
-| `tools/decode-capture.js` | pcap + step log → per-parameter HID bytes (serial redacted)                                                                               | no                       |
-| `tools/state-probe.mjs`   | maps the state dump by changing one setting at a time (`--dump` = read-only)                                                              | yes, restored after each |
-| `tools/meter-probe.mjs`   | summarises the meter stream for one labelled test                                                                                         | no                       |
-| `tools/meter-raw.mjs`     | prints one meter's raw values over a few seconds, to spot odd flags or spikes                                                             | no                       |
-| `tools/midi-probe.js`     | sends a SysEx message to the Volt's USB MIDI port (result: MIDI doesn't reach the mixer)                                                  | via MIDI                 |
-| `tools/fingerprint.js`    | version/HID fingerprint and diff (`--check` exits 1 on change)                                                                            | no                       |
-| `tools/fetch-docs.js`     | refresh UA manuals and flag changes                                                                                                       | no                       |
-| `tools/hid-caps.ps1`      | HID report sizes of the Volt's control interface                                                                                          | no                       |
+| Tool                         | What it does                                                                                                                              | Writes to the Volt?      |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `tools/ua.js`                | API CLI: `info`, `get`, `set`, `tree`, `controls`, `snapshot`, `restore`                                                                  | only `set` and `restore` |
+| `tools/lib/ua-api.js`        | shared API client; finds the Volt automatically                                                                                           | —                        |
+| `tools/capture-run.js`       | automated sweep with step log, cache and restore (`--dry-run` is read-only)                                                               | yes, restored afterwards |
+| `tools/run-capture.ps1`      | elevated USBPcap capture around the sweep, `-Mode startup` (Console start-up) or `-Mode manual` (user-paced prompts, `-From N` to resume) | via capture-run          |
+| `tools/manual-prompts.js`    | step-by-step front-panel prompts; waits for Enter after each                                                                              | no                       |
+| `tools/decode-capture.js`    | pcap + step log → per-parameter HID bytes (serial redacted)                                                                               | no                       |
+| `tools/state-probe.mjs`      | maps the state dump by changing one setting at a time (`--dump` = read-only)                                                              | yes, restored after each |
+| `tools/meter-probe.mjs`      | summarises the meter stream for one labelled test                                                                                         | no                       |
+| `tools/meter-raw.mjs`        | prints one meter's raw values over a few seconds, to spot odd flags or spikes                                                             | no                       |
+| `tools/brightness-probe.mjs` | user-paced runs of brightness changes; asks what the display shows, restores the brightness after                                         | yes, restored afterwards |
+| `tools/midi-probe.js`        | sends a SysEx message to the Volt's USB MIDI port (result: MIDI doesn't reach the mixer)                                                  | via MIDI                 |
+| `tools/fingerprint.js`       | version/HID fingerprint and diff (`--check` exits 1 on change)                                                                            | no                       |
+| `tools/fetch-docs.js`        | refresh UA manuals and flag changes                                                                                                       | no                       |
+| `tools/hid-caps.ps1`         | HID report sizes of the Volt's control interface                                                                                          | no                       |
 
 ## Kept local, not in git
 

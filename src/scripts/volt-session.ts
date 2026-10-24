@@ -3,7 +3,7 @@ import { applyDeviceReport } from "../lib/device-report.ts";
 import { applyHardwareState, isLinked, matchQuieterGain, voltSettings } from "../lib/mixer.ts";
 import { isMixKey } from "../lib/mixer-sync.ts";
 import { parseCommandReport, parseMeters, parseState } from "../lib/reports.ts";
-import { newestSpec } from "../lib/spec.ts";
+import { newestSpec, type ISpec } from "../lib/spec.ts";
 import { app, hooks, isLive, layout, notice } from "./app-state.ts";
 import { showMeterLevels } from "./meters-view.ts";
 import { saveMixSoon } from "./mix-ownership.ts";
@@ -24,15 +24,48 @@ let isFlushPending = false;
 let statesAsked = 0;
 let stateTimer = 0;
 
+/*
+ * The Volt's display eases to a new brightness, and a change that arrives mid-way can leave it
+ * stuck short of the value the Volt stored (seen dragging the slider on a 240 Hz screen, changes
+ * 4 ms apart; rarer 50 ms apart). Sending the same value again unsticks it. So brightness goes at
+ * most every 50 ms, and the last one goes once more when the slider has settled.
+ */
+const brightnessGapMs = 50;
+const brightnessSettleMs = 500;
+let brightnessSentAt = -Infinity;
+let brightnessTimer = 0;
+let settleTimer = 0;
+
 const isEditing = (): boolean => performance.now() - app.lastEditAt < editHoldMs;
+const isBrightness = (key: string): boolean => key === "brightness";
 /** The settings the Volt reports, as opposed to the mix, which only this page knows. */
 const isReportedKey = (key: string): boolean => !isMixKey(key);
+/** What a reading confirms; not a brightness that's waiting to go, which the Volt hasn't had yet. */
+const isConfirmedKey = (key: string): boolean => isReportedKey(key) && !(isBrightness(key) && brightnessTimer !== 0);
+
+/** Sends brightness once the gap since the last has passed; until then a timer waits to send the latest. */
+const sendBrightness = (spec: ISpec): void => {
+    const wait = brightnessSentAt + brightnessGapMs - performance.now();
+    if (wait > 0) {
+        brightnessTimer ||= window.setTimeout(() => ((brightnessTimer = 0), commit()), wait);
+        return;
+    }
+    const reports = app.sync.diff(app.state, spec, { filter: isBrightness });
+    if (reports.length === 0) return;
+    brightnessSentAt = performance.now();
+    volt.send(reports);
+    window.clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(() => volt.connectedSpec() && isLive() && volt.send(reports), brightnessSettleMs);
+};
 
 /** Sends what changed and saves the mix. */
 const flush = (): void => {
     isFlushPending = false;
     const spec = volt.connectedSpec();
-    if (spec && isLive()) volt.send(app.sync.diff(app.state, spec));
+    if (spec && isLive()) {
+        volt.send(app.sync.diff(app.state, spec, { filter: (key) => !isBrightness(key) }));
+        sendBrightness(spec);
+    }
     saveMixSoon();
     hooks.refresh();
 };
@@ -83,7 +116,7 @@ const onLaterState = (data: Uint8Array): void => {
     const before = JSON.stringify(voltSettings(app.state));
     const changed = applyHardwareState(app.state, parseState(spec, data));
     if (changed.length === 0 && JSON.stringify(voltSettings(app.state)) === before) return;
-    app.sync.prime(app.state, spec, isReportedKey);
+    app.sync.prime(app.state, spec, isConfirmedKey);
     // Linked with the INPUT button: the preamps take the lower gain, which the commit sends.
     for (const pair of changed) if (isLinked(app.state, pair[0])) matchQuieterGain(app.state, pair);
     if (changed.length > 0) layout();
@@ -111,7 +144,7 @@ const onReport = ({ reportId, data }: { reportId: number; data: Uint8Array }): v
     // This page's own pending changes go out first, so the Volt's report isn't sent back to it.
     if (isFlushPending) flush();
     if (!applyDeviceReport(app.state, report)) return;
-    app.sync.prime(app.state, spec, isReportedKey);
+    app.sync.prime(app.state, spec, isConfirmedKey);
     if (report.type === "digitalFormat") layout();
     else hooks.refresh();
 };
