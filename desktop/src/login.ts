@@ -35,8 +35,12 @@ const writeAutostart = (isOn: boolean): void => {
     }
 };
 
-/** Turns start at login on or off. Called on every launch too, so a moved AppImage is followed. */
+/**
+ * Turns start at login on or off. Called on every launch too, so a moved AppImage is followed.
+ * Not from `pnpm start`: that would register bare electron.exe, which opens Electron's own page.
+ */
 export const applyLoginItem = (isOn: boolean): void => {
+    if (!app.isPackaged) return;
     if (isLinux) return writeAutostart(isOn);
     app.setLoginItemSettings(isMac ? { openAtLogin: isOn } : { openAtLogin: isOn, args: [hiddenFlag] });
 };
