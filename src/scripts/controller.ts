@@ -28,7 +28,8 @@ import { initSliders } from "./slider.ts";
 import { clearRetiredSettings, loadTheme, loadTrayHidden } from "./store.ts";
 import { refreshStrips, renderStrips } from "./strips.ts";
 import { applyTheme } from "./theme.ts";
-import { showMessage } from "./messages.ts";
+import { clearFeedback, flashButton, setInvalid } from "./button-feedback.ts";
+import { clearMessage, showMessage } from "./messages.ts";
 import * as volt from "./volt-connection.ts";
 import type { IConnectionInfo } from "./volt-connection.ts";
 import { commit, identifyVolt, rereadVolt, startAutoGain, startSession, wireSession } from "./volt-session.ts";
@@ -156,16 +157,29 @@ const pageActions: Record<string, () => void> = {
 };
 
 /**
- * A link pasted into Settings or the setup panel; what became of it shows under the box. Replacing
- * a mix this computer has asks first.
+ * A link pasted into Settings or the setup panel. Applied or refused, the Use button answers with
+ * a tick or a cross (a refused link turns the box red until it's edited); kept for later, it says
+ * so under the box. Replacing a mix this computer has asks first.
  */
 const usePastedLink = (form: HTMLFormElement): void => {
     const input = form.querySelector<HTMLInputElement>("[data-mix-link-input]")!;
     const question = "Replace this computer's mix with the one in the link?";
     if (app.state.isMixOwned && !window.confirm(question)) return;
     const { kind, text } = receiveMixLink(input.value);
-    if (kind !== "error") input.value = "";
-    showMessage(form.querySelector<HTMLElement>("[data-message]"), kind, text);
+    const isError = kind === "error";
+    setInvalid(input, isError);
+    if (!isError) input.value = "";
+    const button = form.querySelector<HTMLElement>(".button--feedback");
+    if (kind === "info") clearFeedback(button);
+    else flashButton(button, isError ? "error" : "success");
+    showMessage(form.querySelector<HTMLElement>("[data-message]"), kind, text, { isQuiet: kind !== "info" });
+};
+
+/** Editing a refused link takes the red off, and what was said about it. */
+const onPasteEdited = (form: HTMLFormElement): void => {
+    setInvalid(form.querySelector<HTMLInputElement>("[data-mix-link-input]")!, false);
+    const message = form.querySelector<HTMLElement>("[data-message]");
+    if (message) clearMessage(message);
 };
 
 const wirePage = (): void => {
@@ -178,6 +192,8 @@ const wirePage = (): void => {
             event.preventDefault();
             usePastedLink(form);
         });
+    for (const form of document.querySelectorAll<HTMLFormElement>("[data-mix-paste]"))
+        form.addEventListener("input", () => onPasteEdited(form));
     window.addEventListener("hashchange", readMixFromAddress);
     takeLinksFromOtherTabs();
     window.addEventListener("pagehide", saveMixNow);

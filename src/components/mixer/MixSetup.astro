@@ -1,4 +1,5 @@
 ---
+import Icon from "../ui/Icon.astro";
 import InlineMessage from "../ui/InlineMessage.astro";
 ---
 
@@ -17,9 +18,11 @@ import InlineMessage from "../ui/InlineMessage.astro";
             Mix link from your other computer, or from <code>tools/mix-link.mjs</code>
         </label>
         <div class="row">
-            <input id="mix-link" type="url" required data-mix-link-input />
-            <button class="button button--primary" type="submit">
-                Use this mix
+            <input id="mix-link" type="url" required aria-describedby="message-mix-setup-paste" data-mix-link-input />
+            <button class="button button--primary button--feedback" type="submit">
+                <span class="face">Use this mix</span>
+                <Icon name="check" class="feedback feedback--success" />
+                <Icon name="close" class="feedback feedback--error" />
             </button>
         </div>
         <InlineMessage name="mix-setup-paste" />

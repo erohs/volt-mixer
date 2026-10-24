@@ -4,6 +4,7 @@ import { site } from "../lib/site.ts";
 import { app } from "./app-state.ts";
 import { desktopApp } from "./desktop.ts";
 import { drawQr } from "./qr.ts";
+import { flashButton, setInvalid } from "./button-feedback.ts";
 import { showMessage } from "./messages.ts";
 
 /* Settings › Your mix › Mix link: the link in a box that copies itself, and its QR code below. */
@@ -31,11 +32,18 @@ export const refreshMixLink = (): void => {
 const copy = async (input: HTMLInputElement): Promise<void> => {
     input.select();
     const message = document.querySelector<HTMLElement>("[data-message='mix-link']");
+    const button = document.querySelector<HTMLElement>("[data-mix-copy]");
     try {
         await navigator.clipboard.writeText(input.value);
-        showMessage(message, "success", "Mix link copied.");
+        setInvalid(input, false);
+        flashButton(button, "success");
+        showMessage(message, "success", "Mix link copied.", { isQuiet: true });
     } catch {
-        showMessage(message, "error", "Couldn't copy it: the link is selected, so copy it with Ctrl+C.");
+        // There's nothing to fix in the box itself, so it's red only while the cross shows.
+        setInvalid(input, true);
+        flashButton(button, "error", () => setInvalid(input, false));
+        const text = "Couldn't copy it: the link is selected, so copy it with Ctrl+C.";
+        showMessage(message, "error", text, { isQuiet: true });
     }
 };
 

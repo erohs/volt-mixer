@@ -32,8 +32,12 @@
     color: var(--message-colour);
 }
 
-/* Empty, it stays in the page (a live region must exist before it speaks) but takes no space. */
-.message:empty {
+/*
+ * Empty, or for screen readers only, it stays in the page (a live region must exist before it
+ * speaks) but takes no space.
+ */
+.message:empty,
+.message[data-quiet] {
     position: absolute;
     inline-size: 1px;
     block-size: 1px;

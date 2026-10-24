@@ -189,10 +189,20 @@ import Slider from "../ui/Slider.astro";
                 </p>
             </div>
             <div class="link-field">
-                <input id="mix-link-input" type="text" readonly aria-describedby="mix-link-description" data-mix-link />
-                <button class="button button--icon" type="button" data-mix-copy>
-                    <Icon name="copy" />
-                    <span class="visually-hidden">Copy mix link</span>
+                <input
+                    id="mix-link-input"
+                    type="text"
+                    readonly
+                    aria-describedby="mix-link-description message-mix-link"
+                    data-mix-link
+                />
+                <button class="button button--icon button--feedback" type="button" data-mix-copy>
+                    <span class="face">
+                        <Icon name="copy" />
+                        <span class="visually-hidden">Copy mix link</span>
+                    </span>
+                    <Icon name="check" class="feedback feedback--success" />
+                    <Icon name="close" class="feedback feedback--error" />
                 </button>
             </div>
             <Reveal summary="QR code" data-mix-qr>
@@ -219,11 +229,13 @@ import Slider from "../ui/Slider.astro";
                     id="mix-paste-input"
                     type="url"
                     required
-                    aria-describedby="mix-paste-description"
+                    aria-describedby="mix-paste-description message-mix-paste"
                     data-mix-link-input
                 />
-                <button class="button" type="submit">
-                    Use
+                <button class="button button--feedback" type="submit">
+                    <span class="face">Use</span>
+                    <Icon name="check" class="feedback feedback--success" />
+                    <Icon name="close" class="feedback feedback--error" />
                 </button>
             </div>
             <InlineMessage name="mix-paste" />

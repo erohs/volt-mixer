@@ -36,11 +36,18 @@ export const clearMessage = (element: HTMLElement): void => {
 };
 
 /**
- * Shows a message under a field, replacing what it said. Emptied first and filled a moment later,
- * so the live region announces it even when it's the same message again.
+ * Shows a message under a field, replacing what it said; `isQuiet` keeps it for screen readers
+ * only, where a button already shows the outcome (button-feedback.ts). Emptied first and filled a
+ * moment later, so the live region announces it even when it's the same message again.
  */
-export const showMessage = (element: HTMLElement | null, kind: MessageKind, text: string): void => {
+export const showMessage = (
+    element: HTMLElement | null,
+    kind: MessageKind,
+    text: string,
+    { isQuiet = false } = {},
+): void => {
     if (!element) return;
     clearMessage(element);
+    element.toggleAttribute("data-quiet", isQuiet);
     window.setTimeout(() => fillMessage(element, kind, text), 50);
 };

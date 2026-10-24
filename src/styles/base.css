@@ -42,6 +42,12 @@ select {
     background-color: var(--color-background-surface);
 }
 
+/* A field whose value was refused: a red edge, doubled so it reads as more than a hue change. */
+input[aria-invalid="true"] {
+    border-color: var(--color-background-danger);
+    box-shadow: inset 0 0 0 1px var(--color-background-danger);
+}
+
 input[type="checkbox"],
 input[type="radio"] {
     min-block-size: auto;

@@ -8,4 +8,4 @@ const { name } = Astro.props;
 ---
 
 <!-- What just happened with the field above it; empty until then (src/scripts/messages.ts). -->
-<p class="message" role="status" data-message={name}></p>
+<p class="message" id={`message-${name}`} role="status" data-message={name}></p>

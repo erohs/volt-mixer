@@ -67,3 +67,48 @@
         outline: var(--border-width-standout) solid Highlight;
     }
 }
+
+/*
+ * A button that answers with a tick or a cross for a moment, in place of what it shows
+ * (src/scripts/button-feedback.ts). Everything sits in one cell, so the button keeps its size.
+ */
+.button--feedback {
+    display: inline-grid;
+    place-items: center;
+
+    & > * {
+        grid-area: 1 / 1;
+        transition:
+            opacity var(--duration-fast) var(--easing-standard),
+            scale var(--duration-fast) var(--easing-standard);
+    }
+
+    & .feedback {
+        opacity: 0;
+        scale: 0.5;
+    }
+
+    & .feedback--success {
+        color: var(--color-text-success);
+    }
+
+    & .feedback--error {
+        color: var(--color-background-danger);
+    }
+
+    &[data-feedback] .face {
+        opacity: 0;
+        scale: 0.8;
+    }
+
+    &[data-feedback="success"] .feedback--success,
+    &[data-feedback="error"] .feedback--error {
+        opacity: 1;
+        scale: 1;
+    }
+}
+
+/* On a violet button green and red wouldn't stand out, so both take its text colour; the shape tells them apart. */
+.button--primary.button--feedback .feedback {
+    color: var(--color-text-on-accent);
+}
