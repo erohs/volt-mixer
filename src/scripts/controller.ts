@@ -153,16 +153,23 @@ const pageActions: Record<string, () => void> = {
     ...settingsActions,
 };
 
+/** A link pasted into Settings or the setup panel. Replacing a mix this computer has asks first. */
+const usePastedLink = (input: HTMLInputElement): void => {
+    const question = "Replace this computer's mix with the one in the link?";
+    if (app.state.isMixOwned && !window.confirm(question)) return;
+    if (receiveMixLink(input.value)) input.value = "";
+};
+
 const wirePage = (): void => {
     document.addEventListener("click", (event) => {
         const action = (event.target as Element).closest<HTMLElement>("[data-action]")?.dataset["action"] ?? "";
         pageActions[action]?.();
     });
-    element("[data-mix-paste]").addEventListener("submit", (event) => {
-        event.preventDefault();
-        const input = element<HTMLInputElement>("[data-mix-link-input]");
-        if (receiveMixLink(input.value)) input.value = "";
-    });
+    for (const form of document.querySelectorAll<HTMLFormElement>("[data-mix-paste]"))
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            usePastedLink(form.querySelector<HTMLInputElement>("[data-mix-link-input]")!);
+        });
     window.addEventListener("hashchange", readMixFromAddress);
     takeLinksFromOtherTabs();
     window.addEventListener("pagehide", saveMixNow);

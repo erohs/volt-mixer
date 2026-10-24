@@ -202,6 +202,29 @@ import Slider from "../ui/Slider.astro";
                 </QrCode>
             </Reveal>
         </div>
+        <!-- A link from another computer, pasted here; it replaces this computer's mix (controller.ts). -->
+        <form class="mix-link" data-mix-paste>
+            <div class="text">
+                <label class="name" for="mix-paste-input">
+                    Use a mix link
+                </label>
+                <p class="description" id="mix-paste-description">
+                    From another computer. It replaces this one's mix.
+                </p>
+            </div>
+            <div class="link-field">
+                <input
+                    id="mix-paste-input"
+                    type="url"
+                    required
+                    aria-describedby="mix-paste-description"
+                    data-mix-link-input
+                />
+                <button class="button" type="submit">
+                    Use
+                </button>
+            </div>
+        </form>
         <SettingRow id="push-mix" name="Apply mix" description="Send it to the Volt now.">
             <button class="button" type="button" aria-describedby="push-mix-description" data-action="push-mix">
                 Apply
@@ -277,9 +300,13 @@ import Slider from "../ui/Slider.astro";
             min-inline-size: 0;
             border-start-end-radius: 0;
             border-end-end-radius: 0;
-            color: var(--color-text-secondary);
             font-size: var(--font-size-small);
             text-overflow: ellipsis;
+        }
+
+        /* The link to copy reads as quieter than one being typed. */
+        & input[readonly] {
+            color: var(--color-text-secondary);
             cursor: copy;
         }
 
