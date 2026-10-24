@@ -25,12 +25,14 @@ come from the Volt. Each computer keeps its own copy; a `#mix=` link carries it 
 Until a computer has a mix, no level is sent. `docs/remote-sync.md` looks at keeping that copy in
 step over the network, and at phone control.
 
-## Relative sliders instead of ramps
+## Click to set, on every slider
 
-A click on a slider never jumps its value; it moves only as far as the pointer travels. End and a
-double-click go to 0 dB on faders and cue sends, from anywhere (kept on purpose, like a console's
-reset), and do nothing louder on level controls. This prevents sudden loud jumps without ramping
-levels in code.
+A press on a slider's track sets the value there, levels included, then drags on from it; a press
+on the handle drags it from where it is. Sliders used to be drag-only so a click could never jump
+a level, but the user chose click-to-set everywhere (2026-10-24), knowing a stray click high on a
+level is a sudden loud jump. Levels still aren't ramped in code. End and a double-click go to
+0 dB on faders and cue sends, from anywhere (like a console's reset), and do nothing louder on
+level controls.
 
 ## A link takes the quieter side
 

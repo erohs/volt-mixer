@@ -2,9 +2,10 @@ import { sliderModels } from "../lib/slider-models.ts";
 import type { ISliderModel } from "../lib/slider-models.ts";
 
 /*
- * Behaviour for the Slider component (role="slider"). Dragging is relative: pressing anywhere
- * moves the value only as far as the pointer travels, so a click can never jump a level. Changes
- * the user makes are announced with a bubbling "slider-input" event carrying { name, value }.
+ * Behaviour for the Slider component (role="slider"). A press on the track sets the value there
+ * and drags on from it; a press on the handle, or on the label, scale or value, drags from where it
+ * is, as far as the pointer travels. Changes the user makes are announced with a bubbling
+ * "slider-input" event carrying { name, value }.
  */
 
 interface ISliderState {
@@ -54,22 +55,33 @@ const change = (control: HTMLElement, value: number): void => {
 
 const isVertical = (control: HTMLElement): boolean => control.getAttribute("aria-orientation") === "vertical";
 
-/** Starts a relative drag of `control`; the press can be anywhere on the slider (label, scale, value). */
-const startDrag = (control: HTMLElement, event: PointerEvent): void => {
-    // Stops the browser starting a text selection or drag, which would cancel this one.
-    event.preventDefault();
-    const { model, value } = stateOf(control);
+/** Where the handle's centre is at 0, and how far it travels: the control less the handle (Slider.astro). */
+const travelOf = (control: HTMLElement): { start: number; length: number } => {
     const rect = control.getBoundingClientRect();
-    const length = (isVertical(control) ? rect.height : rect.width) || 1;
-    const start = { pointer: isVertical(control) ? event.clientY : event.clientX, position: model.toPosition(value) };
-    control.setPointerCapture(event.pointerId);
-    control.focus();
+    const thumb = control.querySelector(".thumb")?.getBoundingClientRect();
+    if (isVertical(control)) {
+        const size = thumb?.height ?? 0;
+        return { start: rect.bottom - size / 2, length: rect.height - size || 1 };
+    }
+    const size = thumb?.width ?? 0;
+    return { start: rect.left + size / 2, length: rect.width - size || 1 };
+};
+
+/** Where a press on the track lands, 0–1. */
+const positionAt = (control: HTMLElement, event: PointerEvent): number => {
+    const { start, length } = travelOf(control);
+    return clamp01((isVertical(control) ? start - event.clientY : event.clientX - start) / length);
+};
+
+const isOnTrack = (control: HTMLElement, event: PointerEvent): boolean => {
+    const target = event.target as Element;
+    return control.contains(target) && !target.closest(".thumb");
+};
+
+/** Calls `onMove` for each move of the captured pointer until it's released. */
+const followPointer = (control: HTMLElement, onMove: (move: PointerEvent) => void): void => {
     // For styling: a value readout can show only while the handle is held.
     control.toggleAttribute("data-dragging", true);
-    const onMove = (move: PointerEvent): void => {
-        const travel = isVertical(control) ? start.pointer - move.clientY : move.clientX - start.pointer;
-        change(control, model.fromPosition(clamp01(start.position + travel / length)));
-    };
     const onUp = (): void => {
         control.removeAttribute("data-dragging");
         control.removeEventListener("pointermove", onMove);
@@ -79,6 +91,23 @@ const startDrag = (control: HTMLElement, event: PointerEvent): void => {
     control.addEventListener("pointermove", onMove);
     control.addEventListener("pointerup", onUp);
     control.addEventListener("pointercancel", onUp);
+};
+
+/** Starts a drag of `control`, after setting it to the press if that's on the track. */
+const startDrag = (control: HTMLElement, event: PointerEvent): void => {
+    // Stops the browser starting a text selection or drag, which would cancel this one.
+    event.preventDefault();
+    const { model } = stateOf(control);
+    if (isOnTrack(control, event)) change(control, model.fromPosition(positionAt(control, event)));
+    const { length } = travelOf(control);
+    const pointer = isVertical(control) ? event.clientY : event.clientX;
+    const position = model.toPosition(stateOf(control).value);
+    control.setPointerCapture(event.pointerId);
+    control.focus();
+    followPointer(control, (move) => {
+        const travel = isVertical(control) ? pointer - move.clientY : move.clientX - pointer;
+        change(control, model.fromPosition(clamp01(position + travel / length)));
+    });
 };
 
 /** End goes to the rest point on faders (0 dB) and the end on pan; never to a loud maximum. */
