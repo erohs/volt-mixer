@@ -66,7 +66,7 @@ const checkForUpdate = async (button: HTMLButtonElement): Promise<void> => {
 /** Once, on the first run: where the app went when its window closes. */
 const showTrayHint = (): void => {
     if (!state || state.settings.hasSeenTrayHint) return;
-    notice(trayHints[state.platform] ?? trayHints["linux"]!);
+    notice(trayHints[state.platform] ?? trayHints["linux"]!, { kind: "info" });
     void desktopApp()?.setSettings({ hasSeenTrayHint: true });
 };
 

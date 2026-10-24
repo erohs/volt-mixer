@@ -1,9 +1,9 @@
 import { isMixKey } from "../lib/mixer-sync.ts";
 import { adoptSavedMix, isMixHash, mixFromHash, toSavedMix } from "../lib/saved-mix.ts";
 import { newestSpec } from "../lib/spec.ts";
-import { app, isLive, layout } from "./app-state.ts";
+import { app, isLive, layout, notice } from "./app-state.ts";
+import type { MessageKind } from "./messages.ts";
 import { isPendingMixChange, loadMix, loadPendingMix, saveMix, savePendingMix } from "./store.ts";
-import { toast } from "./toast.ts";
 import * as volt from "./volt-connection.ts";
 
 /*
@@ -48,7 +48,7 @@ export const takeSavedMix = (): void => {
     const pendingMix = loadPendingMix();
     const savedMix = pendingMix ?? loadMix(app.serial);
     savePendingMix(null);
-    if (pendingMix) toast("Mix applied from the link.");
+    if (pendingMix) notice("Mix applied from the link.", { kind: "success" });
     if (savedMix) takeOwnership(savedMix);
     else layout();
 };
@@ -61,7 +61,13 @@ export const forgetMix = (): void => {
     layout();
 };
 
-/** Where a kept link goes next, as the toast says it. */
+/** What became of a mix link, to show where it was given (a paste box, or the notice bar). */
+export interface ILinkOutcome {
+    kind: MessageKind;
+    text: string;
+}
+
+/** Where a kept link goes next. */
 const pendingWhen = (): string => {
     if (!app.hasControl) return "Mix sent to the Volt Mixer tab that's in use.";
     const when = app.isMixPaused ? "the other Volt Mixer closes" : "the Volt connects";
@@ -72,17 +78,15 @@ const pendingWhen = (): string => {
  * A mix link (`#m=`, or an older `#mix=`): applied now if this tab drives a connected Volt,
  * otherwise kept, for when it connects or for the tab that drives it (takeLinksFromOtherTabs).
  */
-export const receiveMixLink = (link: string): boolean => {
+export const receiveMixLink = (link: string): ILinkOutcome => {
     const mix = mixFromHash(new URL(link, location.href).hash);
-    if (!mix) return (toast("That isn't a Volt Mixer mix link."), false);
+    if (!mix) return { kind: "error", text: "That isn't a Volt Mixer mix link." };
     if (volt.connectedSpec() && app.isHardwareKnown && app.hasControl && !app.isMixPaused) {
         takeOwnership(mix);
-        toast("Mix applied from the link.");
-        return true;
+        return { kind: "success", text: "Mix applied from the link." };
     }
     savePendingMix(mix);
-    toast(pendingWhen());
-    return true;
+    return { kind: "info", text: pendingWhen() };
 };
 
 /**
@@ -97,6 +101,7 @@ export const takeLinksFromOtherTabs = (): void =>
 
 export const readMixFromAddress = (): void => {
     if (!isMixHash(location.hash)) return;
-    receiveMixLink(location.href);
+    const { kind, text } = receiveMixLink(location.href);
+    notice(text, { kind });
     history.replaceState(null, "", location.pathname + location.search);
 };

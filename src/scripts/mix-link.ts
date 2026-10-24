@@ -4,7 +4,7 @@ import { site } from "../lib/site.ts";
 import { app } from "./app-state.ts";
 import { desktopApp } from "./desktop.ts";
 import { drawQr } from "./qr.ts";
-import { toast } from "./toast.ts";
+import { showMessage } from "./messages.ts";
 
 /* Settings › Your mix › Mix link: the link in a box that copies itself, and its QR code below. */
 
@@ -30,11 +30,12 @@ export const refreshMixLink = (): void => {
 
 const copy = async (input: HTMLInputElement): Promise<void> => {
     input.select();
+    const message = document.querySelector<HTMLElement>("[data-message='mix-link']");
     try {
         await navigator.clipboard.writeText(input.value);
-        toast("Mix link copied.");
+        showMessage(message, "success", "Mix link copied.");
     } catch {
-        toast("Couldn't copy it: the link is selected, so copy it with Ctrl+C.", { isInstruction: true });
+        showMessage(message, "error", "Couldn't copy it: the link is selected, so copy it with Ctrl+C.");
     }
 };
 

@@ -1,7 +1,6 @@
 import { createOtherProgram } from "../lib/other-program.ts";
 import { app, clearNotice, layout, notice } from "./app-state.ts";
 import { desktopApp } from "./desktop.ts";
-import { toast } from "./toast.ts";
 
 /*
  * Another Volt Mixer on this computer (the desktop app, or the website in another browser) drives
@@ -12,7 +11,7 @@ import { toast } from "./toast.ts";
 
 const listenMs = 3500;
 const others = createOtherProgram();
-const websiteText =
+export const pausedText =
     "Volt Mixer is also open in the desktop app or another browser, so this page leaves the mix to that one " +
     "until it closes. Levels, 48V and gain still work here.";
 const appText = "Volt Mixer is also open in a browser on this computer. The browser leaves the mix to the app.";
@@ -29,8 +28,8 @@ const isWebsite = (): boolean => desktopApp() === null;
 const showOther = (isOpen: boolean): void => {
     if (isOpen === isOtherShown) return;
     isOtherShown = isOpen;
-    const text = isWebsite() ? websiteText : appText;
-    if (isOpen) notice(text);
+    const text = isWebsite() ? pausedText : appText;
+    if (isOpen) notice(text, { kind: "info" });
     else clearNotice(text);
 };
 
@@ -46,7 +45,8 @@ export const checkOtherProgram = (): void => {
     if (isPaused) app.state.isMixOwned = false;
     if (isPaused || !isMixWaiting) return layout();
     isMixWaiting = false;
-    if (now >= listenUntil + 1000) toast("The other Volt Mixer closed, so this page's mix is back on the Volt.");
+    if (now >= listenUntil + 1000)
+        notice("The other Volt Mixer closed, so this page's mix is back on the Volt.", { kind: "info" });
     takeMix();
 };
 

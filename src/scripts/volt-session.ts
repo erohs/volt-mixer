@@ -144,7 +144,7 @@ export const identifyVolt = (): void => {
 export const wireSession = (): void => {
     volt.connectionEvents.addEventListener("report", (event) => onReport((event as CustomEvent).detail));
     volt.connectionEvents.addEventListener("sendfailed", (event) => {
-        notice((event as CustomEvent<{ message: string }>).detail.message);
+        notice((event as CustomEvent<{ message: string }>).detail.message, { kind: "error" });
         app.sync.forget(isMixKey);
         requestStateSoon();
     });

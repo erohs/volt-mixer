@@ -1,3 +1,5 @@
+import { clearMessage } from "./messages.ts";
+
 /*
  * Modal dialogs: a click on the backdrop closes them, and Tab cycles inside them, wrapping from
  * the last control back to the first (a native modal lets focus leave for the browser's own UI).
@@ -36,9 +38,14 @@ const onClick = (event: MouseEvent): void => {
     if (!isInside) dialog.close();
 };
 
+/** What the dialog's fields last said is about that visit; it starts fresh next time. */
+const clearMessages = (event: Event): void =>
+    (event.currentTarget as HTMLDialogElement).querySelectorAll<HTMLElement>("[data-message]").forEach(clearMessage);
+
 export const initDialogs = (): void => {
     for (const dialog of document.querySelectorAll<HTMLDialogElement>("dialog")) {
         dialog.addEventListener("keydown", onKeyDown);
         dialog.addEventListener("click", onClick);
+        dialog.addEventListener("close", clearMessages);
     }
 };

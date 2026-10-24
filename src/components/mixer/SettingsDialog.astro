@@ -1,6 +1,7 @@
 ---
 import Dialog from "../ui/Dialog.astro";
 import Icon from "../ui/Icon.astro";
+import InlineMessage from "../ui/InlineMessage.astro";
 import PhoneRemote from "./PhoneRemote.astro";
 import QrCode from "../ui/QrCode.astro";
 import Reveal from "../ui/Reveal.astro";
@@ -201,6 +202,7 @@ import Slider from "../ui/Slider.astro";
                     </p>
                 </QrCode>
             </Reveal>
+            <InlineMessage name="mix-link" />
         </div>
         <!-- A link from another computer, pasted here; it replaces this computer's mix (controller.ts). -->
         <form class="mix-link" data-mix-paste>
@@ -224,6 +226,7 @@ import Slider from "../ui/Slider.astro";
                     Use
                 </button>
             </div>
+            <InlineMessage name="mix-paste" />
         </form>
         <SettingRow id="push-mix" name="Apply mix" description="Send it to the Volt now.">
             <button class="button" type="button" aria-describedby="push-mix-description" data-action="push-mix">

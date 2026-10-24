@@ -28,7 +28,7 @@ import { initSliders } from "./slider.ts";
 import { clearRetiredSettings, loadTheme, loadTrayHidden } from "./store.ts";
 import { refreshStrips, renderStrips } from "./strips.ts";
 import { applyTheme } from "./theme.ts";
-import { toast, wireToast } from "./toast.ts";
+import { showMessage } from "./messages.ts";
 import * as volt from "./volt-connection.ts";
 import type { IConnectionInfo } from "./volt-connection.ts";
 import { commit, identifyVolt, rereadVolt, startAutoGain, startSession, wireSession } from "./volt-session.ts";
@@ -84,14 +84,14 @@ const warnUncheckedFirmware = (info: IConnectionInfo): void => {
     const unknown = info.isIdentified
         ? `firmware ${info.version}, which this page hasn't been checked against`
         : "unknown firmware";
+    const run = (): void => {
+        app.isSendAllowed = true;
+        notice("");
+        if (app.state.isMixOwned) pushMix();
+        refresh();
+    };
     notice(`This Volt has ${unknown}, so the page shows its settings but won't change anything.`, {
-        label: "Use anyway",
-        run: () => {
-            app.isSendAllowed = true;
-            notice("");
-            if (app.state.isMixOwned) pushMix();
-            refresh();
-        },
+        action: { label: "Use anyway", run },
     });
 };
 
@@ -113,7 +113,9 @@ const onConnected = (info: IConnectionInfo): void => {
     if (!info.isExact) warnUncheckedFirmware(info);
     window.setTimeout(() => {
         if (volt.connectedSpec() && !app.isHardwareKnown)
-            notice("Connected, but the Volt didn't send its settings. Unplug it and plug it back in.");
+            notice("Connected, but the Volt didn't send its settings. Unplug it and plug it back in.", {
+                kind: "error",
+            });
     }, 2500);
 };
 
@@ -140,7 +142,7 @@ const pageActions: Record<string, () => void> = {
             .then(
                 (result) =>
                     result === "cancelled" &&
-                    toast('No Volt was chosen. Click Connect Volt and pick "Volt 4 Gen 2".', { isInstruction: true }),
+                    notice('No Volt was chosen. Click Connect Volt and pick "Volt 4 Gen 2".', { kind: "info" }),
             ),
     disconnect: () => void volt.disconnect(),
     identify: identifyVolt,
@@ -153,11 +155,17 @@ const pageActions: Record<string, () => void> = {
     ...settingsActions,
 };
 
-/** A link pasted into Settings or the setup panel. Replacing a mix this computer has asks first. */
-const usePastedLink = (input: HTMLInputElement): void => {
+/**
+ * A link pasted into Settings or the setup panel; what became of it shows under the box. Replacing
+ * a mix this computer has asks first.
+ */
+const usePastedLink = (form: HTMLFormElement): void => {
+    const input = form.querySelector<HTMLInputElement>("[data-mix-link-input]")!;
     const question = "Replace this computer's mix with the one in the link?";
     if (app.state.isMixOwned && !window.confirm(question)) return;
-    if (receiveMixLink(input.value)) input.value = "";
+    const { kind, text } = receiveMixLink(input.value);
+    if (kind !== "error") input.value = "";
+    showMessage(form.querySelector<HTMLElement>("[data-message]"), kind, text);
 };
 
 const wirePage = (): void => {
@@ -168,7 +176,7 @@ const wirePage = (): void => {
     for (const form of document.querySelectorAll<HTMLFormElement>("[data-mix-paste]"))
         form.addEventListener("submit", (event) => {
             event.preventDefault();
-            usePastedLink(form.querySelector<HTMLInputElement>("[data-mix-link-input]")!);
+            usePastedLink(form);
         });
     window.addEventListener("hashchange", readMixFromAddress);
     takeLinksFromOtherTabs();
@@ -180,7 +188,7 @@ const wireConnection = (): void => {
         volt.connectionEvents.addEventListener(type, (event) => handler((event as CustomEvent<T>).detail));
     on("connected", onConnected);
     on("disconnected", onDisconnected);
-    on<{ message: string }>("error", ({ message }) => notice(message));
+    on<{ message: string }>("error", ({ message }) => notice(message, { kind: "error" }));
     wireSession();
 };
 
@@ -198,7 +206,6 @@ const wireViews = (): void => {
     Object.assign(hooks, { commit, layout: relayout, refresh, autoGain: startAutoGain });
     wireMixPause(takeSavedMix);
     clearRetiredSettings();
-    wireToast();
     applyTheme(loadTheme());
     initSliders(document);
     initDialogs();
@@ -215,6 +222,7 @@ export const start = (): void => {
     if (!volt.isWebHidSupported()) {
         notice(
             "This browser can't talk to USB devices. Open this page in Microsoft Edge or Google Chrome; Firefox and Safari don't support WebHID.",
+            { kind: "error" },
         );
         element<HTMLButtonElement>("[data-action='connect']").disabled = true;
         return;

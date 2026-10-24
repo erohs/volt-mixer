@@ -24,7 +24,7 @@ export const holdControlLock = (): void => {
     void locks?.request(lockName, { ifAvailable: true }, (lock) => {
         if (lock) return takeControl();
         app.hasControl = false;
-        notice(otherTabText);
+        notice(otherTabText, { kind: "info" });
         hooks.refresh();
         void locks.request(lockName, takeControl);
         return undefined;

@@ -1,0 +1,42 @@
+/*
+ * A message with its kind (src/scripts/messages.ts): the kind's icon in its colour, then the text.
+ * The colours are the ones checked for contrast against the surface in tokens.test.ts.
+ */
+.message {
+    --message-colour: var(--color-text-accent);
+
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-between-lines);
+    font-size: var(--font-size-body);
+}
+
+.message[data-kind="success"] {
+    --message-colour: var(--color-text-success);
+}
+
+.message[data-kind="warning"] {
+    --message-colour: var(--color-text-warning);
+}
+
+.message[data-kind="error"] {
+    --message-colour: var(--color-background-danger);
+}
+
+/* As tall as the first line of text, with the icon centred on it. */
+.message-icon {
+    display: inline-grid;
+    flex-shrink: 0;
+    place-items: center;
+    block-size: 1lh;
+    color: var(--message-colour);
+}
+
+/* Empty, it stays in the page (a live region must exist before it speaks) but takes no space. */
+.message:empty {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}

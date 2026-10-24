@@ -1,6 +1,7 @@
 import { defaultState } from "../lib/mixer.ts";
 import type { IMixerState } from "../lib/mixer.ts";
 import { createMixerSync } from "../lib/mixer-sync.ts";
+import { fillMessage, type MessageKind } from "./messages.ts";
 import { loadView } from "./store.ts";
 import { connectedSpec } from "./volt-connection.ts";
 
@@ -42,34 +43,49 @@ export const commit = (): void => {
 };
 export const layout = (): void => hooks.layout();
 
-/** Shows a message (with an optional action) that can always be dismissed; "" clears it. */
-export const notice = (text: string, action?: { label: string; run: () => void }): void => {
-    const region = document.querySelector<HTMLElement>("[data-notice]");
-    if (!region) return;
-    region.replaceChildren();
-    if (!text) return;
-    const message = document.createElement("p");
-    message.className = "notice-text";
-    message.textContent = text;
-    region.append(message);
-    if (action) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "button";
-        button.textContent = action.label;
-        button.addEventListener("click", action.run);
-        region.append(button);
-    }
+export interface INoticeOptions {
+    /** What sort of message it is; a warning unless said otherwise. */
+    kind?: MessageKind;
+    /** A button that does something about it. */
+    action?: { label: string; run: () => void };
+}
+
+const noticeRegion = (): HTMLElement | null => document.querySelector<HTMLElement>("[data-notice]");
+
+/** A button for the notice: its action, or Dismiss (focus then goes to the start of the content). */
+const noticeButtons = (action: INoticeOptions["action"]): HTMLButtonElement[] => {
     const template = document.querySelector<HTMLTemplateElement>("#notice-dismiss")!;
     const dismiss = template.content.firstElementChild!.cloneNode(true) as HTMLButtonElement;
-    // Focus would be lost with the button, so it goes to the start of the page's content.
     dismiss.addEventListener("click", () => (notice(""), document.querySelector<HTMLElement>("#main")?.focus()));
-    region.append(dismiss);
+    if (!action) return [dismiss];
+    const button = Object.assign(document.createElement("button"), {
+        type: "button",
+        className: "button",
+        textContent: action.label,
+    });
+    button.addEventListener("click", action.run);
+    return [button, dismiss];
+};
+
+/** Shows a message about the whole page, which can always be dismissed; "" clears it. */
+export const notice = (text: string, { kind = "warning", action }: INoticeOptions = {}): void => {
+    const region = noticeRegion();
+    if (!region) return;
+    region.replaceChildren();
+    region.dataset["text"] = text;
+    if (!text) return;
+    // Warnings and errors interrupt; news and confirmations wait their turn.
+    region.setAttribute("aria-live", kind === "warning" || kind === "error" ? "assertive" : "polite");
+    region.dataset["kind"] = kind;
+    const message = document.createElement("p");
+    message.className = "message notice-text";
+    fillMessage(message, kind, text);
+    region.append(message, ...noticeButtons(action));
 };
 
 /** Clears the notice if it's still showing `text`. */
 export const clearNotice = (text: string): void => {
-    if (document.querySelector("[data-notice] .notice-text")?.textContent === text) notice("");
+    if (noticeRegion()?.dataset["text"] === text) notice("");
 };
 
 export const setStatus = (text: string, status: "off" | "on" | "away"): void => {

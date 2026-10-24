@@ -5,6 +5,7 @@
 @import url("./base.css") layer(base);
 @import url("./button.css") layer(shared);
 @import url("./switch.css") layer(shared);
+@import url("./message.css") layer(shared);
 
 /*
  * Last layer, so anything the script hides stays hidden over the shared styles. Unlayered

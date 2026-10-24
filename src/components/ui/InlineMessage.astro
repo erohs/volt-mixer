@@ -1,0 +1,11 @@
+---
+interface Props {
+    /** Names it for the script (data-message). */
+    name: string;
+}
+
+const { name } = Astro.props;
+---
+
+<!-- What just happened with the field above it; empty until then (src/scripts/messages.ts). -->
+<p class="message" role="status" data-message={name}></p>
