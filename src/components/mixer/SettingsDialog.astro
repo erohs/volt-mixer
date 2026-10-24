@@ -10,6 +10,7 @@ import QrCode from "../ui/QrCode.astro";
 import Reveal from "../ui/Reveal.astro";
 import SettingGroup from "../ui/SettingGroup.astro";
 import SettingRow from "../ui/SettingRow.astro";
+import { site } from "../../lib/site.ts";
 import Slider from "../ui/Slider.astro";
 ---
 
@@ -185,7 +186,7 @@ import Slider from "../ui/Slider.astro";
             />
         </SettingRow>
         <PhoneRemote />
-        <SettingRow id="updates" name="Updates" description="Version">
+        <SettingRow id="updates" name="Updates" description="Asks GitHub for a newer version.">
             <button class="button" type="button" aria-describedby="updates-description" data-action="check-update">
                 Check
             </button>
@@ -239,10 +240,10 @@ import Slider from "../ui/Slider.astro";
         </SettingRow>
     </SettingGroup>
 
-    <SettingGroup id="about" title="About this Volt">
-        <p class="hint" data-device-info>
-            Not connected.
-        </p>
+    <SettingGroup id="about" title="About">
+        <SettingRow id="about-version" name="Volt Mixer" description={`Version ${site.version}`} />
+        <!-- The Volt's firmware and serial, written in when it connects (connection-view.ts). -->
+        <SettingRow id="about-volt" name="This Volt" description="Not connected." />
         <p class="hint">Sample rate and clock are set in Windows or your audio app.</p>
     </SettingGroup>
 </Dialog>

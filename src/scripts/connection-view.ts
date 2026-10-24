@@ -70,7 +70,7 @@ export const onConnected = (info: IConnectionInfo): void => {
     restartMixPause(true);
     setStatus(info.isIdentified ? `Connected · firmware ${info.version}` : "Connected · firmware unknown", "on");
     showConnection(true);
-    element("[data-device-info]").textContent = deviceText(info);
+    element("#about-volt-description").textContent = deviceText(info);
     if (!info.isExact) warnUncheckedFirmware(info);
     awaitSettings();
 };

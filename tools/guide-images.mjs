@@ -155,6 +155,7 @@ const shots = {
         zoom: 1.25,
     },
     "settings-mix": { scene: "settings", data: { ...mixer, settings, groups: ["your-mix"] }, view: tall, zoom: 1.25 },
+    "settings-about": { scene: "settings", data: { ...mixer, settings, groups: ["about"] }, view: tall, zoom: 1.25 },
 };
 
 const launch = async (profile) => {

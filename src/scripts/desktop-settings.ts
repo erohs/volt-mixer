@@ -23,7 +23,6 @@ const render = (): void => {
     // How it starts at sign-in only matters while Auto start is on.
     element.querySelector<HTMLElement>("[data-desktop-login-start]")!.hidden = !state.settings.startAtLogin;
     refreshPhone(state.settings.phoneRemote);
-    element.querySelector("#updates-description")!.textContent = `Version ${state.version}`;
     const login = element.querySelector<HTMLElement>("[data-desktop-login-status]")!;
     login.textContent = state.loginStatus;
     login.hidden = !state.loginStatus;

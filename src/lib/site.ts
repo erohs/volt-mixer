@@ -1,6 +1,13 @@
+import desktopPackage from "../../desktop/package.json" with { type: "json" };
+
 /** What the page says about itself in search results, link previews and the footer. */
 export const site = {
     name: "Volt Mixer",
+    /**
+     * Volt Mixer's version, from the desktop app's package.json (the one place it's written), as
+     * the build that made this page had it: the website and the app both show what they were built from.
+     */
+    version: desktopPackage.version,
     title: "Volt Mixer: control a UA Volt 4 Gen 2 without UAD Console",
     description:
         "Free, open-source control for the Universal Audio Volt 4 Gen 2's built-in mixer: faders, cue mixes, 48V, " +

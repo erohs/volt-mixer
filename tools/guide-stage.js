@@ -135,12 +135,12 @@
         $("[data-action='open-settings']").click();
         const dialog = $("#settings-dialog");
         $("[data-group='desktop']", dialog).hidden = false;
-        $("#updates-description", dialog).textContent = "Version 0.4.0";
         $("[data-setting='clip']", dialog).checked = true;
         setSlider($("[data-slider='brightness']", dialog), data.brightness);
         $("[data-setting='show-loopback']", dialog).checked = true;
         $("[data-mix-link]", dialog).value = data.mixLink;
-        $("[data-device-info]", dialog).textContent = "Firmware 1.0.3. Checked against firmware 1.0.3.";
+        $("#about-volt-description", dialog).textContent =
+            "Firmware 1.0.3, serial ABC1234567. Checked against firmware 1.0.3.";
         for (const key of ["closeToTray", "minimiseToTray", "startAtLogin", "dimOnSleep"])
             $(`[data-desktop='${key}']`, dialog).checked = true;
         $("[data-desktop-login-start]", dialog).hidden = false;
